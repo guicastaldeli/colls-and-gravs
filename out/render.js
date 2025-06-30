@@ -1,24 +1,38 @@
 import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
-import { initBuffers } from "./buffers.js";
+import { initBuffers, drawBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { PlayerController } from "./player-controller.js";
+import { EnvRenderer } from "./env/env-renderer.js";
 let pipeline;
 let buffers;
 let tick;
 let camera;
 let input;
 let playerController;
+let envRenderer;
 async function initShaders() {
     try {
         const [vertexShader, fragShader] = await Promise.all([
             loadShaders('./shaders/vertex.wgsl'),
             loadShaders('./shaders/frag.wgsl')
         ]);
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true
+                    }
+                }]
+        });
         pipeline = device.createRenderPipeline({
-            layout: 'auto',
+            layout: device.createPipelineLayout({
+                bindGroupLayouts: [bindGroupLayout]
+            }),
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
@@ -50,7 +64,7 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back'
+                cullMode: 'back',
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -62,6 +76,35 @@ async function initShaders() {
     catch (err) {
         console.log(err);
         throw err;
+    }
+}
+async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
+    buffers = await initBuffers(device);
+    mat4.identity(modelMatrix);
+    mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
+    const uniformBuffer = device.createBuffer({
+        size: 512,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    const bindGroupLayout = pipeline.getBindGroupLayout(0);
+    const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [{
+                binding: 0,
+                resource: {
+                    buffer: uniformBuffer,
+                    size: 64
+                }
+            }]
+    });
+    await drawBuffers(device, passEncoder, bindGroup, buffers, modelMatrix, buffers.initEnvBuffers, uniformBuffer, viewProjectionMatrix);
+    //Renderer
+    envRenderer.renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup);
+}
+async function renderer(device) {
+    if (!envRenderer) {
+        envRenderer = new EnvRenderer(device);
+        await envRenderer.init();
     }
 }
 async function loadShaders(url) {
@@ -85,20 +128,7 @@ export async function render(canvas) {
         }
         if (!pipeline)
             await initShaders();
-        buffers = await initBuffers(device);
-        const uniformBufferSize = 2 * 4 * 16;
-        const uniformBuffer = device.createBuffer({
-            size: uniformBufferSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-        const bindGroupLayout = pipeline.getBindGroupLayout(0);
-        const bindGroup = device.createBindGroup({
-            layout: bindGroupLayout,
-            entries: [{
-                    binding: 0,
-                    resource: { buffer: uniformBuffer }
-                }]
-        });
+        await renderer(device);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
@@ -123,19 +153,12 @@ export async function render(canvas) {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
-        passEncoder.setVertexBuffer(0, buffers.vertex);
-        passEncoder.setVertexBuffer(1, buffers.color);
-        passEncoder.setBindGroup(0, bindGroup);
-        passEncoder.setIndexBuffer(buffers.index, 'uint16');
-        passEncoder.drawIndexed(buffers.indexCount);
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
-        mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
-        device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix);
-        device.queue.writeBuffer(uniformBuffer, 4 * 16, modelMatrix);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

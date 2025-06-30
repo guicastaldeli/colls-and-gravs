@@ -1,67 +1,31 @@
-import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 
-import { initEnvBuffers } from "./env/env-buffers.js";
-import { EnvBufferData } from "./env/env-buffers.js";
-
-export type BufferData = {
+export type EnvBufferData = {
     vertex: GPUBuffer;
     color: GPUBuffer;
     index: GPUBuffer;
     indexCount: number;
-
-    //Env
-    initEnvBuffers: EnvBufferData;
+    modelMatrix: mat4;
 }
 
-export async function initBuffers(device: GPUDevice): Promise<BufferData> {
-    const vertexBuffer = await initVertexBuffer(device);
-    const colorBuffer = await initColorBuffer(device);
-    const { buffer: indexBuffer, count: indexCount } = await initIndexBuffer(device);
+export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> {
+    const vertexBuffer = await initEnvVertexBuffer(device);
+    const colorBuffer = await initEnvColorBuffer(device);
+    const { buffer: indexBuffer, count: indexCount } = await initEnvIndexBuffer(device);
 
-    //Env
-    const initEnvBuffersData = await initEnvBuffers(device);
+    const modelMatrix = mat4.create();
+    mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
 
     return {
         vertex: vertexBuffer,
         color: colorBuffer,
         index: indexBuffer,
         indexCount: indexCount,
-        initEnvBuffers: initEnvBuffersData
+        modelMatrix: modelMatrix
     }
 }
 
-export async function drawBuffers(
-    device: GPUDevice,
-    passEncoder: GPURenderPassEncoder,
-    bindGroup: GPUBindGroup,
-    buffers: BufferData,
-    mainModelMatrix: mat4,
-    envBuffers: EnvBufferData,
-    uniformBuffer: GPUBuffer,
-    viewProjectionMatrix: mat4,
-): Promise<void> {
-    //Main
-    const main = mat4.create();
-    mat4.multiply(main, viewProjectionMatrix, mainModelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, main as Float32Array);
-    passEncoder.setVertexBuffer(0, buffers.vertex);
-    passEncoder.setVertexBuffer(1, buffers.color);
-    passEncoder.setBindGroup(0, bindGroup, [0]);
-    passEncoder.setIndexBuffer(buffers.index, 'uint16');
-    passEncoder.drawIndexed(buffers.indexCount);
-
-    //Env
-    const env = mat4.create();
-    mat4.multiply(env, viewProjectionMatrix, envBuffers.modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 256, env as Float32Array);
-    passEncoder.setVertexBuffer(0, envBuffers.vertex);
-    passEncoder.setVertexBuffer(1, envBuffers.color);
-    passEncoder.setBindGroup(0, bindGroup, [256]);
-    passEncoder.setIndexBuffer(envBuffers.index, 'uint16');
-    passEncoder.drawIndexed(envBuffers.indexCount);
-}
-
-async function initIndexBuffer(device: GPUDevice): Promise<{ buffer:GPUBuffer, count: number }> {
+async function initEnvIndexBuffer(device: GPUDevice): Promise<{ buffer:GPUBuffer, count: number }> {
     const indices = new Uint16Array([
         0, 1, 2, 0, 2, 3,
         4, 5, 6, 4, 6, 7,
@@ -82,7 +46,7 @@ async function initIndexBuffer(device: GPUDevice): Promise<{ buffer:GPUBuffer, c
     return { buffer: indexBuffer, count: indices.length }
 }
 
-async function initVertexBuffer(device: GPUDevice): Promise<GPUBuffer> {
+async function initEnvVertexBuffer(device: GPUDevice): Promise<GPUBuffer> {
     const vertices = new Float32Array([
         -0.5, -0.5,  0.5,
         0.5, -0.5,  0.5,
@@ -126,7 +90,7 @@ async function initVertexBuffer(device: GPUDevice): Promise<GPUBuffer> {
     return vertexBuffer;
 }
 
-async function initColorBuffer(device: GPUDevice): Promise<GPUBuffer> {
+async function initEnvColorBuffer(device: GPUDevice): Promise<GPUBuffer> {
     const colors = new Float32Array([
         1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,

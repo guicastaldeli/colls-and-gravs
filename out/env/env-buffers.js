@@ -1,40 +1,19 @@
-import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
-import { initEnvBuffers } from "./env/env-buffers.js";
-export async function initBuffers(device) {
-    const vertexBuffer = await initVertexBuffer(device);
-    const colorBuffer = await initColorBuffer(device);
-    const { buffer: indexBuffer, count: indexCount } = await initIndexBuffer(device);
-    //Env
-    const initEnvBuffersData = await initEnvBuffers(device);
+import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+export async function initEnvBuffers(device) {
+    const vertexBuffer = await initEnvVertexBuffer(device);
+    const colorBuffer = await initEnvColorBuffer(device);
+    const { buffer: indexBuffer, count: indexCount } = await initEnvIndexBuffer(device);
+    const modelMatrix = mat4.create();
+    mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
     return {
         vertex: vertexBuffer,
         color: colorBuffer,
         index: indexBuffer,
         indexCount: indexCount,
-        initEnvBuffers: initEnvBuffersData
+        modelMatrix: modelMatrix
     };
 }
-export async function drawBuffers(device, passEncoder, bindGroup, buffers, mainModelMatrix, envBuffers, uniformBuffer, viewProjectionMatrix) {
-    //Main
-    const main = mat4.create();
-    mat4.multiply(main, viewProjectionMatrix, mainModelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, main);
-    passEncoder.setVertexBuffer(0, buffers.vertex);
-    passEncoder.setVertexBuffer(1, buffers.color);
-    passEncoder.setBindGroup(0, bindGroup, [0]);
-    passEncoder.setIndexBuffer(buffers.index, 'uint16');
-    passEncoder.drawIndexed(buffers.indexCount);
-    //Env
-    const env = mat4.create();
-    mat4.multiply(env, viewProjectionMatrix, envBuffers.modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 256, env);
-    passEncoder.setVertexBuffer(0, envBuffers.vertex);
-    passEncoder.setVertexBuffer(1, envBuffers.color);
-    passEncoder.setBindGroup(0, bindGroup, [256]);
-    passEncoder.setIndexBuffer(envBuffers.index, 'uint16');
-    passEncoder.drawIndexed(envBuffers.indexCount);
-}
-async function initIndexBuffer(device) {
+async function initEnvIndexBuffer(device) {
     const indices = new Uint16Array([
         0, 1, 2, 0, 2, 3,
         4, 5, 6, 4, 6, 7,
@@ -52,7 +31,7 @@ async function initIndexBuffer(device) {
     indexBuffer.unmap();
     return { buffer: indexBuffer, count: indices.length };
 }
-async function initVertexBuffer(device) {
+async function initEnvVertexBuffer(device) {
     const vertices = new Float32Array([
         -0.5, -0.5, 0.5,
         0.5, -0.5, 0.5,
@@ -88,7 +67,7 @@ async function initVertexBuffer(device) {
     vertexBuffer.unmap();
     return vertexBuffer;
 }
-async function initColorBuffer(device) {
+async function initEnvColorBuffer(device) {
     const colors = new Float32Array([
         1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
