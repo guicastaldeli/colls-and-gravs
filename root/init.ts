@@ -5,13 +5,18 @@ export const context = <GPUCanvasContext>(canvas.getContext('webgpu'));
 export let device: GPUDevice;
 
 function resize(): void {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    document.addEventListener('resize', resize);
+    const width = window.innerWidth * window.devicePixelRatio;
+    const height = window.innerHeight * window.devicePixelRatio;
+    canvas.width = width;
+    canvas.height = height;
+    
+    window.addEventListener('resize', resize);
 }
 
 async function config(): Promise<void> {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
     if(!navigator.gpu) throw new Error('err WebGPU');
 
     const adapter = await navigator.gpu.requestAdapter();
@@ -28,8 +33,9 @@ async function config(): Promise<void> {
 
 async function init(): Promise<void> {
     resize();
+
     await config();
-    await render();
+    await render(canvas);
 }
 
 init();

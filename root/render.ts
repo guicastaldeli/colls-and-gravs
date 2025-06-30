@@ -31,7 +31,7 @@ async function initShaders(): Promise<void> {
                         attributes: [{
                             shaderLocation: 1,
                             offset: 0,
-                            format: 'float32x2'
+                            format: 'float32x3'
                         }]
                     }
                 ]
@@ -59,7 +59,7 @@ async function loadShaders(url: string): Promise<GPUShaderModule> {
     return device.createShaderModule({ code });
 }
 
-export async function render() {
+export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         if(!pipeline) await initShaders();
         buffers = await initBuffers(device);
@@ -77,6 +77,7 @@ export async function render() {
         }
     
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
@@ -84,7 +85,7 @@ export async function render() {
         passEncoder.end();
     
         device.queue.submit([ commandEncoder.finish() ]);
-        requestAnimationFrame(render);
+        requestAnimationFrame(() => render);
     } catch(err) {
         console.log(err);
         throw err;

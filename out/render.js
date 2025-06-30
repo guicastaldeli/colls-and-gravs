@@ -37,7 +37,7 @@ function initShaders() {
                             attributes: [{
                                     shaderLocation: 1,
                                     offset: 0,
-                                    format: 'float32x2'
+                                    format: 'float32x3'
                                 }]
                         }
                     ]
@@ -67,7 +67,7 @@ function loadShaders(url) {
         return device.createShaderModule({ code });
     });
 }
-export function render() {
+export function render(canvas) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (!pipeline)
@@ -84,13 +84,14 @@ export function render() {
                     }]
             };
             const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+            passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoder.setPipeline(pipeline);
             passEncoder.setVertexBuffer(0, buffers.vertex);
             passEncoder.setVertexBuffer(1, buffers.color);
             passEncoder.draw(6),
                 passEncoder.end();
             device.queue.submit([commandEncoder.finish()]);
-            requestAnimationFrame(render);
+            requestAnimationFrame(() => render);
         }
         catch (err) {
             console.log(err);
