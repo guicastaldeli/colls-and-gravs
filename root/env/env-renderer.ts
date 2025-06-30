@@ -7,7 +7,7 @@ export class EnvRenderer {
     private device: GPUDevice;
 
     //Items
-    private ground?: Ground;
+    public ground!: Ground;
 
     constructor(device: GPUDevice,) {
         this.device = device;
@@ -20,12 +20,21 @@ export class EnvRenderer {
         bindGroup: GPUBindGroup
     ): Promise<void> {
         //Ground
-            if(!this.ground) return;
+            const blocks = this.ground.getBlocks();
 
-            const groundTiles = this.ground.getTiles();
+            for(let i = 0; i < blocks.length; i++) {
+                const data = blocks[i];
+                const num = 256;
+                const offset = num * (i + 1);
 
-            for(const tile of groundTiles) {
-                await this.drawObject(passEncoder, tile, uniformBuffer, viewProjectionMatrix, bindGroup);
+                await this.drawObject(
+                    passEncoder, 
+                    data, 
+                    uniformBuffer, 
+                    viewProjectionMatrix, 
+                    bindGroup, 
+                    offset
+                );
             }
         //
     }
@@ -35,16 +44,17 @@ export class EnvRenderer {
         buffers: EnvBufferData,
         uniformBuffer: GPUBuffer,
         viewProjectionMatrix: mat4,
-        bindGroup: GPUBindGroup
+        bindGroup: GPUBindGroup,
+        offset: number
     ): Promise<void> {
         const mvpMatrix = mat4.create();
         mat4.multiply(mvpMatrix, viewProjectionMatrix, buffers.modelMatrix);
-        this.device.queue.writeBuffer(uniformBuffer, 256, mvpMatrix as ArrayBuffer);
+        this.device.queue.writeBuffer(uniformBuffer, offset, mvpMatrix as ArrayBuffer);
 
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
         passEncoder.setIndexBuffer(buffers.index, 'uint16');
-        passEncoder.setBindGroup(0, bindGroup, [256]);
+        passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.drawIndexed(buffers.indexCount);
     }
 

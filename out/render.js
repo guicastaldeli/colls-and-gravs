@@ -1,6 +1,6 @@
 import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
-import { initBuffers, drawBuffers } from "./buffers.js";
+import { initBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
@@ -25,7 +25,8 @@ async function initShaders() {
                     visibility: GPUShaderStage.VERTEX,
                     buffer: {
                         type: 'uniform',
-                        hasDynamicOffset: true
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
                     }
                 }]
         });
@@ -65,6 +66,7 @@ async function initShaders() {
             primitive: {
                 topology: 'triangle-list',
                 cullMode: 'back',
+                frontFace: 'ccw'
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -82,8 +84,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
+    const envBuffers = [buffers.initEnvBuffers, ...envRenderer.ground.getBlocks()];
     const uniformBuffer = device.createBuffer({
-        size: 512,
+        size: 256 * (1 + envBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -93,13 +96,23 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 binding: 0,
                 resource: {
                     buffer: uniformBuffer,
-                    size: 64
+                    size: 256
                 }
             }]
     });
-    await drawBuffers(device, passEncoder, bindGroup, buffers, modelMatrix, buffers.initEnvBuffers, uniformBuffer, viewProjectionMatrix);
-    //Renderer
-    envRenderer.renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup);
+    passEncoder.setPipeline(pipeline);
+    for (let i = 0; i < envBuffers.length; i++) {
+        const data = envBuffers[i];
+        const offset = 256 * i;
+        const mvp = mat4.create();
+        mat4.multiply(mvp, viewProjectionMatrix, i === 0 ? modelMatrix : envBuffers[i].modelMatrix);
+        device.queue.writeBuffer(uniformBuffer, offset, mvp);
+        passEncoder.setVertexBuffer(0, data.vertex);
+        passEncoder.setVertexBuffer(1, data.color);
+        passEncoder.setIndexBuffer(data.index, 'uint16');
+        passEncoder.setBindGroup(0, bindGroup, [offset]);
+        passEncoder.drawIndexed(data.indexCount);
+    }
 }
 async function renderer(device) {
     if (!envRenderer) {

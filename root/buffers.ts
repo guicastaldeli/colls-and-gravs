@@ -36,32 +36,42 @@ export async function drawBuffers(
     bindGroup: GPUBindGroup,
     buffers: BufferData,
     mainModelMatrix: mat4,
-    envBuffers: EnvBufferData,
+    envBuffers: EnvBufferData[],
     uniformBuffer: GPUBuffer,
     viewProjectionMatrix: mat4,
 ): Promise<void> {
     //Main
     const main = mat4.create();
     mat4.multiply(main, viewProjectionMatrix, mainModelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, main as Float32Array);
+    const mainBuffer = new Float32Array(64);
+    mainBuffer.set(main);
+
+    device.queue.writeBuffer(uniformBuffer, 0, mainBuffer);
     passEncoder.setVertexBuffer(0, buffers.vertex);
     passEncoder.setVertexBuffer(1, buffers.color);
     passEncoder.setBindGroup(0, bindGroup, [0]);
     passEncoder.setIndexBuffer(buffers.index, 'uint16');
     passEncoder.drawIndexed(buffers.indexCount);
 
+    const maxBlocks = Math.floor(uniformBuffer.size / 256) - 1;
+    const blocksToRender = Math.min(envBuffers.length, maxBlocks);
     //Env
-    const env = mat4.create();
-    mat4.multiply(env, viewProjectionMatrix, envBuffers.modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 256, env as Float32Array);
-    passEncoder.setVertexBuffer(0, envBuffers.vertex);
-    passEncoder.setVertexBuffer(1, envBuffers.color);
-    passEncoder.setBindGroup(0, bindGroup, [256]);
-    passEncoder.setIndexBuffer(envBuffers.index, 'uint16');
-    passEncoder.drawIndexed(envBuffers.indexCount);
+    for(let i = 0; i < blocksToRender; i++) {
+        const env = mat4.create();
+        const envBuffer = envBuffers[i];
+        mat4.multiply(env, viewProjectionMatrix, envBuffer.modelMatrix);
+        const offset = 256 * (i + 1);
+    
+        device.queue.writeBuffer(uniformBuffer, offset, env as Float32Array);
+        passEncoder.setVertexBuffer(0, envBuffer.vertex);
+        passEncoder.setVertexBuffer(1, envBuffer.color);
+        passEncoder.setBindGroup(0, bindGroup, [offset]);
+        passEncoder.setIndexBuffer(envBuffer.index, 'uint16');
+        passEncoder.drawIndexed(envBuffer.indexCount);
+    }
 }
 
-async function initIndexBuffer(device: GPUDevice): Promise<{ buffer:GPUBuffer, count: number }> {
+async function initIndexBuffer(device: GPUDevice): Promise<{ buffer: GPUBuffer, count: number }> {
     const indices = new Uint16Array([
         0, 1, 2, 0, 2, 3,
         4, 5, 6, 4, 6, 7,
