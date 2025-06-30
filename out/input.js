@@ -1,8 +1,7 @@
 export class Input {
-    lastX = 0;
-    lastY = 0;
-    firstMouse = true;
     lastTime = 0;
+    firstMouse = true;
+    isPointerLocked = false;
     setupInputControls(canvas, camera) {
         const keys = {};
         window.addEventListener('keydown', (e) => {
@@ -12,42 +11,56 @@ export class Input {
             keys[e.key.toLowerCase()] = false;
         });
         canvas.addEventListener('mousemove', (e) => {
-            if (this.firstMouse) {
-                this.lastX = e.clientX;
-                this.lastY = e.clientY;
-                const xOffset = e.clientX - this.lastX;
-                const yOffset = this.lastY - e.clientY;
-                this.lastX = e.clientX;
-                this.lastY = e.clientY;
+            if (this.isPointerLocked) {
+                const xOffset = e.movementX;
+                const yOffset = -e.movementY;
                 camera.setMouseMove(xOffset, yOffset);
             }
         });
-        this.update(camera, keys);
-        requestAnimationFrame(() => this.update);
+        canvas.addEventListener('click', () => {
+            canvas.requestPointerLock = canvas.requestPointerLock;
+            canvas.requestPointerLock();
+        });
+        document.addEventListener('pointerlockchange', this.onPointerLock.bind(this, canvas, camera));
+        this.lastTime = performance.now();
+        this.initLoop(camera, keys);
+    }
+    onPointerLock(canvas, camera) {
+        this.isPointerLocked = document.pointerLockElement === canvas;
+        if (this.isPointerLocked)
+            this.firstMouse = true;
     }
     update(camera, keys, time) {
         if (!time)
             return;
-        const deltaTime = (time / this.lastTime) / 1000;
+        const deltaTime = (time - this.lastTime) / 1000;
         this.lastTime = time;
-        Object.entries(keys).forEach(([keys, isPressed]) => {
-            if (!isPressed)
-                return;
-            switch (keys.toLowerCase()) {
-                case keys['W']:
-                    camera.setKeyboard('FORWARD', deltaTime);
-                    break;
-                case keys['S']:
-                    camera.setKeyboard('BACKWARD', deltaTime);
-                    break;
-                case keys['A']:
-                    camera.setKeyboard('LEFT', deltaTime);
-                    break;
-                case keys['D']:
-                    camera.setKeyboard('RIGHT', deltaTime);
-                    break;
+        for (const key in keys) {
+            if (keys[key]) {
+                switch (key.toLowerCase()) {
+                    case 'w':
+                        camera.setKeyboard('FORWARD', deltaTime);
+                        break;
+                    case 's':
+                        camera.setKeyboard('BACKWARD', deltaTime);
+                        break;
+                    case 'a':
+                        camera.setKeyboard('LEFT', deltaTime);
+                        break;
+                    case 'd':
+                        camera.setKeyboard('RIGHT', deltaTime);
+                        break;
+                }
             }
-        });
+        }
+        ;
         requestAnimationFrame(() => this.update);
+    }
+    initLoop(camera, keys) {
+        const loop = (time) => {
+            this.update(camera, keys, time);
+            requestAnimationFrame(loop);
+        };
+        loop(performance.now());
     }
 }

@@ -27,11 +27,11 @@ async function initShaders(): Promise<void> {
                 entryPoint: 'main',
                 buffers: [
                     {
-                        arrayStride: 2 * 4,
+                        arrayStride: 3 * 4,
                         attributes: [{
                             shaderLocation: 0,
                             offset: 0,
-                            format: 'float32x2'
+                            format: 'float32x3'
                         }]
                     },
                     {
@@ -52,7 +52,13 @@ async function initShaders(): Promise<void> {
                 }]
             },
             primitive: {
-                topology: 'triangle-list'
+                topology: 'triangle-list',
+                cullMode: 'back'
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus'
             }
         });
     } catch(err) {
@@ -77,7 +83,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!pipeline) await initShaders();
         buffers = await initBuffers(device);
 
-        const uniformBufferSize = 4 * 16;
+        const uniformBufferSize = 2 * 4 * 16;
         const uniformBuffer = device.createBuffer({
             size: uniformBufferSize,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -91,6 +97,12 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 resource: { buffer: uniformBuffer }
             }]
         });
+
+        const depthTexture = device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
     
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
@@ -101,7 +113,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                 loadOp: 'clear',
                 storeOp: 'store'
-            }]
+            }],
+            depthStencilAttachment: {
+                view: depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            }
         }
     
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -110,16 +128,21 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
         passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setIndexBuffer(buffers.index, 'uint16');
+        passEncoder.drawIndexed(buffers.indexCount);
 
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
+
+        const modelMatrix = mat4.create();
+        mat4.rotateY(modelMatrix, modelMatrix, performance.now() / 1000);
+
         device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix as Float32Array);
-        
-        passEncoder.draw(6),
-        passEncoder.end();
-    
+        device.queue.writeBuffer(uniformBuffer, 4 * 16, modelMatrix as Float32Array);
+
+        passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
         requestAnimationFrame(() => render(canvas));
     } catch(err) {

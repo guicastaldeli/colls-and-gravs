@@ -1,9 +1,12 @@
+import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
 import { initBuffers } from "./buffers.js";
 import { Camera } from "./camera.js";
+import { Input } from "./input.js";
 let pipeline;
 let buffers;
 let camera;
+let input;
 async function initShaders() {
     try {
         const [vertexShader, fragShader] = await Promise.all([
@@ -17,11 +20,11 @@ async function initShaders() {
                 entryPoint: 'main',
                 buffers: [
                     {
-                        arrayStride: 2 * 4,
+                        arrayStride: 3 * 4,
                         attributes: [{
                                 shaderLocation: 0,
                                 offset: 0,
-                                format: 'float32x2'
+                                format: 'float32x3'
                             }]
                     },
                     {
@@ -42,7 +45,13 @@ async function initShaders() {
                     }]
             },
             primitive: {
-                topology: 'triangle-list'
+                topology: 'triangle-list',
+                cullMode: 'back'
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus'
             }
         });
     }
@@ -60,9 +69,31 @@ export async function render(canvas) {
     try {
         if (!camera)
             camera = new Camera();
+        if (!input) {
+            input = new Input();
+            input.setupInputControls(canvas, camera);
+        }
         if (!pipeline)
             await initShaders();
         buffers = await initBuffers(device);
+        const uniformBufferSize = 2 * 4 * 16;
+        const uniformBuffer = device.createBuffer({
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const bindGroupLayout = pipeline.getBindGroupLayout(0);
+        const bindGroup = device.createBindGroup({
+            layout: bindGroupLayout,
+            entries: [{
+                    binding: 0,
+                    resource: { buffer: uniformBuffer }
+                }]
+        });
+        const depthTexture = device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
         const renderPassDescriptor = {
@@ -71,19 +102,33 @@ export async function render(canvas) {
                     clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store'
-                }]
+                }],
+            depthStencilAttachment: {
+                view: depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            }
         };
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setIndexBuffer(buffers.index, 'uint16');
+        passEncoder.drawIndexed(buffers.indexCount);
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
-        passEncoder.draw(6),
-            passEncoder.end();
+        const viewProjectionMatrix = mat4.create();
+        mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
+        const modelMatrix = mat4.create();
+        mat4.rotateY(modelMatrix, modelMatrix, performance.now() / 1000);
+        device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix);
+        device.queue.writeBuffer(uniformBuffer, 4 * 16, modelMatrix);
+        passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        requestAnimationFrame(() => render);
+        requestAnimationFrame(() => render(canvas));
     }
     catch (err) {
         console.log(err);

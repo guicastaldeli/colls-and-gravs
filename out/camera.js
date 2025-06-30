@@ -4,7 +4,7 @@ export class Camera {
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;
-    _worldUp;
+    _worldUp = vec3.fromValues(0, 1, 0);
     yaw = -90;
     pitch = 0;
     _movSpeed = 2.5;
@@ -13,12 +13,13 @@ export class Camera {
     projectionMatrix;
     _fov = 90;
     constructor(_position, _forward, _up, yaw, pitch) {
-        this._position = _position || vec3.fromValues(0, 0, 0);
-        this._worldUp = _up || vec3.fromValues(0, 0, 0);
-        this.yaw = yaw || 0;
-        this.pitch = pitch || 0;
-        this._forward = _forward || vec3.fromValues(0, 0, 0);
+        this._position = _position ? vec3.clone(_position) : this._position;
+        this._forward = _forward ? vec3.clone(this._forward) : this._forward;
+        this._up = _up ? vec3.clone(_up) : this._up;
         this._right = vec3.create();
+        this._worldUp = _up ? vec3.clone(_up) : this._worldUp;
+        this.yaw = yaw !== undefined ? yaw : this.yaw;
+        this.pitch = pitch !== undefined ? pitch : this.pitch;
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
         this.updateCameraVectors();
@@ -29,8 +30,10 @@ export class Camera {
         forward[1] = Math.sin(this.pitch * Math.PI / 180);
         forward[2] = Math.sin(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
         vec3.normalize(this._forward, forward);
-        vec3.normalize(this._forward, vec3.cross(vec3.create(), this._forward, this._worldUp));
-        vec3.normalize(this._up, vec3.cross(vec3.create(), this._right, this._forward));
+        vec3.cross(this._right, this._forward, this._worldUp);
+        vec3.normalize(this._right, this._right);
+        vec3.cross(this._up, this._right, this._forward);
+        vec3.normalize(this._up, this._up);
     }
     getViewMatrix() {
         const target = vec3.create();

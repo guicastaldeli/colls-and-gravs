@@ -1,10 +1,7 @@
 import { Camera } from "./camera.js";
 
 export class Input {
-    private lastX: number = 0;
-    private lastY: number = 0;
     private lastTime: number = 0;
-
     private firstMouse: boolean = true;
     private isPointerLocked: boolean = false;
 

@@ -71,8 +71,6 @@ export class Camera {
         if(direction === 'BACKWARD') vec3.scaleAndAdd(this._position, this._position, this._forward, -velocity);
         if(direction === 'LEFT') vec3.scaleAndAdd(this._position, this._position, this._right, -velocity);
         if(direction === 'RIGHT') vec3.scaleAndAdd(this._position, this._position, this._right, velocity);
-
-        console.log(direction);
     }
 
     public setMouseMove(
