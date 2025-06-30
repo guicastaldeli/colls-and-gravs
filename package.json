@@ -13,6 +13,7 @@
   "description": "Hello World!",
   "main": "./config/main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "gui",

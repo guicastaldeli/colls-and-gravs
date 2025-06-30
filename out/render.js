@@ -8,9 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { context, device } from "./init.js";
-import { initVertexBuffer } from "./buffers.js";
+import { initBuffers } from "./buffers.js";
 let pipeline;
-let vertexBuffer;
+let buffers;
 function initShaders() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -23,14 +23,24 @@ function initShaders() {
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
-                    buffers: [{
+                    buffers: [
+                        {
                             arrayStride: 2 * 4,
                             attributes: [{
                                     shaderLocation: 0,
                                     offset: 0,
                                     format: 'float32x2'
                                 }]
-                        }]
+                        },
+                        {
+                            arrayStride: 3 * 4,
+                            attributes: [{
+                                    shaderLocation: 1,
+                                    offset: 0,
+                                    format: 'float32x2'
+                                }]
+                        }
+                    ]
                 },
                 fragment: {
                     module: fragShader,
@@ -61,9 +71,8 @@ export function render() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (!pipeline)
-                console.log('tst');
-            yield initShaders();
-            vertexBuffer = yield initVertexBuffer(device);
+                yield initShaders();
+            buffers = yield initBuffers(device);
             const commandEncoder = device.createCommandEncoder();
             const textureView = context.getCurrentTexture().createView();
             const renderPassDescriptor = {
@@ -76,7 +85,8 @@ export function render() {
             };
             const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
             passEncoder.setPipeline(pipeline);
-            passEncoder.setVertexBuffer(0, vertexBuffer);
+            passEncoder.setVertexBuffer(0, buffers.vertex);
+            passEncoder.setVertexBuffer(1, buffers.color);
             passEncoder.draw(6),
                 passEncoder.end();
             device.queue.submit([commandEncoder.finish()]);

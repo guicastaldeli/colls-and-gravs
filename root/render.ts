@@ -1,8 +1,9 @@
 import { context, device } from "./init.js";
-import { initVertexBuffer } from "./buffers.js";
+import { BufferData } from "./buffers.js";
+import { initBuffers } from "./buffers.js";
 
 let pipeline: GPURenderPipeline;
-let vertexBuffer: GPUBuffer;
+let buffers: BufferData;
 
 async function initShaders(): Promise<void> {
     try {
@@ -16,14 +17,24 @@ async function initShaders(): Promise<void> {
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
-                buffers: [{
-                    arrayStride: 2 * 4,
-                    attributes: [{
-                        shaderLocation: 0,
-                        offset: 0,
-                        format: 'float32x2'
-                    }]
-                }]
+                buffers: [
+                    {
+                        arrayStride: 2 * 4,
+                        attributes: [{
+                            shaderLocation: 0,
+                            offset: 0,
+                            format: 'float32x2'
+                        }]
+                    },
+                    {
+                        arrayStride: 3 * 4,
+                        attributes: [{
+                            shaderLocation: 1,
+                            offset: 0,
+                            format: 'float32x2'
+                        }]
+                    }
+                ]
             },
             fragment: {
                 module: fragShader,
@@ -50,9 +61,8 @@ async function loadShaders(url: string): Promise<GPUShaderModule> {
 
 export async function render() {
     try {
-        if(!pipeline) console.log('tst');
-        await initShaders();
-        vertexBuffer = await initVertexBuffer(device);
+        if(!pipeline) await initShaders();
+        buffers = await initBuffers(device);
     
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
@@ -67,8 +77,9 @@ export async function render() {
         }
     
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(pipeline!);
-        passEncoder.setVertexBuffer(0, vertexBuffer);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setVertexBuffer(0, buffers.vertex);
+        passEncoder.setVertexBuffer(1, buffers.color);
         passEncoder.draw(6),
         passEncoder.end();
     
