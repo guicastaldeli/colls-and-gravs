@@ -1,13 +1,17 @@
+import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
+
 import { context, device } from "./init.js";
 import { BufferData } from "./buffers.js";
 import { initBuffers } from "./buffers.js";
 
 import { Camera } from "./camera.js";
+import { Input } from "./input.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
 
 let camera: Camera;
+let input: Input;
 
 async function initShaders(): Promise<void> {
     try {
@@ -66,8 +70,27 @@ async function loadShaders(url: string): Promise<GPUShaderModule> {
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         if(!camera) camera = new Camera();
+        if(!input) {
+            input = new Input();
+            input.setupInputControls(canvas, camera);
+        }
         if(!pipeline) await initShaders();
         buffers = await initBuffers(device);
+
+        const uniformBufferSize = 4 * 16;
+        const uniformBuffer = device.createBuffer({
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        const bindGroupLayout = pipeline.getBindGroupLayout(0);
+        const bindGroup = device.createBindGroup({
+            layout: bindGroupLayout,
+            entries: [{
+                binding: 0,
+                resource: { buffer: uniformBuffer }
+            }]
+        });
     
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
@@ -86,15 +109,19 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         passEncoder.setPipeline(pipeline);
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
+        passEncoder.setBindGroup(0, bindGroup);
 
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
+        const viewProjectionMatrix = mat4.create();
+        mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
+        device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix as Float32Array);
         
         passEncoder.draw(6),
         passEncoder.end();
     
         device.queue.submit([ commandEncoder.finish() ]);
-        requestAnimationFrame(() => render);
+        requestAnimationFrame(() => render(canvas));
     } catch(err) {
         console.log(err);
         throw err;

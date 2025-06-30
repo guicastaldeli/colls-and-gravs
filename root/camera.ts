@@ -5,7 +5,7 @@ export class Camera {
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;
-    private _worldUp: vec3;
+    private _worldUp: vec3 = vec3.fromValues(0, 1, 0);
 
     private yaw: number = -90;
     private pitch: number = 0;
@@ -24,12 +24,14 @@ export class Camera {
         yaw?: number,
         pitch?: number
     ) {
-        this._position = _position || vec3.fromValues(0, 0, 0);
-        this._worldUp = _up || vec3.fromValues(0, 0, 0);
-        this.yaw = yaw || 0;
-        this.pitch = pitch || 0;
-        this._forward = _forward || vec3.fromValues(0, 0, 0);
+        this._position = _position ? vec3.clone(_position) : this._position;
+        this._forward = _forward ? vec3.clone(this._forward) : this._forward;
+        this._up = _up ? vec3.clone(_up) : this._up;
         this._right = vec3.create();
+        this._worldUp = _up ? vec3.clone(_up) : this._worldUp;
+        
+        this.yaw = yaw !== undefined ? yaw : this.yaw;
+        this.pitch = pitch !== undefined ? pitch : this.pitch;
 
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
@@ -44,8 +46,10 @@ export class Camera {
         forward[2] = Math.sin(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
 
         vec3.normalize(this._forward, forward);
-        vec3.normalize(this._forward, vec3.cross(vec3.create(), this._forward, this._worldUp));
-        vec3.normalize(this._up, vec3.cross(vec3.create(), this._right, this._forward));
+        vec3.cross(this._right, this._forward, this._worldUp);
+        vec3.normalize(this._right, this._right);
+        vec3.cross(this._up, this._right, this._forward);
+        vec3.normalize(this._up, this._up);
     }
 
     public getViewMatrix(): mat4 {
@@ -67,6 +71,8 @@ export class Camera {
         if(direction === 'BACKWARD') vec3.scaleAndAdd(this._position, this._position, this._forward, -velocity);
         if(direction === 'LEFT') vec3.scaleAndAdd(this._position, this._position, this._right, -velocity);
         if(direction === 'RIGHT') vec3.scaleAndAdd(this._position, this._position, this._right, velocity);
+
+        console.log(direction);
     }
 
     public setMouseMove(
