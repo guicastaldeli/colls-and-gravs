@@ -4,14 +4,18 @@ import { context, device } from "./init.js";
 import { BufferData } from "./buffers.js";
 import { initBuffers } from "./buffers.js";
 
+import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
+import { PlayerController } from "./player-controller.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
 
+let tick: Tick;
 let camera: Camera;
 let input: Input;
+let playerController: PlayerController;
 
 async function initShaders(): Promise<void> {
     try {
@@ -75,38 +79,43 @@ async function loadShaders(url: string): Promise<GPUShaderModule> {
 
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
-        if(!camera) camera = new Camera();
+        const currentTime = performance.now();
+        if(!tick) tick = new Tick();
+        tick.update(currentTime);
+
+        if(!playerController) playerController = new PlayerController();
+        if(!camera) camera = new Camera(playerController);
         if(!input) {
-            input = new Input();
-            input.setupInputControls(canvas, camera);
+            input = new Input(camera, playerController);
+            input.setupInputControls(canvas);
         }
         if(!pipeline) await initShaders();
         buffers = await initBuffers(device);
 
         const uniformBufferSize = 2 * 4 * 16;
         const uniformBuffer = device.createBuffer({
-            size: uniformBufferSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                size: uniformBufferSize,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
-
+            
         const bindGroupLayout = pipeline.getBindGroupLayout(0);
         const bindGroup = device.createBindGroup({
             layout: bindGroupLayout,
             entries: [{
                 binding: 0,
                 resource: { buffer: uniformBuffer }
-            }]
+                }]
         });
-
+            
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
-    
+        
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
-    
+        
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [{
                 view: textureView,
@@ -121,7 +130,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 depthStoreOp: 'store'
             }
         }
-    
+        
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -130,18 +139,18 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         passEncoder.setBindGroup(0, bindGroup);
         passEncoder.setIndexBuffer(buffers.index, 'uint16');
         passEncoder.drawIndexed(buffers.indexCount);
-
+    
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-
+    
         const modelMatrix = mat4.create();
-        mat4.rotateY(modelMatrix, modelMatrix, performance.now() / 1000);
-
+        mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
+    
         device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix as Float32Array);
         device.queue.writeBuffer(uniformBuffer, 4 * 16, modelMatrix as Float32Array);
-
+    
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
         requestAnimationFrame(() => render(canvas));

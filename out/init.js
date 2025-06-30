@@ -1,7 +1,9 @@
+import { Tick } from "./tick.js";
 import { render } from "./render.js";
 export const canvas = (document.querySelector('#content'));
 export const context = (canvas.getContext('webgpu'));
 export let device;
+let tick;
 function resize() {
     const width = window.innerWidth * window.devicePixelRatio;
     const height = window.innerHeight * window.devicePixelRatio;
@@ -27,6 +29,8 @@ async function config() {
 async function init() {
     resize();
     await config();
+    tick = new Tick();
+    tick.getTimeScale();
     await render(canvas);
 }
 init();

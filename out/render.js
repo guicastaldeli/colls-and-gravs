@@ -1,12 +1,16 @@
 import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
 import { initBuffers } from "./buffers.js";
+import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
+import { PlayerController } from "./player-controller.js";
 let pipeline;
 let buffers;
+let tick;
 let camera;
 let input;
+let playerController;
 async function initShaders() {
     try {
         const [vertexShader, fragShader] = await Promise.all([
@@ -67,11 +71,17 @@ async function loadShaders(url) {
 }
 export async function render(canvas) {
     try {
+        const currentTime = performance.now();
+        if (!tick)
+            tick = new Tick();
+        tick.update(currentTime);
+        if (!playerController)
+            playerController = new PlayerController();
         if (!camera)
-            camera = new Camera();
+            camera = new Camera(playerController);
         if (!input) {
-            input = new Input();
-            input.setupInputControls(canvas, camera);
+            input = new Input(camera, playerController);
+            input.setupInputControls(canvas);
         }
         if (!pipeline)
             await initShaders();
@@ -123,7 +133,7 @@ export async function render(canvas) {
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
-        mat4.rotateY(modelMatrix, modelMatrix, performance.now() / 1000);
+        mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
         device.queue.writeBuffer(uniformBuffer, 0.0, viewProjectionMatrix);
         device.queue.writeBuffer(uniformBuffer, 4 * 16, modelMatrix);
         passEncoder.end();

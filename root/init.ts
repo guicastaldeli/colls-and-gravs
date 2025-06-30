@@ -1,8 +1,10 @@
+import { Tick } from "./tick.js";
 import { render } from "./render.js";
 
 export const canvas = <HTMLCanvasElement>( document.querySelector('#content'));
 export const context = <GPUCanvasContext>(canvas.getContext('webgpu'));
 export let device: GPUDevice;
+let tick: Tick;
 
 function resize(): void {
     const width = window.innerWidth * window.devicePixelRatio;
@@ -33,8 +35,10 @@ async function config(): Promise<void> {
 
 async function init(): Promise<void> {
     resize();
-
     await config();
+
+    tick = new Tick();
+    tick.getTimeScale();
     await render(canvas);
 }
 
