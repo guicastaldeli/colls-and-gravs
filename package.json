@@ -1,0 +1,31 @@
+{
+  "devDependencies": {
+<<<<<<< HEAD
+=======
+    "electron": "^37.1.0",
+>>>>>>> 05350a8 (update-01)
+    "typescript": "^5.8.3",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+<<<<<<< HEAD
+    "gl-matrix": "^3.4.3"
+  }
+=======
+    "@webgpu/types": "^0.1.63",
+    "gl-matrix": "^3.4.3",
+    "webgpu": "^0.3.0"
+  },
+  "name": "collsandgravs",
+  "version": "1.0.0",
+  "description": "Hello World!",
+  "main": "./config/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "gui",
+  "license": "MIT"
+>>>>>>> 05350a8 (update-01)
+}
