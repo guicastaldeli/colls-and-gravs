@@ -2,8 +2,12 @@ import { context, device } from "./init.js";
 import { BufferData } from "./buffers.js";
 import { initBuffers } from "./buffers.js";
 
+import { Camera } from "./camera.js";
+
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
+
+let camera: Camera;
 
 async function initShaders(): Promise<void> {
     try {
@@ -61,6 +65,7 @@ async function loadShaders(url: string): Promise<GPUShaderModule> {
 
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
+        if(!camera) camera = new Camera();
         if(!pipeline) await initShaders();
         buffers = await initBuffers(device);
     
@@ -81,6 +86,10 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         passEncoder.setPipeline(pipeline);
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
+
+        const viewMatrix = camera.getViewMatrix();
+        const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
+        
         passEncoder.draw(6),
         passEncoder.end();
     
