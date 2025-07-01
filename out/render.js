@@ -263,7 +263,6 @@ export async function render(canvas) {
             const collidableList = colliders.map(c => ({
                 getCollider: () => c.collider,
                 getPosition: () => c.position,
-                onCollision: (other) => console.log(other.constructor.name)
             }));
             playerController = new PlayerController(undefined, collidableList);
         }

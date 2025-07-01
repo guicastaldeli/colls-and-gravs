@@ -3,15 +3,16 @@ import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider } from "./collider.js";
 export class PlayerController {
     _initialPosition;
-    _position = vec3.fromValues(0, 3, 3);
+    _position = vec3.fromValues(0, 5, 0);
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;
+    _jumpForce = 20.0;
     _worldUp = vec3.fromValues(0, 1, 0);
     _cameraOffset = vec3.fromValues(0, 0, 0);
     yaw = -90;
     pitch = 0;
-    _movSpeed = 3.5;
+    _movSpeed = 5.0;
     _mouseSensv = 0.3;
     _Rigidbody;
     _Collider;
@@ -23,8 +24,9 @@ export class PlayerController {
         this._up = this._up ? vec3.clone(this._worldUp) : this._up;
         this._right = vec3.create();
         this.updateVectors();
+        this.initJump();
         this._Rigidbody = new Rigidbody();
-        this._Collider = new BoxCollider([0.4, 1.8, 0.4]);
+        this._Collider = new BoxCollider([0.5, 0.0, 0.4]);
         if (collidables)
             this._Collidables = collidables;
     }
@@ -67,17 +69,15 @@ export class PlayerController {
             vec3.scaleAndAdd(force, force, rightXZ, velocity * 10);
         }
         if (direction === 'UP')
-            vec3.scaleAndAdd(this._position, this._position, this._worldUp, velocity);
+            this.jump();
         if (direction === 'DOWN')
             vec3.scaleAndAdd(this._position, this._position, this._worldUp, -velocity);
-        //Force
-        if (direction === 'UP' && this._Rigidbody.isGrounded) {
-            vec3.set(force, 0, 5);
-        }
         this._Rigidbody.addForce(force);
     }
     updateInput(keys, deltaTime) {
         for (const key in keys) {
+            if (key === ' ')
+                continue;
             if (keys[key]) {
                 switch (key.toLowerCase()) {
                     case 'w':
@@ -103,6 +103,19 @@ export class PlayerController {
         }
         ;
     }
+    jump() {
+        if (this._Rigidbody.isColliding) {
+            const force = vec3.fromValues(0, this._jumpForce, 0);
+            this._Rigidbody.addForce(force);
+        }
+    }
+    initJump() {
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat) {
+                this.jump();
+            }
+        });
+    }
     getPosition() {
         return this._position;
     }
@@ -116,8 +129,7 @@ export class PlayerController {
                 this.resolveCollision(box, otherBox);
                 if (collidable.onCollision)
                     collidable.onCollision(this);
-                if (this.onCollision)
-                    this.onCollision(collidable);
+                //if(this.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -156,7 +168,8 @@ export class PlayerController {
         else if (minAxis === 1) {
             correction[1] = (direction[1] > 0 ? depth : -depth) * 1.01;
             this._Rigidbody.velocity[1] = 0;
-            this._Rigidbody.isGrounded = direction[1] > 0;
+            if (direction[1] > 0)
+                this._Rigidbody.isColliding = true;
         }
         else {
             correction[2] = (direction[2] > 0 ? depth : -depth) * 1.01;
@@ -184,6 +197,7 @@ export class PlayerController {
     getUp() { return this._up; }
     getRight() { return this._right; }
     update(deltaTime) {
+        this._Rigidbody.isColliding = false;
         this._Rigidbody.update(deltaTime, this._position);
         this.checkCollisions();
     }

@@ -4,10 +4,11 @@ import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collide
 
 export class PlayerController implements ICollidable {
     private _initialPosition: vec3;
-    private _position: vec3 = vec3.fromValues(0, 3, 3);
+    private _position: vec3 = vec3.fromValues(0, 5, 0);
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;
+    private _jumpForce: number = 20.0;
     
     private _worldUp: vec3 = vec3.fromValues(0, 1, 0);
     private _cameraOffset: vec3 = vec3.fromValues(0, 0, 0);
@@ -15,7 +16,7 @@ export class PlayerController implements ICollidable {
     private yaw: number = -90;
     private pitch: number = 0;
         
-    private _movSpeed: number = 3.5;
+    private _movSpeed: number = 5.0;
     private _mouseSensv: number = 0.3;
 
     private _Rigidbody: Rigidbody;
@@ -30,8 +31,9 @@ export class PlayerController implements ICollidable {
         this._right = vec3.create();
 
         this.updateVectors();
+        this.initJump();
         this._Rigidbody = new Rigidbody();
-        this._Collider = new BoxCollider([0.4, 1.8, 0.4]);
+        this._Collider = new BoxCollider([0.5, 0.0, 0.4]);
         if(collidables) this._Collidables = collidables;
     }
     
@@ -77,13 +79,8 @@ export class PlayerController implements ICollidable {
             vec3.normalize(rightXZ, rightXZ);
             vec3.scaleAndAdd(force, force, rightXZ, velocity * 10);
         }
-        if(direction === 'UP') vec3.scaleAndAdd(this._position, this._position, this._worldUp, velocity);
+        if(direction === 'UP') this.jump();
         if(direction === 'DOWN') vec3.scaleAndAdd(this._position, this._position, this._worldUp, -velocity);
-
-        //Force
-        if(direction === 'UP' && this._Rigidbody.isGrounded) {
-            vec3.set(force, 0, 5);
-        }
 
         this._Rigidbody.addForce(force);
     }
@@ -93,6 +90,8 @@ export class PlayerController implements ICollidable {
         deltaTime: number,
     ): void {
         for(const key in keys) {
+            if(key === ' ') continue;
+
             if(keys[key]) {
                 switch(key.toLowerCase()) {
                     case 'w':
@@ -118,6 +117,21 @@ export class PlayerController implements ICollidable {
         };
     }
 
+    private jump(): void {
+        if(this._Rigidbody.isColliding) {
+            const force = vec3.fromValues(0, this._jumpForce, 0);
+            this._Rigidbody.addForce(force);
+        }
+    }
+
+    private initJump(): void {
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'Space' && !e.repeat) {
+                this.jump();
+            }
+        });
+    }
+
     public getPosition(): vec3 { 
         return this._position; 
     }
@@ -132,7 +146,7 @@ export class PlayerController implements ICollidable {
             if(this.checkAABBCollision(box, otherBox)) {
                 this.resolveCollision(box, otherBox);
                 if(collidable.onCollision) collidable.onCollision(this);
-                if(this.onCollision) this.onCollision(collidable);
+                //if(this.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -151,7 +165,7 @@ export class PlayerController implements ICollidable {
 
     private checkAABBCollision(
         a: { min: vec3, max: vec3 },
-        b: { min: vec3, max: vec3 }
+        b: { min: vec3, max: vec3 },
     ): boolean {
         return (
             a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
@@ -162,7 +176,7 @@ export class PlayerController implements ICollidable {
 
     private resolveCollision(
         box: { min: vec3, max: vec3 },
-        otherBox: { min: vec3, max: vec3 }
+        otherBox: { min: vec3, max: vec3 },
     ): void {
         const overlaps = vec3.fromValues(
             Math.min(box.max[0], otherBox.max[0]) - Math.max(box.min[0], otherBox.min[0]),
@@ -200,7 +214,7 @@ export class PlayerController implements ICollidable {
         } else if(minAxis === 1) {
             correction[1] = (direction[1] > 0 ? depth : -depth) * 1.01;
             this._Rigidbody.velocity[1] = 0;
-            this._Rigidbody.isGrounded = direction[1] > 0;
+            if(direction[1] > 0) this._Rigidbody.isColliding = true;
         } else {
             correction[2] = (direction[2] > 0 ? depth : -depth) * 1.01;
             this._Rigidbody.velocity[2] = 0;
@@ -229,8 +243,10 @@ export class PlayerController implements ICollidable {
     public getForward(): vec3 { return this._forward; }
     public getUp(): vec3 { return this._up; }
     public getRight(): vec3 { return this._right; }
+    
 
     public update(deltaTime: number): void {
+        this._Rigidbody.isColliding = false;
         this._Rigidbody.update(deltaTime, this._position);
         this.checkCollisions();
     }
