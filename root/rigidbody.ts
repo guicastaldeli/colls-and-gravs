@@ -4,7 +4,7 @@ export class Rigidbody {
     private _velocity: vec3 = vec3.create();
     private _acceleration: vec3 = vec3.create();
     private _isGrounded: boolean = false;
-    private _gravity: vec3 = vec3.fromValues(0, 0, 0);
+    private _gravity: vec3 = vec3.fromValues(0, -2, 0);
     private _mass: number = 1.0;
     private _drag: number = 1.0;
 
@@ -19,7 +19,7 @@ export class Rigidbody {
         vec3.add(position, position, deltaVelocity);
         vec3.scale(this._velocity, this._velocity, 1 - (this._drag * deltaTime));
         vec3.set(this._acceleration, 0, 0, 0);
-        console.log(this._velocity)
+        console.log(this.isGrounded)
     }
 
     public addForce(f: vec3): void {

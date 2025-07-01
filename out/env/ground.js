@@ -1,13 +1,16 @@
-import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { BoxCollider } from "../collider.js";
 export class Ground {
     device;
     loader;
     blocks;
-    count = 5;
+    count = 10;
+    _Collider = [];
     pos = {
         x: 0,
-        y: -2,
-        z: 0
+        y: 0,
+        z: 0,
+        gap: () => 0.8
     };
     size = {
         w: 0.2,
@@ -34,19 +37,30 @@ export class Ground {
                     texture: texture,
                     sampler: sampler
                 };
+                const position = vec3.fromValues((this.pos.x + x) * this.pos.gap(), this.pos.y, (this.pos.z + z) * this.pos.gap());
                 mat4.identity(block.modelMatrix);
-                mat4.translate(block.modelMatrix, block.modelMatrix, [
-                    (this.pos.x + x),
-                    this.pos.y,
-                    (this.pos.z + z)
-                ]);
+                mat4.translate(block.modelMatrix, block.modelMatrix, position);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
+                const collider = new BoxCollider([this.size.w / 25, this.size.h * 5, this.size.d], vec3.fromValues(position[0], position[1], position[2]));
                 this.blocks.push(block);
+                this._Collider.push(collider);
             }
         }
     }
     getBlocks() {
         return this.blocks;
+    }
+    getPosition() {
+        return vec3.fromValues(0, 0, 0);
+    }
+    getCollider() {
+        return this._Collider[0];
+    }
+    getAllColliders() {
+        return this._Collider.map((collider, i) => ({
+            collider,
+            position: vec3.clone(collider)['_offset']
+        }));
     }
     async init() {
         await this.createGround();

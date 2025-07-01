@@ -4,24 +4,25 @@ import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collide
 
 export class PlayerController implements ICollidable {
     private _initialPosition: vec3;
-    private _position: vec3 = vec3.fromValues(0, 0, 3);
+    private _position: vec3 = vec3.fromValues(0, 3, 3);
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;
+    
     private _worldUp: vec3 = vec3.fromValues(0, 1, 0);
     private _cameraOffset: vec3 = vec3.fromValues(0, 0, 0);
     
     private yaw: number = -90;
     private pitch: number = 0;
         
-    private _movSpeed: number = 4.0;
+    private _movSpeed: number = 3.5;
     private _mouseSensv: number = 0.3;
 
     private _Rigidbody: Rigidbody;
     private _Collider: Collider;
     private _Collidables: ICollidable[] = [];
         
-    constructor(_initialPosition?: vec3) {
+    constructor(_initialPosition?: vec3, collidables?: ICollidable[]) {
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
         this._worldUp = this._worldUp ? vec3.clone(this._worldUp) : this._worldUp;
@@ -30,7 +31,8 @@ export class PlayerController implements ICollidable {
 
         this.updateVectors();
         this._Rigidbody = new Rigidbody();
-        this._Collider = new BoxCollider([0.5, 1.8, 0.5]);
+        this._Collider = new BoxCollider([0.4, 1.8, 0.4]);
+        if(collidables) this._Collidables = collidables;
     }
     
     private updateVectors(): void {
@@ -164,7 +166,7 @@ export class PlayerController implements ICollidable {
     ): void {
         const overlaps = vec3.fromValues(
             Math.min(box.max[0], otherBox.max[0]) - Math.max(box.min[0], otherBox.min[0]),
-            Math.min(box.max[0], otherBox.max[1]) - Math.max(box.min[1], otherBox.min[1]),
+            Math.min(box.max[1], otherBox.max[1]) - Math.max(box.min[1], otherBox.min[1]),
             Math.min(box.max[2], otherBox.max[2]) - Math.max(box.min[2], otherBox.min[2])
         );
 

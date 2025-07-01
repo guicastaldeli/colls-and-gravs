@@ -14,7 +14,7 @@ export class Ground implements ICollidable {
 
     pos = {
         x: 0,
-        y: -2,
+        y: 0,
         z: 0,
         gap: () => 0.8
     }
@@ -48,16 +48,19 @@ export class Ground implements ICollidable {
                     sampler: sampler
                 }
 
+                const position = vec3.fromValues(
+                    (this.pos.x + x) * this.pos.gap(),
+                    this.pos.y,
+                    (this.pos.z + z) * this.pos.gap()
+                )
+
                 mat4.identity(block.modelMatrix);
 
                 mat4.translate(
                     block.modelMatrix, 
-                    block.modelMatrix, 
-                [
-                    (this.pos.x + x) * this.pos.gap(),
-                    this.pos.y,
-                    (this.pos.z + z) * this.pos.gap()
-                ]);
+                    block.modelMatrix,
+                    position
+                );
 
                 mat4.scale(
                     block.modelMatrix,
@@ -66,12 +69,8 @@ export class Ground implements ICollidable {
                 )
 
                 const collider = new BoxCollider(
-                    [this.size.w, this.size.h, this.size.d],
-                    [
-                        (this.pos.x + x) * this.pos.gap(),
-                        this.pos.y,
-                        (this.pos.z + z) * this.pos.gap()
-                    ]
+                    [this.size.w / 25, this.size.h * 5, this.size.d],
+                    vec3.fromValues(position[0], position[1], position[2])
                 );
 
                 this.blocks.push(block);
@@ -92,15 +91,11 @@ export class Ground implements ICollidable {
         return this._Collider[0];
     }
 
-    public getAllCOlliders(): { collider: Collider, position: vec3 }[] {
-        return this._Collider.map((collider, i) => {
-            const x = (this.pos.x + (i % this.count)) * this.pos.gap();
-            const z = (this.pos.z + Math.floor(i / this.count)) * this.pos.gap();
-            return {
-                collider,
-                position: vec3.fromValues(x, this.pos.y, z)
-            }
-        });
+    public getAllColliders(): { collider: Collider, position: vec3 }[] {
+        return this._Collider.map((collider, i) => ({
+            collider,
+            position: vec3.clone((collider as BoxCollider))['_offset']
+        }));
     }
 
     public async init(): Promise<void> {

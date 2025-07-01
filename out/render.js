@@ -7,6 +7,7 @@ import { Input } from "./input.js";
 import { PlayerController } from "./player-controller.js";
 import { Loader } from "./loader.js";
 import { EnvRenderer } from "./env/env-renderer.js";
+import { GetColliders } from "./get-colliders.js";
 let pipeline;
 let buffers;
 let tick;
@@ -15,6 +16,7 @@ let input;
 let playerController;
 let loader;
 let envRenderer;
+let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function toggleWireframe() {
@@ -109,7 +111,7 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'none',
+                cullMode: 'back',
                 frontFace: 'ccw',
             },
             depthStencil: {
@@ -167,7 +169,7 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'line-list',
-                cullMode: 'none',
+                cullMode: 'back',
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -249,19 +251,29 @@ export async function render(canvas) {
         if (!tick)
             tick = new Tick();
         tick.update(currentTime);
-        if (!playerController)
-            playerController = new PlayerController();
+        if (!pipeline)
+            await initShaders();
+        if (!loader)
+            loader = new Loader(device);
+        await renderer(device);
+        if (!getColliders)
+            getColliders = new GetColliders(envRenderer);
+        const colliders = getColliders.getCollidersMap();
+        if (!playerController) {
+            const collidableList = colliders.map(c => ({
+                getCollider: () => c.collider,
+                getPosition: () => c.position,
+                onCollision: (other) => console.log(other.constructor.name)
+            }));
+            playerController = new PlayerController(undefined, collidableList);
+        }
+        playerController.update(currentTime);
         if (!camera)
             camera = new Camera(playerController);
         if (!input) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
-        if (!pipeline)
-            await initShaders();
-        if (!loader)
-            loader = new Loader(device);
-        await renderer(device);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',

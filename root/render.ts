@@ -1,4 +1,4 @@
-import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 
 import { context, device } from "./init.js";
 import { initBuffers, drawBuffers } from "./buffers.js";
@@ -9,8 +9,9 @@ import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { PlayerController } from "./player-controller.js";
 import { Loader } from "./loader.js";
-
 import { EnvRenderer } from "./env/env-renderer.js";
+import { GetColliders } from "./get-colliders.js";
+import { ICollidable } from "./collider.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -20,8 +21,8 @@ let camera: Camera;
 let input: Input;
 let playerController: PlayerController;
 let loader: Loader;
-
 let envRenderer: EnvRenderer;
+let getColliders: GetColliders;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
@@ -279,16 +280,28 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!tick) tick = new Tick();
         tick.update(currentTime);
 
-        if(!playerController) playerController = new PlayerController();
+        if(!pipeline) await initShaders();
+        if(!loader) loader = new Loader(device);
+        await renderer(device);
+
+        if(!getColliders) getColliders = new GetColliders(envRenderer);
+        const colliders = getColliders.getCollidersMap();
+
+        if(!playerController) {
+            const collidableList = colliders.map(c => ({
+                getCollider: () => c.collider,
+                getPosition: () => c.position,
+                onCollision: (other: ICollidable) => console.log(other.constructor.name)
+            }));
+
+            playerController = new PlayerController(undefined, collidableList);
+        }
         playerController.update(currentTime);
         if(!camera) camera = new Camera(playerController);
         if(!input) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
-        if(!pipeline) await initShaders();
-        if(!loader) loader = new Loader(device);
-        await renderer(device);
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
