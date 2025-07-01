@@ -34,10 +34,11 @@ export class Ground {
                     texture: texture,
                     sampler: sampler
                 };
+                mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, [
-                    this.pos.x + x * 3,
+                    (this.pos.x + x),
                     this.pos.y,
-                    this.pos.z + z * 3
+                    (this.pos.z + z)
                 ]);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
                 this.blocks.push(block);

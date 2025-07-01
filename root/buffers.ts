@@ -55,6 +55,7 @@ export async function drawBuffers(
 
     const maxBlocks = Math.floor(uniformBuffer.size / 256) - 1;
     const blocksToRender = Math.min(envBuffers.length, maxBlocks);
+    
     //Env
     for(let i = 0; i < blocksToRender; i++) {
         const env = mat4.create();

@@ -36,14 +36,30 @@ export class PlayerController {
     }
     setKeyboard(direction, deltaTime) {
         const velocity = this._movSpeed * deltaTime;
-        if (direction === 'FORWARD')
-            vec3.scaleAndAdd(this._position, this._position, this._forward, velocity);
-        if (direction === 'BACKWARD')
-            vec3.scaleAndAdd(this._position, this._position, this._forward, -velocity);
-        if (direction === 'LEFT')
-            vec3.scaleAndAdd(this._position, this._position, this._right, -velocity);
-        if (direction === 'RIGHT')
-            vec3.scaleAndAdd(this._position, this._position, this._right, velocity);
+        if (direction === 'FORWARD') {
+            const forwardXZ = vec3.fromValues(this._forward[0], 0, this._forward[2]);
+            vec3.normalize(forwardXZ, forwardXZ);
+            vec3.scaleAndAdd(this._position, this._position, forwardXZ, velocity);
+        }
+        if (direction === 'BACKWARD') {
+            const forwardXZ = vec3.fromValues(this._forward[0], 0, this._forward[2]);
+            vec3.normalize(forwardXZ, forwardXZ);
+            vec3.scaleAndAdd(this._position, this._position, forwardXZ, -velocity);
+        }
+        if (direction === 'LEFT') {
+            const rightXZ = vec3.fromValues(this._right[0], 0, this._right[2]);
+            vec3.normalize(rightXZ, rightXZ);
+            vec3.scaleAndAdd(this._position, this._position, rightXZ, -velocity);
+        }
+        if (direction === 'RIGHT') {
+            const rightXZ = vec3.fromValues(this._right[0], 0, this._right[2]);
+            vec3.normalize(rightXZ, rightXZ);
+            vec3.scaleAndAdd(this._position, this._position, rightXZ, velocity);
+        }
+        if (direction === 'UP')
+            vec3.scaleAndAdd(this._position, this._position, this._worldUp, velocity);
+        if (direction === 'DOWN')
+            vec3.scaleAndAdd(this._position, this._position, this._worldUp, -velocity);
     }
     updateInput(keys, deltaTime) {
         for (const key in keys) {
@@ -60,6 +76,12 @@ export class PlayerController {
                         break;
                     case 'd':
                         this.setKeyboard('RIGHT', deltaTime);
+                        break;
+                    case ' ':
+                        this.setKeyboard('UP', deltaTime);
+                        break;
+                    case 'shift':
+                        this.setKeyboard('DOWN', deltaTime);
                         break;
                 }
             }

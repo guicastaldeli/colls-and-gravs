@@ -203,9 +203,8 @@ async function setBuffers(
 ) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
-    mat4.rotateY(modelMatrix, modelMatrix, currentTime / (1000 / tick.getTimeScale()));
 
-    const envBuffers = [buffers.initEnvBuffers, ...envRenderer.ground.getBlocks()];
+    const envBuffers = [...envRenderer.ground.getBlocks()];
     const uniformBuffer = device.createBuffer({
         size: 256 * (1 + envBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -229,7 +228,7 @@ async function setBuffers(
         const data = envBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjectionMatrix, i === 0 ? modelMatrix : envBuffers[i].modelMatrix);
+        mat4.multiply(mvp, viewProjectionMatrix, envBuffers[i].modelMatrix);
 
         device.queue.writeBuffer(uniformBuffer, offset, mvp as Float32Array);
         
@@ -252,7 +251,6 @@ async function setBuffers(
             ]
         });
         
-
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
