@@ -12,6 +12,7 @@ export class Loader {
     textureUrl = '';
     constructor(device) {
         this.device = device;
+        this.createSampler();
     }
     async parser(url) {
         const res = await fetch(url);

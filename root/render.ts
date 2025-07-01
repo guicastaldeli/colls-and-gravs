@@ -7,8 +7,9 @@ import { BufferData } from "./buffers.js";
 import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
-import { PlayerController } from "./player-controller.js";
 import { Loader } from "./loader.js";
+import { ShaderLoader } from "./shader-loader.js";
+import { PlayerController } from "./player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
 import { ICollidable } from "./collider.js";
@@ -19,8 +20,9 @@ let buffers: BufferData;
 let tick: Tick;
 let camera: Camera;
 let input: Input;
-let playerController: PlayerController;
 let loader: Loader;
+let shaderLoader: ShaderLoader;
+let playerController: PlayerController;
 let envRenderer: EnvRenderer;
 let getColliders: GetColliders;
 
@@ -42,8 +44,8 @@ toggleWireframe();
 async function initShaders(): Promise<void> {
     try {
         const [vertexShader, fragShader] = await Promise.all([
-            loadShaders('./shaders/vertex.wgsl'),
-            loadShaders('./shaders/frag.wgsl')
+            shaderLoader.loader('./shaders/vertex.wgsl'),
+            shaderLoader.loader('./shaders/frag.wgsl')
         ]);
 
         const bindGroupLayouts = [
@@ -268,20 +270,15 @@ async function renderer(device: GPUDevice): Promise<void> {
     }
 }
 
-async function loadShaders(url: string): Promise<GPUShaderModule> {
-    const res = await fetch(url);
-    const code = await res.text();
-    return device.createShaderModule({ code });
-}
-
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         const currentTime = performance.now();
         if(!tick) tick = new Tick();
         tick.update(currentTime);
 
-        if(!pipeline) await initShaders();
         if(!loader) loader = new Loader(device);
+        if(!shaderLoader) shaderLoader = new ShaderLoader(device);
+        if(!pipeline) await initShaders();
         await renderer(device);
 
         if(!getColliders) getColliders = new GetColliders(envRenderer);
@@ -296,7 +293,17 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             playerController = new PlayerController(undefined, collidableList);
         }
         playerController.update(currentTime);
-        if(!camera) camera = new Camera(playerController);
+        if(!camera) {
+            camera = new Camera(
+                device, 
+                pipeline, 
+                loader, 
+                shaderLoader, 
+                playerController
+            );
+
+            await camera.initHud();
+        }
         if(!input) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
@@ -314,7 +321,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [{
                 view: textureView,
-                clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                 loadOp: 'clear',
                 storeOp: 'store'
             }],
@@ -335,8 +342,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
-
+        
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        camera.renderHud(passEncoder);
 
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);

@@ -16,6 +16,7 @@ export class Loader {
 
     constructor(device: GPUDevice) {
         this.device = device;
+        this.createSampler();
     }
 
     public async parser(url: string): Promise<EnvBufferData> {

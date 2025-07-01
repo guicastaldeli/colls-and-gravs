@@ -4,8 +4,9 @@ import { initBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
-import { PlayerController } from "./player-controller.js";
 import { Loader } from "./loader.js";
+import { ShaderLoader } from "./shader-loader.js";
+import { PlayerController } from "./player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
 let pipeline;
@@ -13,8 +14,9 @@ let buffers;
 let tick;
 let camera;
 let input;
-let playerController;
 let loader;
+let shaderLoader;
+let playerController;
 let envRenderer;
 let getColliders;
 let wireframeMode = false;
@@ -32,8 +34,8 @@ toggleWireframe();
 async function initShaders() {
     try {
         const [vertexShader, fragShader] = await Promise.all([
-            loadShaders('./shaders/vertex.wgsl'),
-            loadShaders('./shaders/frag.wgsl')
+            shaderLoader.loader('./shaders/vertex.wgsl'),
+            shaderLoader.loader('./shaders/frag.wgsl')
         ]);
         const bindGroupLayouts = [
             device.createBindGroupLayout({
@@ -240,21 +242,18 @@ async function renderer(device) {
         await envRenderer.init();
     }
 }
-async function loadShaders(url) {
-    const res = await fetch(url);
-    const code = await res.text();
-    return device.createShaderModule({ code });
-}
 export async function render(canvas) {
     try {
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();
         tick.update(currentTime);
-        if (!pipeline)
-            await initShaders();
         if (!loader)
             loader = new Loader(device);
+        if (!shaderLoader)
+            shaderLoader = new ShaderLoader(device);
+        if (!pipeline)
+            await initShaders();
         await renderer(device);
         if (!getColliders)
             getColliders = new GetColliders(envRenderer);
@@ -267,8 +266,10 @@ export async function render(canvas) {
             playerController = new PlayerController(undefined, collidableList);
         }
         playerController.update(currentTime);
-        if (!camera)
-            camera = new Camera(playerController);
+        if (!camera) {
+            camera = new Camera(device, pipeline, loader, shaderLoader, playerController);
+            await camera.initHud();
+        }
         if (!input) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
@@ -283,7 +284,7 @@ export async function render(canvas) {
         const renderPassDescriptor = {
             colorAttachments: [{
                     view: textureView,
-                    clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store'
                 }],
@@ -303,6 +304,7 @@ export async function render(canvas) {
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        camera.renderHud(passEncoder);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));
