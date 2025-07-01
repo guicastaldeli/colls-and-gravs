@@ -1,233 +1,170 @@
 import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
-import { EnvBufferData } from "./env/env-buffers";
-
 export class Loader {
-    private device: GPUDevice;
-
-    private vertices: number[] = [];
-    private colors: number[] = [];
-    private indices: number[] = [];
-    private positions: number[] = [];
-    private normals: number[] = [];
-    private coords: number[]= [];
-    private objIndices: number[] = [];
-    private indexMap: Record<string, number> = {};
-    private textureUrl: string = '';
-
-    constructor(device: GPUDevice) {
+    device;
+    vertices = [];
+    colors = [];
+    indices = [];
+    positions = [];
+    normals = [];
+    coords = [];
+    objIndices = [];
+    indexMap = {};
+    textureUrl = '';
+    constructor(device) {
         this.device = device;
     }
-
-    public async parser(url: string): Promise<EnvBufferData> {
-        const res = await fetch(url!);
+    async parser(url) {
+        const res = await fetch(url);
         const text = await res.text();
         const lines = text.split('\n');
         let indexCounter = 0;
-
         this.vertices = [];
         this.positions = [];
         this.normals = [];
         this.coords = [];
         this.objIndices = [];
         this.indexMap = {};
-
-        for(const line of lines) {
+        for (const line of lines) {
             const parts = line.trim().split(/\s+/);
-            if(parts.length === 0) continue;
-            
-            if(parts[0] === 'v') {
-                this.positions.push(
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3])
-                )
-            } else if(parts[0] === 'vn') {
-                this.normals.push(
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3])
-                )
-            } else if(parts[0] === 'vt') {
-                this.coords.push(
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2])
-                )
-            } else if(parts[0] === 'f') {
-                if(parts.length === 4) {
-                    const triIndices: number[] = [];
-
-                    for(let i = 1; i <= 3; i++) {
+            if (parts.length === 0)
+                continue;
+            if (parts[0] === 'v') {
+                this.positions.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+            }
+            else if (parts[0] === 'vn') {
+                this.normals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+            }
+            else if (parts[0] === 'vt') {
+                this.coords.push(parseFloat(parts[1]), parseFloat(parts[2]));
+            }
+            else if (parts[0] === 'f') {
+                if (parts.length === 4) {
+                    const triIndices = [];
+                    for (let i = 1; i <= 3; i++) {
                         const faceParts = parts[i].split('/');
                         const vIdx = parseInt(faceParts[0]) - 1;
                         const tIdx = faceParts[1] ? parseInt(faceParts[1]) - 1 : 0;
                         const nIdx = faceParts[2] ? parseInt(faceParts[2]) - 1 : 0;
                         const key = `${vIdx}|${tIdx}|${nIdx}`;
-
-                        if(!(key in this.indexMap)) {
+                        if (!(key in this.indexMap)) {
                             this.indexMap[key] = indexCounter++;
-
                             const posIndex = vIdx * 3;
-                            this.vertices.push(
-                                this.positions[posIndex],
-                                this.positions[posIndex + 1],
-                                this.positions[posIndex + 2]
-                            );
-
+                            this.vertices.push(this.positions[posIndex], this.positions[posIndex + 1], this.positions[posIndex + 2]);
                             const texIndex = Math.min(tIdx, this.coords.length / 2 - 1) * 2;
-                            this.vertices.push(
-                                this.coords[texIndex] || 0,
-                                this.coords[texIndex + 1] || 0
-                            )
-
+                            this.vertices.push(this.coords[texIndex] || 0, this.coords[texIndex + 1] || 0);
                             const normIndex = Math.min(nIdx, this.normals.length / 3 - 1) * 3;
-                            this.vertices.push(
-                                this.normals[normIndex] || 0,
-                                this.normals[normIndex + 1] || 1,
-                                this.normals[normIndex + 2] || 0
-                            );
+                            this.vertices.push(this.normals[normIndex] || 0, this.normals[normIndex + 1] || 1, this.normals[normIndex + 2] || 0);
                         }
-
                         triIndices.push(this.indexMap[key]);
                     }
-
                     this.objIndices.push(triIndices[0], triIndices[1], triIndices[2]);
                 }
             }
         }
-
         return this.createBuffers(this.device);
     }
-
-    public createDefaultTex(): GPUTexture {
+    createDefaultTex() {
         const texture = this.device.createTexture({
             size: [1, 1],
             format: 'rgba8unorm',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
         });
-
         const data = new Uint8Array([0, 0, 0, 0]);
-        this.device.queue.writeTexture(
-            { texture },
-            data,
-            { bytesPerRow: 4 },
-            [1, 1]
-        );
-
+        this.device.queue.writeTexture({ texture }, data, { bytesPerRow: 4 }, [1, 1]);
         return texture;
     }
-
-    public async textureLoader(url: string): Promise<GPUTexture> {
+    async textureLoader(url) {
         try {
-            if(!url || url.trim() === '') throw new Error('Texture URL is empty');
-
+            if (!url || url.trim() === '')
+                throw new Error('Texture URL is empty');
             const res = await fetch(url);
-            if(!res.ok) throw new Error(`Failed to fetch texture: ${res.status} ${res.statusText}`);
-            
+            if (!res.ok)
+                throw new Error(`Failed to fetch texture: ${res.status} ${res.statusText}`);
             const blob = await res.blob();
-            if(blob.size === 0) throw new Error('Empty texture file received');
-
-            let imgBitmap: ImageBitmap;
-
+            if (blob.size === 0)
+                throw new Error('Empty texture file received');
+            let imgBitmap;
             try {
                 imgBitmap = await createImageBitmap(blob, {
                     imageOrientation: 'none',
                     premultiplyAlpha: 'none',
                     colorSpaceConversion: 'default'
                 });
-            } catch(err) {
+            }
+            catch (err) {
                 throw new Error(`Failed to decode image: ${err}`);
             }
-    
             const texture = this.device.createTexture({
                 size: [imgBitmap.width, imgBitmap.height],
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.TEXTURE_BINDING |
-                        GPUTextureUsage.COPY_DST |
-                        GPUTextureUsage.RENDER_ATTACHMENT
+                    GPUTextureUsage.COPY_DST |
+                    GPUTextureUsage.RENDER_ATTACHMENT
             });
-
-            this.device.queue.copyExternalImageToTexture(
-                { source: imgBitmap },
-                { texture },
-                [imgBitmap.width, imgBitmap.height]
-            )
-    
-            return texture
-        } catch(err) {
+            this.device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, [imgBitmap.width, imgBitmap.height]);
+            return texture;
+        }
+        catch (err) {
             console.log(err);
             throw err;
         }
     }
-
-    public createSampler(): GPUSampler {
+    createSampler() {
         return this.device.createSampler({
             magFilter: 'linear',
             minFilter: 'linear'
         });
     }
-
-    public setTextureUrl(url: string) {
+    setTextureUrl(url) {
         this.textureUrl = url;
     }
-
-    private async createBuffers(device: GPUDevice): Promise<EnvBufferData> {
+    async createBuffers(device) {
         //Vertex
         const vertexArray = new Float32Array(this.vertices);
-
         const vertexBuffer = device.createBuffer({
             size: vertexArray.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Float32Array(vertexBuffer.getMappedRange()).set(vertexArray);
         vertexBuffer.unmap();
-
         //Color
         const colorData = new Float32Array(this.positions.length);
-
-        for(let i = 0; i < colorData.length; i += 3) {
+        for (let i = 0; i < colorData.length; i += 3) {
             colorData[i] = 0.8;
             colorData[i + 1] = 0.6;
             colorData[i + 2] = 0.4;
         }
-
         const colorBuffer = device.createBuffer({
             size: colorData.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Float32Array(colorBuffer.getMappedRange()).set(colorData);
         colorBuffer.unmap();
-
         //Index
         const indexBuffer = device.createBuffer({
             size: this.objIndices.length * 4,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Uint16Array(indexBuffer.getMappedRange()).set(this.objIndices);
         indexBuffer.unmap();
-
         //Texture
-        let texture: GPUTexture = this.createDefaultTex();
-        let sampler: GPUSampler = this.createSampler();
-
-        if(this.textureUrl && this.textureUrl.trim() !== '') {
+        let texture = this.createDefaultTex();
+        let sampler = this.createSampler();
+        if (this.textureUrl && this.textureUrl.trim() !== '') {
             try {
                 texture = this.textureUrl ? await this.textureLoader(this.textureUrl) : this.createDefaultTex();
                 sampler = this.createSampler();
-            } catch(err) {
+            }
+            catch (err) {
                 console.warn(err);
             }
         }
-
         const modelMatrix = mat4.create();
         mat4.translate(modelMatrix, modelMatrix, [0, 0, 0]);
         mat4.scale(modelMatrix, modelMatrix, [0, 0, 0]);
-
         return {
             vertex: vertexBuffer,
             color: colorBuffer,
@@ -236,6 +173,6 @@ export class Loader {
             modelMatrix: modelMatrix,
             texture: texture,
             sampler: sampler
-        }
+        };
     }
 }

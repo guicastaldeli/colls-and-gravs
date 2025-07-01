@@ -5,6 +5,7 @@ import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { PlayerController } from "./player-controller.js";
+import { Loader } from "./loader.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 let pipeline;
 let buffers;
@@ -12,47 +13,90 @@ let tick;
 let camera;
 let input;
 let playerController;
+let loader;
 let envRenderer;
+let wireframeMode = false;
+let wireframePipeline = null;
+async function toggleWireframe() {
+    document.addEventListener('keydown', async (e) => {
+        if (e.key.toLowerCase() === 't') {
+            wireframeMode = !wireframeMode;
+            console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
+            await initShaders();
+        }
+    });
+}
+toggleWireframe();
 async function initShaders() {
     try {
         const [vertexShader, fragShader] = await Promise.all([
             loadShaders('./shaders/vertex.wgsl'),
             loadShaders('./shaders/frag.wgsl')
         ]);
-        const bindGroupLayout = device.createBindGroupLayout({
-            entries: [{
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
+        const bindGroupLayouts = [
+            device.createBindGroupLayout({
+                entries: [{
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: 'uniform',
+                            hasDynamicOffset: true,
+                            minBindingSize: 256
+                        }
+                    }]
+            }),
+            device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {}
                     }
-                }]
-        });
+                ]
+            }),
+        ];
         pipeline = device.createRenderPipeline({
             layout: device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: bindGroupLayouts
             }),
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
                 buffers: [
                     {
-                        arrayStride: 3 * 4,
-                        attributes: [{
+                        arrayStride: 8 * 4,
+                        attributes: [
+                            {
                                 shaderLocation: 0,
                                 offset: 0,
                                 format: 'float32x3'
-                            }]
+                            },
+                            {
+                                shaderLocation: 1,
+                                offset: 3 * 4,
+                                format: 'float32x2'
+                            },
+                            {
+                                shaderLocation: 2,
+                                offset: 5 * 4,
+                                format: 'float32x3'
+                            }
+                        ]
                     },
                     {
                         arrayStride: 3 * 4,
-                        attributes: [{
-                                shaderLocation: 1,
+                        attributes: [
+                            {
+                                shaderLocation: 3,
                                 offset: 0,
                                 format: 'float32x3'
-                            }]
+                            }
+                        ]
                     }
                 ]
             },
@@ -65,8 +109,65 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back',
-                frontFace: 'ccw'
+                cullMode: 'none',
+                frontFace: 'ccw',
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus'
+            }
+        });
+        wireframePipeline = device.createRenderPipeline({
+            layout: device.createPipelineLayout({
+                bindGroupLayouts: bindGroupLayouts
+            }),
+            vertex: {
+                module: vertexShader,
+                entryPoint: 'main',
+                buffers: [
+                    {
+                        arrayStride: 8 * 4,
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 1,
+                                offset: 3 * 4,
+                                format: 'float32x2'
+                            },
+                            {
+                                shaderLocation: 2,
+                                offset: 5 * 4,
+                                format: 'float32x3'
+                            }
+                        ]
+                    },
+                    {
+                        arrayStride: 3 * 4,
+                        attributes: [
+                            {
+                                shaderLocation: 3,
+                                offset: 0,
+                                format: 'float32x3'
+                            }
+                        ]
+                    }
+                ]
+            },
+            fragment: {
+                module: fragShader,
+                entryPoint: 'main',
+                targets: [{
+                        format: navigator.gpu.getPreferredCanvasFormat()
+                    }]
+            },
+            primitive: {
+                topology: 'line-list',
+                cullMode: 'none',
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -100,23 +201,39 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 }
             }]
     });
-    passEncoder.setPipeline(pipeline);
+    passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
     for (let i = 0; i < envBuffers.length; i++) {
         const data = envBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjectionMatrix, i === 0 ? modelMatrix : envBuffers[i].modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp);
+        if (!data.sampler || !data.texture)
+            console.error('missing');
+        const textureBindGroup = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(1),
+            entries: [
+                {
+                    binding: 0,
+                    resource: data.sampler
+                },
+                {
+                    binding: 1,
+                    resource: data.texture.createView()
+                }
+            ]
+        });
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
         passEncoder.setBindGroup(0, bindGroup, [offset]);
+        passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
 }
 async function renderer(device) {
     if (!envRenderer) {
-        envRenderer = new EnvRenderer(device);
+        envRenderer = new EnvRenderer(device, loader);
         await envRenderer.init();
     }
 }
@@ -141,6 +258,8 @@ export async function render(canvas) {
         }
         if (!pipeline)
             await initShaders();
+        if (!loader)
+            loader = new Loader(device);
         await renderer(device);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
@@ -152,7 +271,7 @@ export async function render(canvas) {
         const renderPassDescriptor = {
             colorAttachments: [{
                     view: textureView,
-                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store'
                 }],

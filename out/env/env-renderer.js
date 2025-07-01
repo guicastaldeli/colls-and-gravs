@@ -2,10 +2,12 @@ import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Ground } from "./ground.js";
 export class EnvRenderer {
     device;
+    loader;
     //Items
     ground;
-    constructor(device) {
+    constructor(device, loader) {
         this.device = device;
+        this.loader = loader;
     }
     async renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup) {
         //Ground
@@ -29,7 +31,7 @@ export class EnvRenderer {
         passEncoder.drawIndexed(buffers.indexCount);
     }
     async init() {
-        this.ground = new Ground(this.device);
+        this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
     }
 }

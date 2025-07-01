@@ -6,6 +6,8 @@ export type EnvBufferData = {
     index: GPUBuffer;
     indexCount: number;
     modelMatrix: mat4;
+    texture: GPUTexture;
+    sampler: GPUSampler;
 }
 
 export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> {
@@ -16,12 +18,31 @@ export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> 
     const modelMatrix = mat4.create();
     mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
 
+    const texture = device.createTexture({
+        size: [1, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+    device.queue.writeTexture(
+        { texture },
+        new Uint8Array([0, 0, 0, 0]),
+        { bytesPerRow: 4 },
+        [1, 1]
+    );
+
+    const sampler = device.createSampler({
+        magFilter: 'linear',
+        minFilter: 'linear'
+    });
+
     return {
         vertex: vertexBuffer,
         color: colorBuffer,
         index: indexBuffer,
         indexCount: indexCount,
-        modelMatrix: modelMatrix
+        modelMatrix: modelMatrix,
+        texture: texture,
+        sampler: sampler
     }
 }
 

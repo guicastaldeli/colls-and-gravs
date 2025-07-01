@@ -1,16 +1,19 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 
 import { EnvBufferData } from "./env-buffers.js";
+import { Loader } from "../loader.js";
 import { Ground } from "./ground.js";
 
 export class EnvRenderer {
     private device: GPUDevice;
+    private loader: Loader;
 
     //Items
     public ground!: Ground;
 
-    constructor(device: GPUDevice,) {
+    constructor(device: GPUDevice, loader: Loader) {
         this.device = device;
+        this.loader = loader;
     }
 
     public async renderEnv(
@@ -59,7 +62,7 @@ export class EnvRenderer {
     }
 
     public async init(): Promise<void> {
-        this.ground = new Ground(this.device);
+        this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
     }
 }
