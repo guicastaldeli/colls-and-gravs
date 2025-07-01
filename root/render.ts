@@ -321,7 +321,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [{
                 view: textureView,
-                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
                 loadOp: 'clear',
                 storeOp: 'store'
             }],

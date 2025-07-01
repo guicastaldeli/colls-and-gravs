@@ -16,7 +16,7 @@ export class Ground implements ICollidable {
         x: 0,
         y: 0,
         z: 0,
-        gap: () => 1.0
+        gap: () => 0.8
     }
 
     size = {
