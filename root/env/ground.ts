@@ -1,18 +1,22 @@
-import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
+import { BoxCollider, Collider, ICollidable } from "../collider.js";
 
-export class Ground {
+export class Ground implements ICollidable {
     private device: GPUDevice;
     private loader: Loader;
 
     private blocks: EnvBufferData[];
-    private count: number = 5;
+    private count: number = 10;
+
+    private _Collider: BoxCollider[] = [];
 
     pos = {
         x: 0,
         y: -2,
-        z: 0
+        z: 0,
+        gap: () => 0.8
     }
 
     size = {
@@ -50,9 +54,9 @@ export class Ground {
                     block.modelMatrix, 
                     block.modelMatrix, 
                 [
-                    (this.pos.x + x),
+                    (this.pos.x + x) * this.pos.gap(),
                     this.pos.y,
-                    (this.pos.z + z)
+                    (this.pos.z + z) * this.pos.gap()
                 ]);
 
                 mat4.scale(
@@ -61,13 +65,42 @@ export class Ground {
                     [this.size.w, this.size.h, this.size.d]
                 )
 
+                const collider = new BoxCollider(
+                    [this.size.w, this.size.h, this.size.d],
+                    [
+                        (this.pos.x + x) * this.pos.gap(),
+                        this.pos.y,
+                        (this.pos.z + z) * this.pos.gap()
+                    ]
+                );
+
                 this.blocks.push(block);
+                this._Collider.push(collider);
             }
         }
     }
 
     public getBlocks(): EnvBufferData[] {
         return this.blocks;
+    }
+
+    public getPosition(): vec3 {
+        return vec3.fromValues(0, 0, 0);
+    }
+
+    public getCollider(): Collider {
+        return this._Collider[0];
+    }
+
+    public getAllCOlliders(): { collider: Collider, position: vec3 }[] {
+        return this._Collider.map((collider, i) => {
+            const x = (this.pos.x + (i % this.count)) * this.pos.gap();
+            const z = (this.pos.z + Math.floor(i / this.count)) * this.pos.gap();
+            return {
+                collider,
+                position: vec3.fromValues(x, this.pos.y, z)
+            }
+        });
     }
 
     public async init(): Promise<void> {

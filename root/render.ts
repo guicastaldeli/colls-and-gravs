@@ -122,7 +122,7 @@ async function initShaders(): Promise<void> {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'none',
+                cullMode: 'back',
                 frontFace: 'ccw',
             },
             depthStencil: {
@@ -181,7 +181,7 @@ async function initShaders(): Promise<void> {
             },
             primitive: {
                 topology: 'line-list',
-                cullMode: 'none',
+                cullMode: 'back',
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -280,13 +280,14 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         tick.update(currentTime);
 
         if(!playerController) playerController = new PlayerController();
+        playerController.update(currentTime);
         if(!camera) camera = new Camera(playerController);
         if(!input) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
         if(!pipeline) await initShaders();
-        if(!loader) loader = new Loader(device)
+        if(!loader) loader = new Loader(device);
         await renderer(device);
             
         const depthTexture = device.createTexture({
