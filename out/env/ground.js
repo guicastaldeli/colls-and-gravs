@@ -10,9 +10,9 @@ export class Ground {
         z: 0
     };
     size = {
-        w: 1,
-        h: 1,
-        d: 1
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     };
     constructor(device, loader) {
         this.device = device;
@@ -20,8 +20,9 @@ export class Ground {
         this.blocks = [];
     }
     async createGround() {
-        const model = await this.loader.parser('./assets/env/obj/cube-test.obj');
-        this.loader.setTextureUrl('./assets/env/textures/cube-test.png');
+        const model = await this.loader.parser('./assets/env/obj/404.obj');
+        const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
+        const sampler = this.loader.createSampler();
         for (let x = 0; x < this.count; x++) {
             for (let z = 0; z < this.count; z++) {
                 const block = {
@@ -29,13 +30,16 @@ export class Ground {
                     color: model.color,
                     index: model.index,
                     indexCount: model.indexCount,
-                    modelMatrix: mat4.create()
+                    modelMatrix: mat4.create(),
+                    texture: texture,
+                    sampler: sampler
                 };
                 mat4.translate(block.modelMatrix, block.modelMatrix, [
                     this.pos.x + x * 3,
                     this.pos.y,
                     this.pos.z + z * 3
                 ]);
+                mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
                 this.blocks.push(block);
             }
         }

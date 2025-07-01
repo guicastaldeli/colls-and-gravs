@@ -208,8 +208,10 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjectionMatrix, i === 0 ? modelMatrix : envBuffers[i].modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp);
-        if (!data.sampler || !data.texture)
+        if (!data.sampler || !data.texture) {
             console.error('missing');
+            continue;
+        }
         const textureBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(1),
             entries: [

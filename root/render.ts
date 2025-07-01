@@ -233,7 +233,10 @@ async function setBuffers(
 
         device.queue.writeBuffer(uniformBuffer, offset, mvp as Float32Array);
         
-        if(!data.sampler || !data.texture) console.error('missing');
+        if(!data.sampler || !data.texture) {
+            console.error('missing');
+            continue;
+        }
         
         const textureBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(1),

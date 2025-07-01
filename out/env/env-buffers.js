@@ -1,29 +1,35 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 export async function initEnvBuffers(device) {
-    const vertexBuffer = await initEnvVertexBuffer(device);
-    const colorBuffer = await initEnvColorBuffer(device);
-    const { buffer: indexBuffer, count: indexCount } = await initEnvIndexBuffer(device);
-    const modelMatrix = mat4.create();
-    mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
-    const texture = device.createTexture({
-        size: [1, 1],
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-    });
-    device.queue.writeTexture({ texture }, new Uint8Array([0, 0, 0, 0]), { bytesPerRow: 4 }, [1, 1]);
-    const sampler = device.createSampler({
-        magFilter: 'linear',
-        minFilter: 'linear'
-    });
-    return {
-        vertex: vertexBuffer,
-        color: colorBuffer,
-        index: indexBuffer,
-        indexCount: indexCount,
-        modelMatrix: modelMatrix,
-        texture: texture,
-        sampler: sampler
-    };
+    try {
+        const vertexBuffer = await initEnvVertexBuffer(device);
+        const colorBuffer = await initEnvColorBuffer(device);
+        const { buffer: indexBuffer, count: indexCount } = await initEnvIndexBuffer(device);
+        const modelMatrix = mat4.create();
+        mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
+        const texture = device.createTexture({
+            size: [1, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        });
+        device.queue.writeTexture({ texture }, new Uint8Array([0, 0, 0, 0]), { bytesPerRow: 4 }, [1, 1]);
+        const sampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
+        return {
+            vertex: vertexBuffer,
+            color: colorBuffer,
+            index: indexBuffer,
+            indexCount: indexCount,
+            modelMatrix: modelMatrix,
+            texture: texture,
+            sampler: sampler
+        };
+    }
+    catch (err) {
+        console.log(err);
+        throw err;
+    }
 }
 async function initEnvIndexBuffer(device) {
     const indices = new Uint16Array([

@@ -20,5 +20,6 @@ fn main(input: VertexInput) -> VertexOutput {
     output.Position = mvpMatrix * vec4f(input.position, 1.0);
     output.color = input.color;
     output.normal = input.normal;
+    output.texCoord = input.texCoord;
     return output;
 }
