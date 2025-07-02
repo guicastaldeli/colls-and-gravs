@@ -69,7 +69,7 @@ export class Ground implements ICollidable {
                 )
 
                 const collider = new BoxCollider(
-                    [this.pos.gap(), this.size.h * 17, this.pos.gap()],
+                    [this.pos.gap(), this.size.h * 25, this.pos.gap()],
                     vec3.fromValues(position[0], position[1], position[2])
                 );
 

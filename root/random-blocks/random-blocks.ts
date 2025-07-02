@@ -109,7 +109,7 @@ export class RandomBlocks {
         mat4.translate(modelMatrix, modelMatrix, position);
 
         const collider = new BoxCollider(
-            [0.1, 0.1, 0.1],
+            [1, 1, 1],
             [position[0], position[1], position[2]]
         );
 
@@ -202,6 +202,7 @@ export class RandomBlocks {
         hud: Hud
     ): Promise<void> {
         const minDistance = 1.0;
+        const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
 
@@ -216,7 +217,10 @@ export class RandomBlocks {
             const block = this.blocks[i];
             const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
 
-            if(intersection?.hit && intersection.distance !== undefined && 
+            if(intersection?.hit && 
+                intersection.distance !== undefined &&
+                intersection.distance >= minDistance &&
+                intersection.distance <= maxDistance &&
                 (!closestIntersection || intersection.distance < closestIntersection.distance))
             {
                 closestIntersection = {
@@ -234,9 +238,9 @@ export class RandomBlocks {
             const placementPos = vec3.create();
             vec3.add(placementPos, closestIntersection.intercetionPoint, placementOffset);
 
-            placementPos[0] = Math.round(placementPos[0]);
-            placementPos[1] = Math.round(placementPos[1]);
-            placementPos[2] = Math.round(placementPos[2]);
+            placementPos[0] = Math.abs(placementPos[0]);
+            placementPos[1] = Math.abs(placementPos[1]);
+            placementPos[2] = Math.abs(placementPos[2]);
 
             const positionOccupied = this.blocks.some(block =>
                 block.position[0] === placementPos[0] &&
@@ -257,9 +261,9 @@ export class RandomBlocks {
         } else {
             const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
             const blockPos = vec3.create();
-            blockPos[0] = Math.round(targetPos[0]);
-            blockPos[1] = Math.round(targetPos[1] - 0.5);
-            blockPos[2] = Math.round(targetPos[2]);
+            blockPos[0] = Math.abs(targetPos[0]);
+            blockPos[1] = Math.abs(targetPos[1] - 0.5);
+            blockPos[2] = Math.abs(targetPos[2]);
 
             const positionOccupied = this.blocks.some(block =>
                 block.position[0] === blockPos[0] &&
