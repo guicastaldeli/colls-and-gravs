@@ -4,10 +4,12 @@ import { ResourceManager } from "./resource-manager.js";
 export class RandomBlocks {
     device;
     loader;
+    shaderLoader;
     blocks = [];
     _Colliders = [];
     resourceManager;
     blockIdCounter = 0;
+    targetBlockIndex = -1;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
     lastMouseClickTime = 0;
@@ -15,9 +17,10 @@ export class RandomBlocks {
     keyPressed = false;
     preloadModel;
     preloadTex;
-    constructor(device, loader) {
+    constructor(device, loader, shaderLoader) {
         this.device = device;
         this.loader = loader;
+        this.shaderLoader = shaderLoader;
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
     }
@@ -96,6 +99,23 @@ export class RandomBlocks {
             throw err;
         }
     }
+    updateTargetBlock(playerController) {
+        this.targetBlockIndex = -1;
+        const maxDistance = 5.0;
+        const rayOrigin = playerController.getCameraPosition();
+        const rayDirection = playerController.getForward();
+        let closestDistance = Infinity;
+        for (let i = 0; i < this.blocks.length; i++) {
+            const block = this.blocks[i];
+            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
+            if (intersection?.hit && intersection.distance !== undefined) {
+                if (intersection.distance < maxDistance && intersection.distance < closestDistance) {
+                    closestDistance = intersection.distance;
+                    this.targetBlockIndex = i;
+                }
+            }
+        }
+    }
     removeBlock(i) {
         if (i < 0 || i >= this.blocks.length)
             return;
@@ -112,6 +132,9 @@ export class RandomBlocks {
         }
     }
     removeBlockRaycaster(playerController) {
+        this.updateTargetBlock(playerController);
+        if (this.targetBlockIndex >= 0)
+            this.removeBlock(this.targetBlockIndex);
         const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
@@ -231,6 +254,76 @@ export class RandomBlocks {
         this.sharedResources.clear();
         await this.resourceManager.cleanup();
     }
+    //Outline
+    outlinePipeline;
+    outlineBindGroup;
+    outlineUniformBuffer;
+    outlineDepthTexture;
+    async initOutline(device, format) {
+        const [vertexShader, fragShader] = await Promise.all([
+            this.shaderLoader.loader('./shaders/vertex.wgsl'),
+            this.shaderLoader.loader('./shaders/vertex.wgsl'),
+        ]);
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                }]
+        });
+        const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout]
+        });
+        this.outlinePipeline = device.createRenderPipeline({
+            layout: pipelineLayout,
+            vertex: {
+                module: vertexShader,
+                entryPoint: 'main',
+                buffers: [{
+                        arrayStride: 3 * 4,
+                        attributes: [{
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: 'float32x3'
+                            }]
+                    }]
+            },
+            fragment: {
+                module: fragShader,
+                entryPoint: 'main',
+                targets: [{
+                        format: format,
+                    }]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                cullMode: 'none'
+            },
+            depthStencil: {
+                depthWriteEnabled: false,
+                depthCompare: 'less-equal',
+                format: 'depth24plus'
+            }
+        });
+        this.outlineUniformBuffer = device.createBuffer({
+            size: 4 * 16,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
+        });
+        this.outlineBindGroup = device.createBindGroup({
+            layout: bindGroupLayout,
+            entries: [{
+                    binding: 0,
+                    resource: { buffer: this.outlineUniformBuffer }
+                }]
+        });
+        this.outlineDepthTexture = device.createTexture({
+            size: [device.limits.maxTextureDimension2D, device.limits.maxTextureDimension2D],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+    }
+    //
     init(canvas, playerController, hud) {
         this.initListeners(playerController, hud);
     }

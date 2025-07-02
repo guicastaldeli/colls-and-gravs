@@ -237,6 +237,22 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
+    if (randomBlocks.targetBlockIndex >= 0) {
+        const outline = randomBlocks.getBlocks()[randomBlocks.targetBlockIndex];
+        if (outline) {
+            const outlineModelMatrix = mat4.create();
+            mat4.copy(outlineModelMatrix, outline.modelMatrix);
+            mat4.scale(outlineModelMatrix, outlineModelMatrix, [1.5, 1.5, 1.5]);
+            const mvp = mat4.create();
+            mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
+            device.queue.writeBuffer(randomBlocks.outlineUniformBuffer, 0, mvp);
+            passEncoder.setPipeline(randomBlocks.outlinePipeline);
+            passEncoder.setBindGroup(0, randomBlocks.outlineBindGroup);
+            passEncoder.setVertexBuffer(0, outline.vertex);
+            passEncoder.setIndexBuffer(outline.index, 'uint16');
+            passEncoder.drawIndexed(outline.indexCount);
+        }
+    }
 }
 async function renderer(device) {
     if (!envRenderer) {
@@ -279,9 +295,9 @@ export async function render(canvas) {
         //Random Blocks
         const hud = camera.getHud();
         if (!randomBlocks)
-            randomBlocks = new RandomBlocks(device, loader);
+            randomBlocks = new RandomBlocks(device, loader, shaderLoader);
+        randomBlocks.initOutline(device, navigator.gpu.getPreferredCanvasFormat());
         randomBlocks.init(canvas, playerController, hud);
-        //await randomBlocks.cleanupResources();
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
