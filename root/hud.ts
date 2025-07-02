@@ -35,10 +35,10 @@ export class Hud {
 
     private async drawCrosshair(): Promise<void> {
         const vertices = new Float32Array([
-            -0.019, -0.04, 1,
-            0.019, -0.04, 1,
-            0.019,  0.04, 1,
-            -0.019,  0.04, 1 
+            -0.005, -0.01, 1,
+            0.005, -0.01, 1,
+            0.005,  0.01, 1,
+            -0.005,  0.01, 1 
         ]);
 
         const uvs = new Float32Array([
@@ -79,7 +79,7 @@ export class Hud {
     }
 
     private crosshairScale(): void {
-        const scale = 0.6;
+        const scale = 2.0;
         const transform = mat4.create();
         mat4.scale(transform, transform, [scale, scale, 1]);
 

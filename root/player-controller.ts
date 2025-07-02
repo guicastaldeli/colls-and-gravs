@@ -177,7 +177,7 @@ export class PlayerController implements ICollidable {
                 const pos2 = collidableToRemove.getPosition();
                 if(vec3.equals(pos1, pos2)) return false;
             } catch(err) {
-                console.warn(err);
+                return true;
             }
 
             return true;

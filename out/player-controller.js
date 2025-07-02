@@ -160,7 +160,7 @@ export class PlayerController {
                     return false;
             }
             catch (err) {
-                console.warn(err);
+                return true;
             }
             return true;
         });

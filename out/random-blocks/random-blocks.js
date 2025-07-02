@@ -72,6 +72,7 @@ export class RandomBlocks {
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
+            mat4.scale(modelMatrix, modelMatrix, [0.1, 0.1, 0.1]);
             const collider = new BoxCollider([1, 1, 1], [position[0], position[1], position[2]]);
             const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
             if (!sharedResource)
@@ -91,7 +92,7 @@ export class RandomBlocks {
             };
             this.blocks.push(newBlock);
             this._Colliders.push(collider);
-            console.log("block id:", this.blocks[this.blocks.length - 1].id);
+            console.log("block id:", this.blocks[this.blocks.length - 1].indexCount);
             return newBlock;
         }
         catch (err) {
@@ -133,106 +134,37 @@ export class RandomBlocks {
     }
     removeBlockRaycaster(playerController) {
         this.updateTargetBlock(playerController);
-        if (this.targetBlockIndex >= 0)
-            this.removeBlock(this.targetBlockIndex);
-        const maxDistance = 5.0;
-        const rayOrigin = playerController.getCameraPosition();
-        const rayDirection = playerController.getForward();
-        let closestBlock = null;
-        for (let i = 0; i < this.blocks.length; i++) {
-            const block = this.blocks[i];
-            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
-            if (intersection?.hit) {
-                if (!intersection.distance)
-                    return;
-                const distance = intersection.distance;
-                if (distance <= maxDistance) {
-                    if (!closestBlock || distance < closestBlock.distance) {
-                        closestBlock = {
-                            block,
-                            i,
-                            distance
-                        };
-                    }
-                }
-            }
-        }
-        if (closestBlock) {
-            const blockToRemove = closestBlock.block;
+        if (this.targetBlockIndex >= 0) {
+            const blockToRemove = this.blocks[this.targetBlockIndex];
             const blockCollidable = {
                 getCollider: () => blockToRemove.collider,
                 getPosition: () => blockToRemove.position,
                 id: blockToRemove.id
             };
-            try {
-                playerController.removeCollidable(blockCollidable);
-                this.removeBlock(closestBlock.i);
-            }
-            catch (err) {
-                console.error(err);
-            }
+            playerController.removeCollidable(blockCollidable);
+            this.removeBlock(this.targetBlockIndex);
         }
     }
     async addBlocksRaycaster(playerController, hud) {
         const minDistance = 1.0;
-        const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
-        let closestIntersection = null;
-        for (let i = 0; i < this.blocks.length; i++) {
-            const block = this.blocks[i];
-            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
-            if (intersection?.hit &&
-                intersection.distance !== undefined &&
-                intersection.distance >= minDistance &&
-                intersection.distance <= maxDistance &&
-                (!closestIntersection || intersection.distance < closestIntersection.distance)) {
-                closestIntersection = {
-                    blockIndex: i,
-                    distance: intersection.distance,
-                    faceNormal: intersection.faceNormal,
-                    intercetionPoint: intersection.point
-                };
-            }
-        }
-        if (closestIntersection) {
-            const placementOffset = vec3.create();
-            vec3.scale(placementOffset, closestIntersection.faceNormal, 1.0);
-            const placementPos = vec3.create();
-            vec3.add(placementPos, closestIntersection.intercetionPoint, placementOffset);
-            placementPos[0] = Math.abs(placementPos[0]);
-            placementPos[1] = Math.abs(placementPos[1]);
-            placementPos[2] = Math.abs(placementPos[2]);
-            const positionOccupied = this.blocks.some(block => block.position[0] === placementPos[0] &&
-                block.position[1] === placementPos[1] &&
-                block.position[2] === placementPos[2]);
-            if (!positionOccupied) {
-                const newBlock = await this.addBlock(placementPos);
-                const newBlockCollidable = {
-                    getCollider: () => newBlock.collider,
-                    getPosition: () => newBlock.position,
-                    id: newBlock.id
-                };
-                playerController.addCollidable(newBlockCollidable);
-            }
-        }
-        else {
-            const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
-            const blockPos = vec3.create();
-            vec3.copy(blockPos, targetPos);
-            blockPos[1] -= 0.4;
-            const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
-                block.position[1] === blockPos[1] &&
-                block.position[2] === blockPos[2]);
-            if (!positionOccupied) {
-                await this.addBlock(blockPos);
-                const newBlockCollidable = {
-                    getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position,
-                    id: this.blocks[this.blocks.length - 1].id
-                };
-                playerController.addCollidable(newBlockCollidable);
-            }
+        const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
+        const blockPos = vec3.create();
+        blockPos[0] = Math.round(targetPos[0]);
+        blockPos[1] = Math.round(targetPos[1]);
+        blockPos[2] = Math.round(targetPos[2]);
+        const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
+            block.position[1] === blockPos[1] &&
+            block.position[2] === blockPos[2]);
+        if (!positionOccupied) {
+            await this.addBlock(blockPos);
+            const newBlockCollidable = {
+                getCollider: () => this.blocks[this.blocks.length - 1].collider,
+                getPosition: () => this.blocks[this.blocks.length - 1].position,
+                id: this.blocks[this.blocks.length - 1].id
+            };
+            playerController.addCollidable(newBlockCollidable);
         }
     }
     initListeners(playerController, hud) {
@@ -259,10 +191,10 @@ export class RandomBlocks {
     outlineBindGroup;
     outlineUniformBuffer;
     outlineDepthTexture;
-    async initOutline(device, format) {
+    async initOutline(canvas, device, format) {
         const [vertexShader, fragShader] = await Promise.all([
-            this.shaderLoader.loader('./shaders/vertex.wgsl'),
-            this.shaderLoader.loader('./shaders/vertex.wgsl'),
+            this.shaderLoader.loader('./random-blocks/shaders/vertex.wgsl'),
+            this.shaderLoader.loader('./random-blocks/shaders/frag.wgsl'),
         ]);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [{
@@ -279,14 +211,24 @@ export class RandomBlocks {
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
-                buffers: [{
-                        arrayStride: 3 * 4,
+                buffers: [
+                    {
+                        arrayStride: 8 * 4,
                         attributes: [{
                                 shaderLocation: 0,
                                 offset: 0,
                                 format: 'float32x3'
                             }]
-                    }]
+                    },
+                    {
+                        arrayStride: 8 * 4,
+                        attributes: [{
+                                shaderLocation: 1,
+                                offset: 0,
+                                format: 'float32x3'
+                            }]
+                    }
+                ]
             },
             fragment: {
                 module: fragShader,
@@ -296,19 +238,19 @@ export class RandomBlocks {
                     }]
             },
             primitive: {
-                topology: 'triangle-list',
+                topology: 'line-list',
                 cullMode: 'none'
             },
             depthStencil: {
                 depthWriteEnabled: false,
-                depthCompare: 'less-equal',
+                depthCompare: 'always',
                 format: 'depth24plus'
             }
         });
         this.outlineUniformBuffer = device.createBuffer({
             size: 4 * 16,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: true
+            mappedAtCreation: false
         });
         this.outlineBindGroup = device.createBindGroup({
             layout: bindGroupLayout,
@@ -318,7 +260,7 @@ export class RandomBlocks {
                 }]
         });
         this.outlineDepthTexture = device.createTexture({
-            size: [device.limits.maxTextureDimension2D, device.limits.maxTextureDimension2D],
+            size: [canvas.width, canvas.height],
             format: 'depth24plus',
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
@@ -326,5 +268,6 @@ export class RandomBlocks {
     //
     init(canvas, playerController, hud) {
         this.initListeners(playerController, hud);
+        this.updateTargetBlock(playerController);
     }
 }

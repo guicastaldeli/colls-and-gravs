@@ -20,9 +20,9 @@ export class Ground implements ICollidable {
     }
 
     size = {
-        w: 0.2,
-        h: 0.2,
-        d: 0.2
+        w: 0.05,
+        h: 0.05,
+        d: 0.05
     }
 
     constructor(device: GPUDevice, loader: Loader) {
@@ -69,7 +69,7 @@ export class Ground implements ICollidable {
                 )
 
                 const collider = new BoxCollider(
-                    [this.pos.gap(), this.size.h * 25, this.pos.gap()],
+                    [this.pos.gap(), this.size.h * 80, this.pos.gap()],
                     vec3.fromValues(position[0], position[1], position[2])
                 );
 

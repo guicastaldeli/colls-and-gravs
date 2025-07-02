@@ -8,6 +8,7 @@ export type EnvBufferData = {
     modelMatrix: mat4;
     texture: GPUTexture;
     sampler: GPUSampler;
+    indexData?: Uint16Array;
 }
 
 export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> {

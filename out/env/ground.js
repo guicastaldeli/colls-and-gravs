@@ -13,9 +13,9 @@ export class Ground {
         gap: () => 0.8
     };
     size = {
-        w: 0.2,
-        h: 0.2,
-        d: 0.2
+        w: 0.05,
+        h: 0.05,
+        d: 0.05
     };
     constructor(device, loader) {
         this.device = device;
@@ -41,7 +41,7 @@ export class Ground {
                 mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, position);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
-                const collider = new BoxCollider([this.pos.gap(), this.size.h * 25, this.pos.gap()], vec3.fromValues(position[0], position[1], position[2]));
+                const collider = new BoxCollider([this.pos.gap(), this.size.h * 80, this.pos.gap()], vec3.fromValues(position[0], position[1], position[2]));
                 this.blocks.push(block);
                 this._Collider.push(collider);
             }

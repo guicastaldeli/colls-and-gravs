@@ -36,12 +36,33 @@ export class Loader {
                 this.normals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
             }
             else if (parts[0] === 'vt') {
-                this.coords.push(parseFloat(parts[1]), parseFloat(parts[2]));
+                this.coords.push(parseFloat(parts[1]), 1.0 - parseFloat(parts[2]));
             }
             else if (parts[0] === 'f') {
                 if (parts.length === 4) {
                     const triIndices = [];
                     for (let i = 1; i <= 3; i++) {
+                        const faceParts = parts[i].split('/');
+                        const vIdx = parseInt(faceParts[0]) - 1;
+                        const tIdx = faceParts[1] ? parseInt(faceParts[1]) - 1 : -1;
+                        const nIdx = faceParts[2] ? parseInt(faceParts[2]) - 1 : -1;
+                        const key = `${vIdx}|${tIdx}|${nIdx}`;
+                        if (!(key in this.indexMap)) {
+                            this.indexMap[key] = indexCounter++;
+                            const posIndex = vIdx * 3;
+                            this.vertices.push(this.positions[posIndex], this.positions[posIndex + 1], this.positions[posIndex + 2]);
+                            const texIndex = Math.min(tIdx, this.coords.length / 2 - 1) * 2;
+                            this.vertices.push(this.coords[texIndex] || 0, this.coords[texIndex + 1] || 0);
+                            const normIndex = Math.min(nIdx, this.normals.length / 3 - 1) * 3;
+                            this.vertices.push(this.normals[normIndex] || 0, this.normals[normIndex + 1] || 1, this.normals[normIndex + 2] || 0);
+                        }
+                        triIndices.push(this.indexMap[key]);
+                    }
+                    this.objIndices.push(triIndices[0], triIndices[1], triIndices[2]);
+                }
+                else if (parts.length === 5) {
+                    const quadIndices = [];
+                    for (let i = 1; i <= 4; i++) {
                         const faceParts = parts[i].split('/');
                         const vIdx = parseInt(faceParts[0]) - 1;
                         const tIdx = faceParts[1] ? parseInt(faceParts[1]) - 1 : 0;
@@ -56,9 +77,10 @@ export class Loader {
                             const normIndex = Math.min(nIdx, this.normals.length / 3 - 1) * 3;
                             this.vertices.push(this.normals[normIndex] || 0, this.normals[normIndex + 1] || 1, this.normals[normIndex + 2] || 0);
                         }
-                        triIndices.push(this.indexMap[key]);
+                        quadIndices.push(this.indexMap[key]);
                     }
-                    this.objIndices.push(triIndices[0], triIndices[1], triIndices[2]);
+                    this.objIndices.push(quadIndices[0], quadIndices[1], quadIndices[2]);
+                    this.objIndices.push(quadIndices[0], quadIndices[2], quadIndices[3]);
                 }
             }
         }
@@ -112,8 +134,10 @@ export class Loader {
     }
     createSampler() {
         return this.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear'
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            addressModeU: 'repeat',
+            addressModeV: 'repeat'
         });
     }
     setTextureUrl(url) {
@@ -173,7 +197,8 @@ export class Loader {
             indexCount: this.objIndices.length,
             modelMatrix: modelMatrix,
             texture: texture,
-            sampler: sampler
+            sampler: sampler,
+            indexData: new Uint16Array(this.objIndices)
         };
     }
 }

@@ -242,7 +242,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         if (outline) {
             const outlineModelMatrix = mat4.create();
             mat4.copy(outlineModelMatrix, outline.modelMatrix);
-            mat4.scale(outlineModelMatrix, outlineModelMatrix, [1.5, 1.5, 1.5]);
             const mvp = mat4.create();
             mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
             device.queue.writeBuffer(randomBlocks.outlineUniformBuffer, 0, mvp);
@@ -296,7 +295,7 @@ export async function render(canvas) {
         const hud = camera.getHud();
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader, shaderLoader);
-        randomBlocks.initOutline(device, navigator.gpu.getPreferredCanvasFormat());
+        randomBlocks.initOutline(canvas, device, navigator.gpu.getPreferredCanvasFormat());
         randomBlocks.init(canvas, playerController, hud);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
@@ -308,7 +307,7 @@ export async function render(canvas) {
         const renderPassDescriptor = {
             colorAttachments: [{
                     view: textureView,
-                    clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store'
                 }],
