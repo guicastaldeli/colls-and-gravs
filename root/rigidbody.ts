@@ -6,7 +6,7 @@ export class Rigidbody {
     private _isColliding: boolean = false;
     private _gravity: vec3 = vec3.fromValues(0, -18, 0);
     private _mass: number = 1.0;
-    private _drag: number = 1.0;
+    private _drag: number = 1.5;
 
     private _timer: number = 0.0;
     private _tolerance: number = 0.5;

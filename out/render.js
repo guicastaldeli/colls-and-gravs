@@ -9,6 +9,7 @@ import { ShaderLoader } from "./shader-loader.js";
 import { PlayerController } from "./player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
+import { RandomBlocks } from "./random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
 let tick;
@@ -21,6 +22,7 @@ let envRenderer;
 let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
+let randomBlocks;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
         if (e.key.toLowerCase() === 't') {
@@ -188,9 +190,9 @@ async function initShaders() {
 async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
-    const envBuffers = [...envRenderer.ground.getBlocks()];
+    const renderBuffers = [...randomBlocks.getBlocks(), ...envRenderer.ground.getBlocks()];
     const uniformBuffer = device.createBuffer({
-        size: 256 * (1 + envBuffers.length),
+        size: 256 * (1 + renderBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -205,11 +207,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
             }]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
-    for (let i = 0; i < envBuffers.length; i++) {
-        const data = envBuffers[i];
+    for (let i = 0; i < renderBuffers.length; i++) {
+        const data = renderBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjectionMatrix, envBuffers[i].modelMatrix);
+        mat4.multiply(mvp, viewProjectionMatrix, renderBuffers[i].modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp);
         if (!data.sampler || !data.texture) {
             console.error('missing');
@@ -274,6 +276,11 @@ export async function render(canvas) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
+        //Random Blocks
+        const hud = camera.getHud();
+        if (!randomBlocks)
+            randomBlocks = new RandomBlocks(device, loader);
+        randomBlocks.init(canvas, playerController, hud);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',

@@ -5,7 +5,7 @@ export class Rigidbody {
     _isColliding = false;
     _gravity = vec3.fromValues(0, -18, 0);
     _mass = 1.0;
-    _drag = 1.0;
+    _drag = 1.5;
     _timer = 0.0;
     _tolerance = 0.5;
     update(deltaTime, position) {

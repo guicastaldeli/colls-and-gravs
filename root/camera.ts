@@ -73,4 +73,8 @@ export class Camera {
     public async renderHud(passEncoder: GPURenderPassEncoder): Promise<void> {
         await this.hud.render(passEncoder);
     }
+
+    public getHud(): Hud {
+        return this.hud;
+    }
 }

@@ -14,6 +14,8 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
 import { ICollidable } from "./collider.js";
 
+import { RandomBlocks } from "./random-blocks/random-blocks.js";
+
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
 
@@ -28,6 +30,8 @@ let getColliders: GetColliders;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
+
+let randomBlocks: RandomBlocks;
 
 async function toggleWireframe(): Promise<void> {
     document.addEventListener('keydown', async (e) => {
@@ -207,9 +211,9 @@ async function setBuffers(
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
 
-    const envBuffers = [...envRenderer.ground.getBlocks()];
+    const renderBuffers = [...randomBlocks.getBlocks(), ...envRenderer.ground.getBlocks()];
     const uniformBuffer = device.createBuffer({
-        size: 256 * (1 + envBuffers.length),
+        size: 256 * (1 + renderBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
@@ -227,11 +231,11 @@ async function setBuffers(
 
     passEncoder.setPipeline(wireframeMode ? wireframePipeline! : pipeline);
 
-    for(let i = 0; i < envBuffers.length; i++) {
-        const data = envBuffers[i];
+    for(let i = 0; i < renderBuffers.length; i++) {
+        const data = renderBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjectionMatrix, envBuffers[i].modelMatrix);
+        mat4.multiply(mvp, viewProjectionMatrix, renderBuffers[i].modelMatrix);
 
         device.queue.writeBuffer(uniformBuffer, offset, mvp as Float32Array);
         
@@ -308,6 +312,11 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
+
+        //Random Blocks
+        const hud = camera.getHud();
+        if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader);
+        randomBlocks.init(canvas, playerController, hud);
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],

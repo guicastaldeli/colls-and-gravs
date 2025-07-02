@@ -38,4 +38,7 @@ export class Camera {
     async renderHud(passEncoder) {
         await this.hud.render(passEncoder);
     }
+    getHud() {
+        return this.hud;
+    }
 }

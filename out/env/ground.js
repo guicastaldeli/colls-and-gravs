@@ -13,9 +13,9 @@ export class Ground {
         gap: () => 0.8
     };
     size = {
-        w: 1.0,
-        h: 1.0,
-        d: 1.0
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     };
     constructor(device, loader) {
         this.device = device;
@@ -23,8 +23,8 @@ export class Ground {
         this.blocks = [];
     }
     async createGround() {
-        const model = await this.loader.parser('./assets/env/obj/smile.obj');
-        const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
+        const model = await this.loader.parser('./assets/env/obj/404.obj');
+        const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
         const sampler = this.loader.createSampler();
         for (let x = 0; x < this.count; x++) {
             for (let z = 0; z < this.count; z++) {
@@ -41,7 +41,7 @@ export class Ground {
                 mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, position);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
-                const collider = new BoxCollider([this.size.w * this.pos.gap(), this.size.h * 6, this.size.d * this.pos.gap()], vec3.fromValues(position[0], position[1], position[2]));
+                const collider = new BoxCollider([this.pos.gap(), this.size.h * 17, this.pos.gap()], vec3.fromValues(position[0], position[1], position[2]));
                 this.blocks.push(block);
                 this._Collider.push(collider);
             }

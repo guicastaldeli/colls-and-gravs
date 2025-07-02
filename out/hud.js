@@ -1,4 +1,4 @@
-import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 export class Hud {
     device;
     pipeline;
@@ -152,6 +152,11 @@ export class Hud {
             console.log(err);
             throw err;
         }
+    }
+    getCrosshairWorldPos(cameraPosition, cameraForward, distance) {
+        const worldPos = vec3.create();
+        vec3.scaleAndAdd(worldPos, cameraPosition, cameraForward, distance);
+        return worldPos;
     }
     async init() {
         try {
