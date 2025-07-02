@@ -150,7 +150,7 @@ export class PlayerController implements ICollidable {
             if(this.checkAABBCollision(box, otherBox)) {
                 this.resolveCollision(box, otherBox);
                 if(collidable.onCollision) collidable.onCollision(this);
-                //if(this.onCollision) this.onCollision(collidable);
+                if(this.onCollision) this.onCollision(collidable);
             }
         }
     }

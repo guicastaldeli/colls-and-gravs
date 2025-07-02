@@ -43,10 +43,14 @@ export class RandomBlocks {
     getBlocks() {
         return this.blocks;
     }
-    getColliders() {
+    getCollider() {
+        return this._Colliders[0];
+    }
+    getAllColliders() {
         return this.blocks.map(block => ({
-            getCollider: () => block.collider,
-            getPosition: () => block.position
+            collider: block.collider,
+            position: vec3.clone(block.collider)['_offset'],
+            type: 'blocks'
         }));
     }
     addSharedResource(id) {
@@ -71,7 +75,7 @@ export class RandomBlocks {
             this.sharedResources.delete(id);
         }
     }
-    async addBlock(position) {
+    async addBlock(position, playerController) {
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -137,14 +141,8 @@ export class RandomBlocks {
     removeBlockRaycaster(playerController) {
         this.updateTargetBlock(playerController);
         if (this.targetBlockIndex >= 0) {
-            const blockToRemove = this.blocks[this.targetBlockIndex];
-            const blockCollidable = {
-                getCollider: () => blockToRemove.collider,
-                getPosition: () => blockToRemove.position,
-                id: blockToRemove.id
-            };
-            playerController.removeCollidable(blockCollidable);
-            this.removeBlock(this.targetBlockIndex);
+            const blockToRemove = this.targetBlockIndex;
+            this.removeBlock(blockToRemove);
         }
     }
     async addBlocksRaycaster(playerController, hud) {
@@ -159,15 +157,8 @@ export class RandomBlocks {
         const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
             block.position[1] === blockPos[1] &&
             block.position[2] === blockPos[2]);
-        if (!positionOccupied) {
-            await this.addBlock(blockPos);
-            const newBlockCollidable = {
-                getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                getPosition: () => this.blocks[this.blocks.length - 1].position,
-                id: this.blocks[this.blocks.length - 1].id
-            };
-            playerController.addCollidable(newBlockCollidable);
-        }
+        if (!positionOccupied)
+            await this.addBlock(blockPos, playerController);
     }
     initListeners(playerController, hud) {
         document.addEventListener('click', async (e) => {

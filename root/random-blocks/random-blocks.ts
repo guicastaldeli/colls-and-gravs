@@ -85,10 +85,19 @@ export class RandomBlocks {
         return this.blocks;
     }
 
-    public getColliders(): ICollidable[] {
+    public getCollider(): Collider {
+        return this._Colliders[0];
+    }
+
+    public getAllColliders(): { 
+        collider: Collider, 
+        position: vec3,
+        type: string
+    }[] {
         return this.blocks.map(block => ({
-            getCollider: () => block.collider,
-            getPosition: () => block.position
+            collider: block.collider,
+            position: vec3.clone((block.collider as BoxCollider))['_offset'],
+            type: 'blocks'
         }));
     }
 
@@ -115,7 +124,7 @@ export class RandomBlocks {
         }
     }
 
-    public async addBlock(position: vec3): Promise<BlockData> {
+    public async addBlock(position: vec3, playerController: PlayerController): Promise<BlockData> {
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -196,16 +205,8 @@ export class RandomBlocks {
     private removeBlockRaycaster(playerController: PlayerController): void {
         this.updateTargetBlock(playerController);
         if(this.targetBlockIndex >= 0) {
-            const blockToRemove = this.blocks[this.targetBlockIndex];
-
-            const blockCollidable = {
-                getCollider: () => blockToRemove.collider,
-                getPosition: () => blockToRemove.position,
-                id: blockToRemove.id
-            }
-
-            playerController.removeCollidable(blockCollidable);
-            this.removeBlock(this.targetBlockIndex);
+            const blockToRemove = this.targetBlockIndex;
+            this.removeBlock(blockToRemove);
         }
     }
 
@@ -230,17 +231,7 @@ export class RandomBlocks {
             block.position[2] === blockPos[2]
         );
 
-        if(!positionOccupied) {
-            await this.addBlock(blockPos);
-
-            const newBlockCollidable = {
-                getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                getPosition: () => this.blocks[this.blocks.length - 1].position,
-                id: this.blocks[this.blocks.length - 1].id
-            };
-
-            playerController.addCollidable(newBlockCollidable);
-        }
+        if(!positionOccupied) await this.addBlock(blockPos, playerController);
     }
 
     private initListeners(

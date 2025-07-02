@@ -272,8 +272,12 @@ export async function render(canvas) {
         if (!pipeline)
             await initShaders();
         await renderer(device);
+        //Random Blocks
+        const format = navigator.gpu.getPreferredCanvasFormat();
+        if (!randomBlocks)
+            randomBlocks = new RandomBlocks(device, loader, shaderLoader);
         if (!getColliders)
-            getColliders = new GetColliders(envRenderer);
+            getColliders = new GetColliders(envRenderer, randomBlocks);
         const colliders = getColliders.getCollidersMap();
         if (!playerController) {
             const collidableList = colliders.map(c => ({
@@ -291,11 +295,7 @@ export async function render(canvas) {
             input = new Input(camera, playerController);
             input.setupInputControls(canvas);
         }
-        //Random Blocks
         const hud = camera.getHud();
-        const format = navigator.gpu.getPreferredCanvasFormat();
-        if (!randomBlocks)
-            randomBlocks = new RandomBlocks(device, loader, shaderLoader);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
@@ -306,7 +306,7 @@ export async function render(canvas) {
         const renderPassDescriptor = {
             colorAttachments: [{
                     view: textureView,
-                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store'
                 }],

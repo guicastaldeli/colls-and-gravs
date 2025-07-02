@@ -91,10 +91,15 @@ export class Ground implements ICollidable {
         return this._Collider[0];
     }
 
-    public getAllColliders(): { collider: Collider, position: vec3 }[] {
+    public getAllColliders(): { 
+        collider: Collider, 
+        position: vec3,
+        type: string
+    }[] {
         return this._Collider.map((collider, i) => ({
             collider,
-            position: vec3.clone((collider as BoxCollider))['_offset']
+            position: vec3.clone((collider as BoxCollider))['_offset'],
+            type: 'ground'
         }));
     }
 
