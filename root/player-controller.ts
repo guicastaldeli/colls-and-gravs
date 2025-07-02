@@ -136,6 +136,10 @@ export class PlayerController implements ICollidable {
         return this._position; 
     }
 
+    public addCollidable(collidable: ICollidable): void {
+        this._Collidables.push(collidable);
+    }
+
     private checkCollisions(): void {
         const box = this._Collider.getBoundingBox(this._position);
 
@@ -151,16 +155,41 @@ export class PlayerController implements ICollidable {
         }
     }
 
+    public removeCollidable(collidableToRemove: ICollidable): void {
+        if(!collidableToRemove) return;
+
+        this._Collidables = this._Collidables.filter(collidable => {
+            if(!collidable) return false;
+            if(collidable === collidableToRemove) return false;
+
+            try {
+                if('id' in collidable && 'id' in collidableToRemove &&
+                    (collidable as any).id === (collidableToRemove as any)
+                ) {
+                    return false;
+                }
+            } catch(err) {
+                console.warn(err)
+            }
+
+            try {
+                const pos1 = collidable.getPosition();
+                const pos2 = collidableToRemove.getPosition();
+                if(vec3.equals(pos1, pos2)) return false;
+            } catch(err) {
+                console.warn(err);
+            }
+
+            return true;
+        });
+    }
+
     public onCollision(other: ICollidable): void {
         console.log(`Player collided with ${other.constructor.name}`);
     }
 
     public getCollider(): Collider {
         return this._Collider;
-    }
-
-    public addCollidable(collidable: ICollidable): void {
-        this._Collidables.push(collidable);
     }
 
     private checkAABBCollision(
@@ -221,11 +250,6 @@ export class PlayerController implements ICollidable {
         }
 
         vec3.add(this._position, this._position, correction);
-    }
-
-    public removeCollidable(collidable: ICollidable): void {
-        const i = this._Collidables.indexOf(collidable);
-        if(i !== -1) this._Collidables.splice(i, 1);
     }
 
     public updateRotation(xOffset: number, yOffset: number): void {

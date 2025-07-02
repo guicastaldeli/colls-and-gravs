@@ -8,6 +8,7 @@ import { PlayerController } from "../player-controller.js";
 import { Hud } from "../hud.js";
 
 interface BlockData {
+    id: string,
     modelMatrix: mat4;
     position: vec3;
     collider: BoxCollider;
@@ -37,6 +38,7 @@ export class RandomBlocks {
     private blocks: BlockData[] = [];
     private _Colliders: BoxCollider[] = [];
     private resourceManager: ResourceManager;
+    private blockIdCounter: number = 0;
 
     private sharedResources: Map<string, SharedResource> = new Map();
     private defaultSharedResourceId = 'default-m';
@@ -66,7 +68,7 @@ export class RandomBlocks {
             indexCount: this.preloadModel.indexCount,
             texture: this.preloadTex,
             sampler: this.loader.createSampler(),
-            referenceCount: 0
+            referenceCount: 1
         });
     }
 
@@ -104,77 +106,83 @@ export class RandomBlocks {
         }
     }
 
-    public async addBlock(position: vec3): Promise<void> {
-        const modelMatrix = mat4.create();
-        mat4.translate(modelMatrix, modelMatrix, position);
-
-        const collider = new BoxCollider(
-            [1, 1, 1],
-            [position[0], position[1], position[2]]
-        );
-
-        const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
-        if(!sharedResource) return;
-
-        this.blocks.push({
-            modelMatrix,
-            position: vec3.clone(position),
-            collider,
-            vertex: sharedResource.vertex,
-            color: sharedResource.color,
-            index: sharedResource.index,
-            indexCount: sharedResource.indexCount,
-            texture: sharedResource.texture,
-            sampler: sharedResource.sampler,
-            sharedResourceId: this.defaultSharedResourceId
-        });
-
-        this._Colliders.push(collider);
-    }
-
-    private async removeBlock(i: number): Promise<void> {
+    public async addBlock(position: vec3): Promise<BlockData> {
         try {
-            if(i >= 0 && i < this.blocks.length) {
-                const block = this.blocks[i];
-                this.releaseSharedResource(block.sharedResourceId);
-
-                this.blocks.splice(i, 1);
-                this._Colliders.splice(i, 1);
-
-                const resouce = this.sharedResources.get(block.sharedResourceId);
-                if(!resouce) await this.resourceManager.waitCleanup();
+            const modelMatrix = mat4.create();
+            mat4.translate(modelMatrix, modelMatrix, position);
+    
+            const collider = new BoxCollider(
+                [1, 1, 1],
+                [position[0], position[1], position[2]]
+            );
+    
+            const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
+            if(!sharedResource) throw new Error('err');
+    
+            const newBlock = {
+                id: `block-${this.blockIdCounter++}`,
+                modelMatrix,
+                position: vec3.clone(position),
+                collider,
+                vertex: sharedResource.vertex,
+                color: sharedResource.color,
+                index: sharedResource.index,
+                indexCount: sharedResource.indexCount,
+                texture: sharedResource.texture,
+                sampler: sharedResource.sampler,
+                sharedResourceId: this.defaultSharedResourceId
             }
+    
+            this.blocks.push(newBlock);
+            this._Colliders.push(collider);
+    
+            console.log("block id:", this.blocks[this.blocks.length - 1].id);
+            return newBlock;
         } catch(err) {
-            console.log(err);
+            console.log(err)
             throw err;
         }
     }
 
-    private removeBlockRaycaster(playerController: PlayerController, ): void {
-        const maxDistance: number = 5;
+    private removeBlock(i: number): void {
+        if(i < 0 || i >= this.blocks.length) return;
+
+        if(i >= 0 && i < this.blocks.length) {
+            const block = this.blocks[i];
+            if(!block) return;
+            
+            this.blocks.splice(i, 1);
+            this._Colliders.splice(i, 1);
+            
+            this.releaseSharedResource(block.sharedResourceId);
+            const resouce = this.sharedResources.get(block.sharedResourceId);
+            if(!resouce) this.resourceManager.waitCleanup();
+        }
+    }
+
+    private removeBlockRaycaster(playerController: PlayerController): void {
+        const maxDistance: number = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
 
         let closestBlock: { 
+            block: BlockData,
             i: number,
             distance: number,
         } | null = null;
         
         for(let i = 0; i < this.blocks.length; i++) {
-            const block = this.blocks[i];
-            const toBlock = vec3.create();
-            vec3.sub(toBlock, block.position, rayOrigin);
-            
-            const distance = vec3.length(toBlock);
+            const block = this.blocks[i];            
+            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
 
-            if(distance <= maxDistance) {
-                const direction = vec3.clone(toBlock);
-                vec3.normalize(direction, direction);
-                const dot = vec3.dot(rayDirection, direction);
+            if(intersection?.hit) {
+                if(!intersection.distance) return;
+                const distance = intersection.distance;
 
-                if(dot > 0.0995) {
+                if(distance <= maxDistance) {
                     if(!closestBlock || distance < closestBlock.distance) {
                         closestBlock = {
+                            block,
                             i,
                             distance
                         }
@@ -184,16 +192,20 @@ export class RandomBlocks {
         }
 
         if(closestBlock) {
-            const block = this.blocks[closestBlock.i];
+            const blockToRemove = closestBlock.block;
 
             const blockCollidable = {
-                getCollider: () => block.collider,
-                getPosition: () => block.position,
+                getCollider: () => blockToRemove.collider,
+                getPosition: () => blockToRemove.position,
+                id: blockToRemove.id
             }
 
-            this.removeBlock(closestBlock.i).then(() => {
+            try {
                 playerController.removeCollidable(blockCollidable);
-            });
+                this.removeBlock(closestBlock.i);
+            } catch(err) {
+                console.error(err);
+            }
         }
     }
 
@@ -249,11 +261,12 @@ export class RandomBlocks {
             );
 
             if(!positionOccupied) {
-                await this.addBlock(placementPos);
+                const newBlock = await this.addBlock(placementPos);
 
                 const newBlockCollidable = {
-                    getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position
+                    getCollider: () => newBlock.collider,
+                    getPosition: () => newBlock.position,
+                    id: newBlock.id
                 };
 
                 playerController.addCollidable(newBlockCollidable);
@@ -261,9 +274,9 @@ export class RandomBlocks {
         } else {
             const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
             const blockPos = vec3.create();
-            blockPos[0] = Math.abs(targetPos[0]);
-            blockPos[1] = Math.abs(targetPos[1] - 0.5);
-            blockPos[2] = Math.abs(targetPos[2]);
+
+            vec3.copy(blockPos, targetPos);
+            blockPos[1] -= 0.4;
 
             const positionOccupied = this.blocks.some(block =>
                 block.position[0] === blockPos[0] &&
@@ -276,7 +289,8 @@ export class RandomBlocks {
 
                 const newBlockCollidable = {
                     getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position
+                    getPosition: () => this.blocks[this.blocks.length - 1].position,
+                    id: this.blocks[this.blocks.length - 1].id
                 };
 
                 playerController.addCollidable(newBlockCollidable);

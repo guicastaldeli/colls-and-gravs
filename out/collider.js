@@ -40,7 +40,7 @@ export class BoxCollider {
         let tymax = (max[1] - rayOrigin[1]) / rayDirection[1];
         if (tymin > tymax)
             [tymin, tymax] = [tymax, tymin];
-        if ((tmin < tymax) || (tymin > tmax))
+        if ((tmin > tymax) || (tymin > tmax))
             return { hit: false };
         if (tymin > tmin)
             tmin = tymin;
@@ -56,8 +56,13 @@ export class BoxCollider {
             tmin = tzmin;
         if (tzmax < tzmax)
             tmax = tzmax;
+        if (tmax < 0)
+            return { hit: false };
+        const t = tmin >= 0 ? tmin : tmax;
+        if (t < 0)
+            return { hit: false };
         const point = vec3.create();
-        vec3.scaleAndAdd(point, rayOrigin, rayDirection, tmin);
+        vec3.scaleAndAdd(point, rayOrigin, rayDirection, t);
         const faceNormal = vec3.create();
         const epsilon = 0.0001;
         if (Math.abs(point[0] - min[0]) < epsilon)

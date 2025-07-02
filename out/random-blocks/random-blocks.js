@@ -7,6 +7,7 @@ export class RandomBlocks {
     blocks = [];
     _Colliders = [];
     resourceManager;
+    blockIdCounter = 0;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
     lastMouseClickTime = 0;
@@ -30,7 +31,7 @@ export class RandomBlocks {
             indexCount: this.preloadModel.indexCount,
             texture: this.preloadTex,
             sampler: this.loader.createSampler(),
-            referenceCount: 0
+            referenceCount: 1
         });
     }
     getBlocks() {
@@ -65,60 +66,67 @@ export class RandomBlocks {
         }
     }
     async addBlock(position) {
-        const modelMatrix = mat4.create();
-        mat4.translate(modelMatrix, modelMatrix, position);
-        const collider = new BoxCollider([0.1, 0.1, 0.1], [position[0], position[1], position[2]]);
-        const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
-        if (!sharedResource)
-            return;
-        this.blocks.push({
-            modelMatrix,
-            position: vec3.clone(position),
-            collider,
-            vertex: sharedResource.vertex,
-            color: sharedResource.color,
-            index: sharedResource.index,
-            indexCount: sharedResource.indexCount,
-            texture: sharedResource.texture,
-            sampler: sharedResource.sampler,
-            sharedResourceId: this.defaultSharedResourceId
-        });
-        this._Colliders.push(collider);
-    }
-    async removeBlock(i) {
         try {
-            if (i >= 0 && i < this.blocks.length) {
-                const block = this.blocks[i];
-                this.releaseSharedResource(block.sharedResourceId);
-                this.blocks.splice(i, 1);
-                this._Colliders.splice(i, 1);
-                const resouce = this.sharedResources.get(block.sharedResourceId);
-                if (!resouce)
-                    await this.resourceManager.waitCleanup();
-            }
+            const modelMatrix = mat4.create();
+            mat4.translate(modelMatrix, modelMatrix, position);
+            const collider = new BoxCollider([1, 1, 1], [position[0], position[1], position[2]]);
+            const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
+            if (!sharedResource)
+                throw new Error('err');
+            const newBlock = {
+                id: `block-${this.blockIdCounter++}`,
+                modelMatrix,
+                position: vec3.clone(position),
+                collider,
+                vertex: sharedResource.vertex,
+                color: sharedResource.color,
+                index: sharedResource.index,
+                indexCount: sharedResource.indexCount,
+                texture: sharedResource.texture,
+                sampler: sharedResource.sampler,
+                sharedResourceId: this.defaultSharedResourceId
+            };
+            this.blocks.push(newBlock);
+            this._Colliders.push(collider);
+            console.log("block id:", this.blocks[this.blocks.length - 1].id);
+            return newBlock;
         }
         catch (err) {
             console.log(err);
             throw err;
         }
     }
+    removeBlock(i) {
+        if (i < 0 || i >= this.blocks.length)
+            return;
+        if (i >= 0 && i < this.blocks.length) {
+            const block = this.blocks[i];
+            if (!block)
+                return;
+            this.blocks.splice(i, 1);
+            this._Colliders.splice(i, 1);
+            this.releaseSharedResource(block.sharedResourceId);
+            const resouce = this.sharedResources.get(block.sharedResourceId);
+            if (!resouce)
+                this.resourceManager.waitCleanup();
+        }
+    }
     removeBlockRaycaster(playerController) {
-        const maxDistance = 5;
+        const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         let closestBlock = null;
         for (let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
-            const toBlock = vec3.create();
-            vec3.sub(toBlock, block.position, rayOrigin);
-            const distance = vec3.length(toBlock);
-            if (distance <= maxDistance) {
-                const direction = vec3.clone(toBlock);
-                vec3.normalize(direction, direction);
-                const dot = vec3.dot(rayDirection, direction);
-                if (dot > 0.0995) {
+            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
+            if (intersection?.hit) {
+                if (!intersection.distance)
+                    return;
+                const distance = intersection.distance;
+                if (distance <= maxDistance) {
                     if (!closestBlock || distance < closestBlock.distance) {
                         closestBlock = {
+                            block,
                             i,
                             distance
                         };
@@ -127,25 +135,34 @@ export class RandomBlocks {
             }
         }
         if (closestBlock) {
-            const block = this.blocks[closestBlock.i];
+            const blockToRemove = closestBlock.block;
             const blockCollidable = {
-                getCollider: () => block.collider,
-                getPosition: () => block.position,
+                getCollider: () => blockToRemove.collider,
+                getPosition: () => blockToRemove.position,
+                id: blockToRemove.id
             };
-            this.removeBlock(closestBlock.i).then(() => {
+            try {
                 playerController.removeCollidable(blockCollidable);
-            });
+                this.removeBlock(closestBlock.i);
+            }
+            catch (err) {
+                console.error(err);
+            }
         }
     }
     async addBlocksRaycaster(playerController, hud) {
         const minDistance = 1.0;
+        const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         let closestIntersection = null;
         for (let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
             const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
-            if (intersection?.hit && intersection.distance !== undefined &&
+            if (intersection?.hit &&
+                intersection.distance !== undefined &&
+                intersection.distance >= minDistance &&
+                intersection.distance <= maxDistance &&
                 (!closestIntersection || intersection.distance < closestIntersection.distance)) {
                 closestIntersection = {
                     blockIndex: i,
@@ -160,17 +177,18 @@ export class RandomBlocks {
             vec3.scale(placementOffset, closestIntersection.faceNormal, 1.0);
             const placementPos = vec3.create();
             vec3.add(placementPos, closestIntersection.intercetionPoint, placementOffset);
-            placementPos[0] = Math.round(placementPos[0]);
-            placementPos[1] = Math.round(placementPos[1]);
-            placementPos[2] = Math.round(placementPos[2]);
+            placementPos[0] = Math.abs(placementPos[0]);
+            placementPos[1] = Math.abs(placementPos[1]);
+            placementPos[2] = Math.abs(placementPos[2]);
             const positionOccupied = this.blocks.some(block => block.position[0] === placementPos[0] &&
                 block.position[1] === placementPos[1] &&
                 block.position[2] === placementPos[2]);
             if (!positionOccupied) {
-                await this.addBlock(placementPos);
+                const newBlock = await this.addBlock(placementPos);
                 const newBlockCollidable = {
-                    getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position
+                    getCollider: () => newBlock.collider,
+                    getPosition: () => newBlock.position,
+                    id: newBlock.id
                 };
                 playerController.addCollidable(newBlockCollidable);
             }
@@ -178,9 +196,8 @@ export class RandomBlocks {
         else {
             const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
             const blockPos = vec3.create();
-            blockPos[0] = Math.round(targetPos[0]);
-            blockPos[1] = Math.round(targetPos[1] - 0.5);
-            blockPos[2] = Math.round(targetPos[2]);
+            vec3.copy(blockPos, targetPos);
+            blockPos[1] -= 0.4;
             const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
                 block.position[1] === blockPos[1] &&
                 block.position[2] === blockPos[2]);
@@ -188,7 +205,8 @@ export class RandomBlocks {
                 await this.addBlock(blockPos);
                 const newBlockCollidable = {
                     getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position
+                    getPosition: () => this.blocks[this.blocks.length - 1].position,
+                    id: this.blocks[this.blocks.length - 1].id
                 };
                 playerController.addCollidable(newBlockCollidable);
             }

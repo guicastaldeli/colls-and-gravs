@@ -10,7 +10,7 @@ export class PlayerController {
     _jumpForce = 20.0;
     _worldUp = vec3.fromValues(0, 1, 0);
     _cameraOffset = vec3.fromValues(0, 0, 0);
-    yaw = -90;
+    yaw = 60;
     pitch = 0;
     _movSpeed = 5.0;
     _mouseSensv = 0.3;
@@ -119,6 +119,9 @@ export class PlayerController {
     getPosition() {
         return this._position;
     }
+    addCollidable(collidable) {
+        this._Collidables.push(collidable);
+    }
     checkCollisions() {
         const box = this._Collider.getBoundingBox(this._position);
         for (const collidable of this._Collidables) {
@@ -133,14 +136,40 @@ export class PlayerController {
             }
         }
     }
+    removeCollidable(collidableToRemove) {
+        if (!collidableToRemove)
+            return;
+        this._Collidables = this._Collidables.filter(collidable => {
+            if (!collidable)
+                return false;
+            if (collidable === collidableToRemove)
+                return false;
+            try {
+                if ('id' in collidable && 'id' in collidableToRemove &&
+                    collidable.id === collidableToRemove) {
+                    return false;
+                }
+            }
+            catch (err) {
+                console.warn(err);
+            }
+            try {
+                const pos1 = collidable.getPosition();
+                const pos2 = collidableToRemove.getPosition();
+                if (vec3.equals(pos1, pos2))
+                    return false;
+            }
+            catch (err) {
+                console.warn(err);
+            }
+            return true;
+        });
+    }
     onCollision(other) {
         console.log(`Player collided with ${other.constructor.name}`);
     }
     getCollider() {
         return this._Collider;
-    }
-    addCollidable(collidable) {
-        this._Collidables.push(collidable);
     }
     checkAABBCollision(a, b) {
         return (a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
@@ -176,11 +205,6 @@ export class PlayerController {
             this._Rigidbody.velocity[2] = 0;
         }
         vec3.add(this._position, this._position, correction);
-    }
-    removeCollidable(collidable) {
-        const i = this._Collidables.indexOf(collidable);
-        if (i !== -1)
-            this._Collidables.splice(i, 1);
     }
     updateRotation(xOffset, yOffset) {
         xOffset *= this._mouseSensv;
