@@ -30,10 +30,7 @@ interface SharedResource {
     indexCount: number,
     texture: GPUTexture,
     sampler: GPUSampler,
-    referenceCount: number,
-    outlineVertex?: GPUBuffer,
-    outlineIndex?: GPUBuffer,
-    outlineIndexCount?: number
+    referenceCount: number
 }
 
 export class RandomBlocks {
@@ -41,13 +38,13 @@ export class RandomBlocks {
     private loader: Loader;
     private shaderLoader: ShaderLoader;
 
-    private blocks: BlockData[] = [];
+    public blocks: BlockData[] = [];
     private _Colliders: BoxCollider[] = [];
     private resourceManager: ResourceManager;
     private blockIdCounter: number = 0;
     public targetBlockIndex: number = -1;
 
-    private sharedResources: Map<string, SharedResource> = new Map();
+    public sharedResources: Map<string, SharedResource> = new Map();
     private defaultSharedResourceId = 'default-m';
 
     private lastMouseClickTime: number = 0;
@@ -66,7 +63,7 @@ export class RandomBlocks {
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
 
-        this.outline = new OutlineConfig(shaderLoader);
+        this.outline = new OutlineConfig(device, shaderLoader);
     }
 
     public async preloadAssets(): Promise<void> {
@@ -272,18 +269,18 @@ export class RandomBlocks {
     private async renderOutline(
         canvas: HTMLCanvasElement,
         device: GPUDevice,
-        format: GPUTextureFormat
+        format: GPUTextureFormat,
     ): Promise<void> {
         this.outline.initOutline(canvas, device, format);
     }
 
-    public init(
+    public async init(
         canvas: HTMLCanvasElement, 
         playerController: PlayerController,
         format: GPUTextureFormat,
-        hud: Hud
-    ): void {
-        this.renderOutline(canvas, this.device, format);
+        hud: Hud,
+    ): Promise<void> {
+        await this.renderOutline(canvas, this.device, format);
         this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);
     }

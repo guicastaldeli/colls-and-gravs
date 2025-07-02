@@ -336,7 +336,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const hud = camera.getHud();
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
-        randomBlocks.init(canvas, playerController, format, hud);
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
@@ -358,7 +357,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 view: depthTexture.createView(),
                 depthClearValue: 1.0,
                 depthLoadOp: 'clear',
-                depthStoreOp: 'store'
+                depthStoreOp: 'store',
             }
         }
         
@@ -371,6 +370,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
+
+        if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
         
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         camera.renderHud(passEncoder);

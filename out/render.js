@@ -244,9 +244,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
             mat4.copy(outlineModelMatrix, outline.modelMatrix);
             const mvp = mat4.create();
             mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
-            device.queue.writeBuffer(randomBlocks.outlineUniformBuffer, 0, mvp);
-            passEncoder.setPipeline(randomBlocks.outlinePipeline);
-            passEncoder.setBindGroup(0, randomBlocks.outlineBindGroup);
+            device.queue.writeBuffer(randomBlocks.outline.outlineUniformBuffer, 0, mvp);
+            passEncoder.setPipeline(randomBlocks.outline.outlinePipeline);
+            passEncoder.setBindGroup(0, randomBlocks.outline.outlineBindGroup);
             passEncoder.setVertexBuffer(0, outline.vertex);
             passEncoder.setIndexBuffer(outline.index, 'uint16');
             passEncoder.drawIndexed(outline.indexCount);
@@ -293,10 +293,9 @@ export async function render(canvas) {
         }
         //Random Blocks
         const hud = camera.getHud();
+        const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader, shaderLoader);
-        randomBlocks.initOutline(canvas, device, navigator.gpu.getPreferredCanvasFormat());
-        randomBlocks.init(canvas, playerController, hud);
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
@@ -315,7 +314,7 @@ export async function render(canvas) {
                 view: depthTexture.createView(),
                 depthClearValue: 1.0,
                 depthLoadOp: 'clear',
-                depthStoreOp: 'store'
+                depthStoreOp: 'store',
             }
         };
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -326,6 +325,8 @@ export async function render(canvas) {
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         const modelMatrix = mat4.create();
+        if (randomBlocks)
+            randomBlocks.init(canvas, playerController, format, hud);
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         camera.renderHud(passEncoder);
         passEncoder.end();
