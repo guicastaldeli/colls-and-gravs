@@ -317,6 +317,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const hud = camera.getHud();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader);
         randomBlocks.init(canvas, playerController, hud);
+        //await randomBlocks.cleanupResources();
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],

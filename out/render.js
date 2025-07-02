@@ -281,6 +281,7 @@ export async function render(canvas) {
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader);
         randomBlocks.init(canvas, playerController, hud);
+        //await randomBlocks.cleanupResources();
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',

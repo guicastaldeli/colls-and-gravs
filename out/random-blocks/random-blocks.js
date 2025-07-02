@@ -1,17 +1,37 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { initBuffers } from "./random-blocks-buffer.js";
 import { BoxCollider } from "../collider.js";
+import { ResourceManager } from "./resource-manager.js";
 export class RandomBlocks {
     device;
     loader;
     blocks = [];
     _Colliders = [];
+    resourceManager;
+    sharedResources = new Map();
+    defaultSharedResourceId = 'default-m';
     lastMouseClickTime = 0;
     clickCooldown = 0;
     keyPressed = false;
+    preloadModel;
+    preloadTex;
     constructor(device, loader) {
         this.device = device;
         this.loader = loader;
+        this.resourceManager = new ResourceManager(device);
+        this.preloadAssets();
+    }
+    async preloadAssets() {
+        this.preloadModel = await this.loader.parser('./assets/env/obj/smile.obj');
+        this.preloadTex = await this.loader.textureLoader('./assets/env/textures/smile.png');
+        this.sharedResources.set(this.defaultSharedResourceId, {
+            vertex: this.preloadModel.vertex,
+            color: this.preloadModel.color,
+            index: this.preloadModel.index,
+            indexCount: this.preloadModel.indexCount,
+            texture: this.preloadTex,
+            sampler: this.loader.createSampler(),
+            referenceCount: 0
+        });
     }
     getBlocks() {
         return this.blocks;
@@ -22,31 +42,64 @@ export class RandomBlocks {
             getPosition: () => block.position
         }));
     }
+    addSharedResource(id) {
+        const resource = this.sharedResources.get(id);
+        if (resource) {
+            resource.referenceCount++;
+            return resource;
+        }
+        return null;
+    }
+    releaseSharedResource(id) {
+        const resource = this.sharedResources.get(id);
+        if (!resource)
+            return;
+        if (resource)
+            resource.referenceCount--;
+        if (resource.referenceCount <= 0) {
+            this.resourceManager.scheduleDestroy(resource.vertex);
+            this.resourceManager.scheduleDestroy(resource.color);
+            this.resourceManager.scheduleDestroy(resource.index);
+            this.resourceManager.scheduleDestroy(resource.texture);
+            this.sharedResources.delete(id);
+        }
+    }
     async addBlock(position) {
         const modelMatrix = mat4.create();
         mat4.translate(modelMatrix, modelMatrix, position);
-        const model = await this.loader.parser('./assets/env/obj/smile.obj');
-        const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
-        const sampler = this.loader.createSampler();
-        const collider = new BoxCollider([1, 1, 1], [position[0], position[1], position[2]]);
-        const { vertex, color, index, indexCount } = await initBuffers(this.device);
+        const collider = new BoxCollider([0.1, 0.1, 0.1], [position[0], position[1], position[2]]);
+        const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
+        if (!sharedResource)
+            return;
         this.blocks.push({
             modelMatrix,
             position: vec3.clone(position),
             collider,
-            vertex: model.vertex,
-            color: model.color,
-            index: model.index,
-            indexCount: model.indexCount,
-            texture,
-            sampler
+            vertex: sharedResource.vertex,
+            color: sharedResource.color,
+            index: sharedResource.index,
+            indexCount: sharedResource.indexCount,
+            texture: sharedResource.texture,
+            sampler: sharedResource.sampler,
+            sharedResourceId: this.defaultSharedResourceId
         });
         this._Colliders.push(collider);
     }
-    removeBlock(i) {
-        if (i >= 0 && i < this.blocks.length) {
-            this.blocks.splice(i, 1);
-            this._Colliders.splice(i, 1);
+    async removeBlock(i) {
+        try {
+            if (i >= 0 && i < this.blocks.length) {
+                const block = this.blocks[i];
+                this.releaseSharedResource(block.sharedResourceId);
+                this.blocks.splice(i, 1);
+                this._Colliders.splice(i, 1);
+                const resouce = this.sharedResources.get(block.sharedResourceId);
+                if (!resouce)
+                    await this.resourceManager.waitCleanup();
+            }
+        }
+        catch (err) {
+            console.log(err);
+            throw err;
         }
     }
     removeBlockRaycaster(playerController) {
@@ -63,7 +116,7 @@ export class RandomBlocks {
                 const direction = vec3.clone(toBlock);
                 vec3.normalize(direction, direction);
                 const dot = vec3.dot(rayDirection, direction);
-                if (dot < 0.98) {
+                if (dot > 0.0995) {
                     if (!closestBlock || distance < closestBlock.distance) {
                         closestBlock = {
                             i,
@@ -74,60 +127,74 @@ export class RandomBlocks {
             }
         }
         if (closestBlock) {
+            const block = this.blocks[closestBlock.i];
             const blockCollidable = {
-                getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                getPosition: () => this.blocks[this.blocks.length - 1].position,
+                getCollider: () => block.collider,
+                getPosition: () => block.position,
             };
-            this.removeBlock(closestBlock.i);
-            playerController.removeCollidable(blockCollidable);
+            this.removeBlock(closestBlock.i).then(() => {
+                playerController.removeCollidable(blockCollidable);
+            });
         }
     }
     async addBlocksRaycaster(playerController, hud) {
-        const distance = 5;
+        const minDistance = 1.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
-        const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, distance);
-        const maxDistance = 10;
-        const step = 0.1;
-        let lastEmptyPos = null;
-        let currentDitance = 0;
-        while (currentDitance <= maxDistance) {
-            const checkPos = vec3.create();
-            vec3.scaleAndAdd(checkPos, rayOrigin, rayDirection, currentDitance);
-            const blockPos = vec3.create();
-            blockPos[0] = Math.round(targetPos[0] + 2);
-            blockPos[1] = Math.round(targetPos[1] - 1);
-            blockPos[2] = Math.round(targetPos[2]);
-            let positionOccupied = false;
-            for (const block of this.blocks) {
-                if (vec3.distance(blockPos, block.position) < 0.1) {
-                    positionOccupied = true;
-                    break;
-                }
+        let closestIntersection = null;
+        for (let i = 0; i < this.blocks.length; i++) {
+            const block = this.blocks[i];
+            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
+            if (intersection?.hit && intersection.distance !== undefined &&
+                (!closestIntersection || intersection.distance < closestIntersection.distance)) {
+                closestIntersection = {
+                    blockIndex: i,
+                    distance: intersection.distance,
+                    faceNormal: intersection.faceNormal,
+                    intercetionPoint: intersection.point
+                };
             }
+        }
+        if (closestIntersection) {
+            const placementOffset = vec3.create();
+            vec3.scale(placementOffset, closestIntersection.faceNormal, 1.0);
+            const placementPos = vec3.create();
+            vec3.add(placementPos, closestIntersection.intercetionPoint, placementOffset);
+            placementPos[0] = Math.round(placementPos[0]);
+            placementPos[1] = Math.round(placementPos[1]);
+            placementPos[2] = Math.round(placementPos[2]);
+            const positionOccupied = this.blocks.some(block => block.position[0] === placementPos[0] &&
+                block.position[1] === placementPos[1] &&
+                block.position[2] === placementPos[2]);
+            if (!positionOccupied) {
+                await this.addBlock(placementPos);
+                const newBlockCollidable = {
+                    getCollider: () => this.blocks[this.blocks.length - 1].collider,
+                    getPosition: () => this.blocks[this.blocks.length - 1].position
+                };
+                playerController.addCollidable(newBlockCollidable);
+            }
+        }
+        else {
+            const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
+            const blockPos = vec3.create();
+            blockPos[0] = Math.round(targetPos[0]);
+            blockPos[1] = Math.round(targetPos[1] - 0.5);
+            blockPos[2] = Math.round(targetPos[2]);
+            const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
+                block.position[1] === blockPos[1] &&
+                block.position[2] === blockPos[2]);
             if (!positionOccupied) {
                 await this.addBlock(blockPos);
                 const newBlockCollidable = {
                     getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                    getPosition: () => this.blocks[this.blocks.length - 1].position,
+                    getPosition: () => this.blocks[this.blocks.length - 1].position
                 };
                 playerController.addCollidable(newBlockCollidable);
-                return;
             }
-            currentDitance += step;
-        }
-        if (lastEmptyPos) {
-            await this.addBlock(lastEmptyPos);
-            const newBlockCollidable = {
-                getCollider: () => this.blocks[this.blocks.length - 1].collider,
-                getPosition: () => this.blocks[this.blocks.length - 1].position,
-            };
-            playerController.addCollidable(newBlockCollidable);
         }
     }
-    initListeners(canvas, playerController, hud) {
-        const cameraPos = playerController.getCameraPosition();
-        const cameraForward = playerController.getForward();
+    initListeners(playerController, hud) {
         document.addEventListener('click', async (e) => {
             const eKey = e.button;
             if (eKey === 0)
@@ -135,42 +202,18 @@ export class RandomBlocks {
             if (eKey === 2)
                 this.removeBlockRaycaster(playerController);
         });
-        canvas.addEventListener('click', (e) => {
-            if (e.button === 2) {
-                const now = performance.now();
-                if (now - this.lastMouseClickTime < this.clickCooldown)
-                    return;
-                this.lastMouseClickTime = now;
-                let closestBlock = null;
-                for (let i = 0; i < this.blocks.length; i++) {
-                    const block = this.blocks[i];
-                    const distance = vec3.distance(cameraPos, block.position);
-                    const direction = vec3.create();
-                    vec3.subtract(direction, block.position, cameraPos);
-                    vec3.normalize(direction, direction);
-                    const dot = vec3.dot(cameraForward, direction);
-                    if (dot > 0.98 && distance < 5) {
-                        if (!closestBlock || distance < closestBlock.distance) {
-                            const blockCollidable = {
-                                getCollider: () => block.collider,
-                                getPosition: () => block.position,
-                            };
-                            closestBlock = {
-                                i,
-                                distance,
-                                collidable: blockCollidable
-                            };
-                        }
-                    }
-                }
-                if (closestBlock) {
-                    this.removeBlock(closestBlock.i);
-                    playerController.removeCollidable(closestBlock.collidable);
-                }
-            }
-        });
+    }
+    async cleanupResources() {
+        for (const [id, resource] of this.sharedResources) {
+            this.resourceManager.scheduleDestroy(resource.vertex);
+            this.resourceManager.scheduleDestroy(resource.color);
+            this.resourceManager.scheduleDestroy(resource.index);
+            this.resourceManager.scheduleDestroy(resource.texture);
+        }
+        this.sharedResources.clear();
+        await this.resourceManager.cleanup();
     }
     init(canvas, playerController, hud) {
-        this.initListeners(canvas, playerController, hud);
+        this.initListeners(playerController, hud);
     }
 }

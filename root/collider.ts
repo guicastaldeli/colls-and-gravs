@@ -48,4 +48,53 @@ export class BoxCollider implements Collider {
             max: vec3.add(vec3.create(), center, halfSize)
         }
     }
+
+    public rayIntersect(rayOrigin: vec3, rayDirection: vec3): {
+        hit: boolean,
+        distance?: number,
+        faceNormal?: vec3,
+        point?: vec3
+    } {
+        const bbox = this.getBoundingBox();
+        const min = bbox.min;
+        const max = bbox.max;
+
+        let tmin = (min[0] - rayOrigin[0]) / rayDirection[0];
+        let tmax = (max[0] - rayOrigin[0]) / rayDirection[0];
+        if(tmin > tmax) [tmin, tmax] = [tmax, tmin];
+
+        let tymin = (min[1] - rayOrigin[1]) / rayDirection[1];
+        let tymax = (max[1] - rayOrigin[1]) / rayDirection[1];
+        if(tymin > tymax) [tymin, tymax] = [tymax, tymin];
+        if((tmin < tymax) || (tymin > tmax)) return { hit: false }
+        if(tymin > tmin) tmin = tymin;
+        if(tymax < tmax) tmax = tymax;
+
+        let tzmin = (min[2] - rayOrigin[2]) / rayDirection[2];
+        let tzmax = (max[2] - rayOrigin[2]) / rayDirection[2];
+        if(tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
+        if((tmin > tzmax) || (tzmin > tmax)) return { hit: false };
+        if(tzmin > tmin) tmin = tzmin;
+        if(tzmax < tzmax) tmax = tzmax;
+
+        const point = vec3.create();
+        vec3.scaleAndAdd(point, rayOrigin, rayDirection, tmin);
+
+        const faceNormal = vec3.create();
+        const epsilon = 0.0001;
+
+        if(Math.abs(point[0] - min[0]) < epsilon) faceNormal[0] = -1;
+        else if (Math.abs(point[0] - max[0]) < epsilon) faceNormal[0] = 1;
+        else if (Math.abs(point[1] - min[1]) < epsilon) faceNormal[1] = -1;
+        else if (Math.abs(point[1] - max[1]) < epsilon) faceNormal[1] = 1;
+        else if (Math.abs(point[2] - min[2]) < epsilon) faceNormal[2] = -1;
+        else if (Math.abs(point[2] - max[2]) < epsilon) faceNormal[2] = 1;
+
+        return {
+            hit: true,
+            distance: tmin,
+            faceNormal,
+            point
+        }
+    }
 }
