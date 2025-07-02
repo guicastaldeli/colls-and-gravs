@@ -276,9 +276,9 @@ async function setBuffers(
             const mvp = mat4.create();
             mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
 
-            device.queue.writeBuffer(randomBlocks.outlineUniformBuffer, 0, mvp as Float32Array);
-            passEncoder.setPipeline(randomBlocks.outlinePipeline);
-            passEncoder.setBindGroup(0, randomBlocks.outlineBindGroup);
+            device.queue.writeBuffer(randomBlocks.outline.outlineUniformBuffer, 0, mvp as Float32Array);
+            passEncoder.setPipeline(randomBlocks.outline.outlinePipeline);
+            passEncoder.setBindGroup(0, randomBlocks.outline.outlineBindGroup);
             passEncoder.setVertexBuffer(0, outline.vertex);
             passEncoder.setIndexBuffer(outline.index, 'uint16');
             passEncoder.drawIndexed(outline.indexCount);
@@ -334,9 +334,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Random Blocks
         const hud = camera.getHud();
+        const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
-        randomBlocks.initOutline(canvas, device, navigator.gpu.getPreferredCanvasFormat());
-        randomBlocks.init(canvas, playerController, hud);
+        randomBlocks.init(canvas, playerController, format, hud);
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],

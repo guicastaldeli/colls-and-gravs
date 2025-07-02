@@ -7,6 +7,8 @@ import { PlayerController } from "../player-controller.js";
 import { Hud } from "../hud.js";
 import { ShaderLoader } from "../shader-loader.js";
 
+import { OutlineConfig } from "./outline-config.js";
+
 interface BlockData {
     id: string,
     modelMatrix: mat4;
@@ -28,7 +30,10 @@ interface SharedResource {
     indexCount: number,
     texture: GPUTexture,
     sampler: GPUSampler,
-    referenceCount: number
+    referenceCount: number,
+    outlineVertex?: GPUBuffer,
+    outlineIndex?: GPUBuffer,
+    outlineIndexCount?: number
 }
 
 export class RandomBlocks {
@@ -52,12 +57,16 @@ export class RandomBlocks {
     private preloadModel: any;
     private preloadTex!: GPUTexture;
 
+    public outline: OutlineConfig;
+
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
+
+        this.outline = new OutlineConfig(shaderLoader);
     }
 
     public async preloadAssets(): Promise<void> {
@@ -143,8 +152,6 @@ export class RandomBlocks {
     
             this.blocks.push(newBlock);
             this._Colliders.push(collider);
-    
-            console.log("block id:", this.blocks[this.blocks.length - 1].indexCount);
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -262,103 +269,21 @@ export class RandomBlocks {
         await this.resourceManager.cleanup();
     }
 
-    //Outline
-        public outlinePipeline!: GPURenderPipeline;
-        public outlineBindGroup!: GPUBindGroup;
-        public outlineUniformBuffer!: GPUBuffer;
-        public outlineDepthTexture!: GPUTexture;
-
-        public async initOutline(
-            canvas: HTMLCanvasElement,
-            device: GPUDevice,
-            format: GPUTextureFormat
-        ): Promise<void> {
-            const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./random-blocks/shaders/vertex.wgsl'),
-                this.shaderLoader.loader('./random-blocks/shaders/frag.wgsl'),
-            ]);
-
-            const bindGroupLayout = device.createBindGroupLayout({
-                entries: [{
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                }]
-            });
-
-            const pipelineLayout = device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
-            });
-
-            this.outlinePipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
-                vertex: {
-                    module: vertexShader,
-                    entryPoint: 'main',
-                    buffers: [
-                        {
-                            arrayStride: 8 * 4,
-                            attributes: [{
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3'
-                            }]
-                        },
-                        {
-                            arrayStride: 8 * 4,
-                            attributes: [{
-                                shaderLocation: 1,
-                                offset: 0,
-                                format: 'float32x3'
-                            }]
-                        }
-                    ]
-                },
-                fragment: {
-                    module: fragShader,
-                    entryPoint: 'main',
-                    targets: [{
-                        format: format,
-                    }]
-                },
-                primitive: {
-                    topology: 'line-list',
-                    cullMode: 'none'
-                },
-                depthStencil: {
-                    depthWriteEnabled: false,
-                    depthCompare: 'always',
-                    format: 'depth24plus'
-                }
-            });
-
-            this.outlineUniformBuffer = device.createBuffer({
-                size: 4 * 16,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: false
-            });
-
-            this.outlineBindGroup = device.createBindGroup({
-                layout: bindGroupLayout,
-                entries: [{
-                    binding: 0,
-                    resource: { buffer: this.outlineUniformBuffer }
-                }]
-            });
-
-            this.outlineDepthTexture = device.createTexture({
-                size: [canvas.width, canvas.height],
-                format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
-            });
-        }
-    //
+    private async renderOutline(
+        canvas: HTMLCanvasElement,
+        device: GPUDevice,
+        format: GPUTextureFormat
+    ): Promise<void> {
+        this.outline.initOutline(canvas, device, format);
+    }
 
     public init(
         canvas: HTMLCanvasElement, 
         playerController: PlayerController,
+        format: GPUTextureFormat,
         hud: Hud
     ): void {
+        this.renderOutline(canvas, this.device, format);
         this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);
     }
