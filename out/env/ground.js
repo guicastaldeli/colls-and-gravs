@@ -56,11 +56,17 @@ export class Ground {
     getCollider() {
         return this._Collider[0];
     }
+    getCollisionInfo() {
+        return {
+            type: 'ground',
+            position: this.getPosition()
+        };
+    }
     getAllColliders() {
         return this._Collider.map((collider, i) => ({
             collider,
             position: vec3.clone(collider)['_offset'],
-            type: 'ground'
+            type: this.getCollisionInfo().type
         }));
     }
     async init() {

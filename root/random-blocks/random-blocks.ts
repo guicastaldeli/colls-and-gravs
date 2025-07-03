@@ -33,7 +33,7 @@ interface SharedResource {
     referenceCount: number
 }
 
-export class RandomBlocks {
+export class RandomBlocks implements ICollidable {
     private device: GPUDevice;
     private loader: Loader;
     private shaderLoader: ShaderLoader;
@@ -53,6 +53,8 @@ export class RandomBlocks {
     private preloadModel: any;
     private preloadTex!: GPUTexture;
 
+    private _Colliders: BoxCollider[] = [];
+    public type = 'block';
     private raycaster: Raycaster;
     public outline: OutlineConfig;
 
@@ -86,10 +88,6 @@ export class RandomBlocks {
             sampler: this.loader.createSampler(),
             referenceCount: 1
         });
-    }
-
-    public getBlocks(): BlockData[] {
-        return this.blocks;
     }
 
     private addSharedResource(id: string): SharedResource | null {
@@ -140,8 +138,15 @@ export class RandomBlocks {
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId
             }
+
+            const collider = new BoxCollider(
+                [this.size.w * 8, this.size.h * 10, this.size.d * 10],
+                [position[0] / 55, position[1], position[2] / 55]
+            )
     
             this.blocks.push(newBlock);
+            this._Colliders.push(collider);
+            playerController.updateCollidables();
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -161,15 +166,15 @@ export class RandomBlocks {
             const block = this.blocks[i];
             
             const min = [
-                block.position[0] - this.size.w * 5.5,
-                block.position[1] - this.size.h * 5.5,
-                block.position[2] - this.size.d * 5.5,
+                block.position[0] - this.size.w * 5,
+                block.position[1] - this.size.h * 5,
+                block.position[2] - this.size.d * 5,
             ];
 
             const max = [
-                block.position[0] + this.size.w * 5.5,
-                block.position[1] + this.size.h * 5.5,
-                block.position[2] + this.size.d * 5.5,
+                block.position[0] + this.size.w * 5,
+                block.position[1] + this.size.h * 5,
+                block.position[2] + this.size.d * 5,
             ];
 
             const intersection = this.raycaster.rayAABBIntersect(
@@ -188,8 +193,6 @@ export class RandomBlocks {
                 this.targetBlockIndex = i;
             }
         }
-
-        console.log(this.targetBlockIndex)
     }
 
     private removeBlock(i: number): void {
@@ -200,6 +203,7 @@ export class RandomBlocks {
             if(!block) return;
             
             this.blocks.splice(i, 1);
+            this._Colliders.splice(i, 1);
             
             this.releaseSharedResource(block.sharedResourceId);
             const resouce = this.sharedResources.get(block.sharedResourceId);
@@ -268,6 +272,30 @@ export class RandomBlocks {
         format: GPUTextureFormat,
     ): Promise<void> {
         this.outline.initOutline(canvas, device, format);
+    }
+
+    public getBlocks(): BlockData[] {
+        return this.blocks;
+    }
+
+    public getPosition(): vec3 {
+        return vec3.fromValues(0, 0, 0);
+    }
+
+    public getCollider(): Collider {
+        throw new Error('hiuf')
+    }
+
+    public getAllColliders(): {
+        collider: Collider,
+        position: vec3,
+        type: string
+    }[] {
+        return this._Colliders.map((collider, i) => ({
+            collider,
+            position: vec3.clone(this.blocks[i].position),
+            type: this.type
+        }));
     }
 
     public async init(

@@ -1,6 +1,7 @@
 import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collider.js";
+import { GetColliders } from "./get-colliders.js";
 
 export class PlayerController implements ICollidable {
     private _initialPosition: vec3;
@@ -22,8 +23,12 @@ export class PlayerController implements ICollidable {
     private _Rigidbody: Rigidbody;
     private _Collider: Collider;
     public _Collidables: ICollidable[] = [];
+    private _GetColliders: GetColliders;
         
-    constructor(_initialPosition?: vec3, collidables?: ICollidable[]) {
+    constructor(
+        _initialPosition?: vec3, 
+        collidables?: GetColliders,
+    ) {
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
         this._worldUp = this._worldUp ? vec3.clone(this._worldUp) : this._worldUp;
@@ -32,9 +37,11 @@ export class PlayerController implements ICollidable {
 
         this.updateVectors();
         this.initJump();
+
         this._Rigidbody = new Rigidbody();
         this._Collider = new BoxCollider([0.5, 5.0, 0.4]);
-        if(collidables) this._Collidables = collidables;
+        this._GetColliders = collidables || new GetColliders();
+        this._Collidables = this._GetColliders.getCollidables();
     }
     
     private updateVectors(): void {
@@ -150,7 +157,7 @@ export class PlayerController implements ICollidable {
             if(this.checkAABBCollision(box, otherBox)) {
                 this.resolveCollision(box, otherBox);
                 if(collidable.onCollision) collidable.onCollision(this);
-                //if(this.onCollision) this.onCollision(collidable);
+                if(collidable.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -185,11 +192,16 @@ export class PlayerController implements ICollidable {
     }
 
     public onCollision(other: ICollidable): void {
-        console.log(`Player collided with ${other.constructor.name}`);
+        const collisionInfo = other.getCollisionInfo?.();
+        console.log('Collision with:', collisionInfo?.type || 'unknown');
     }
 
     public getCollider(): Collider {
         return this._Collider;
+    }
+
+    public updateCollidables(): void {
+        this._Collidables = this._GetColliders.getCollidables();
     }
 
     private checkAABBCollision(

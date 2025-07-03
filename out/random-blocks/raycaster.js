@@ -12,7 +12,6 @@ export class Raycaster {
                 }
                 continue;
             }
-            console.log(normalizedDir);
             const invDir = 1 / normalizedDir[i];
             let t1 = (boxMin[i] - rayOrigin[i]) * invDir;
             let t2 = (boxMax[i] - rayOrigin[i]) * invDir;

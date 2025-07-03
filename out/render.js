@@ -277,15 +277,9 @@ export async function render(canvas) {
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader, shaderLoader);
         if (!getColliders)
-            getColliders = new GetColliders(envRenderer);
-        const colliders = getColliders.getCollidersMap();
-        if (!playerController) {
-            const collidableList = colliders.map(c => ({
-                getCollider: () => c.collider,
-                getPosition: () => c.position,
-            }));
-            playerController = new PlayerController(undefined, collidableList);
-        }
+            getColliders = new GetColliders(envRenderer, randomBlocks);
+        if (!playerController)
+            playerController = new PlayerController(undefined, getColliders);
         playerController.update(currentTime);
         if (!camera) {
             camera = new Camera(device, pipeline, loader, shaderLoader, playerController);

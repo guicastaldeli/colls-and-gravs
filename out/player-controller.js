@@ -1,6 +1,7 @@
 import { vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider } from "./collider.js";
+import { GetColliders } from "./get-colliders.js";
 export class PlayerController {
     _initialPosition;
     _position = vec3.fromValues(0, 15, 0);
@@ -17,6 +18,7 @@ export class PlayerController {
     _Rigidbody;
     _Collider;
     _Collidables = [];
+    _GetColliders;
     constructor(_initialPosition, collidables) {
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
@@ -27,8 +29,8 @@ export class PlayerController {
         this.initJump();
         this._Rigidbody = new Rigidbody();
         this._Collider = new BoxCollider([0.5, 5.0, 0.4]);
-        if (collidables)
-            this._Collidables = collidables;
+        this._GetColliders = collidables || new GetColliders();
+        this._Collidables = this._GetColliders.getCollidables();
     }
     updateVectors() {
         this._forward[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
@@ -132,7 +134,8 @@ export class PlayerController {
                 this.resolveCollision(box, otherBox);
                 if (collidable.onCollision)
                     collidable.onCollision(this);
-                //if(this.onCollision) this.onCollision(collidable);
+                if (collidable.onCollision)
+                    this.onCollision(collidable);
             }
         }
     }
@@ -166,10 +169,14 @@ export class PlayerController {
         });
     }
     onCollision(other) {
-        console.log(`Player collided with ${other.constructor.name}`);
+        const collisionInfo = other.getCollisionInfo?.();
+        console.log('Collision with:', collisionInfo?.type || 'unknown');
     }
     getCollider() {
         return this._Collider;
+    }
+    updateCollidables() {
+        this._Collidables = this._GetColliders.getCollidables();
     }
     checkAABBCollision(a, b) {
         return (a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&

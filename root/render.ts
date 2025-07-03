@@ -308,17 +308,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
 
-        if(!getColliders) getColliders = new GetColliders(envRenderer);
-        const colliders = getColliders.getCollidersMap();
+        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
+        if(!playerController) playerController = new PlayerController(undefined, getColliders);
 
-        if(!playerController) {
-            const collidableList = colliders.map(c => ({
-                getCollider: () => c.collider,
-                getPosition: () => c.position,
-            }));
-
-            playerController = new PlayerController(undefined, collidableList);
-        }
         playerController.update(currentTime);
         if(!camera) {
             camera = new Camera(

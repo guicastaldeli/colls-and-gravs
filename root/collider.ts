@@ -11,11 +11,17 @@ export enum CollisionResponse {
     IGNORE
 }
 
+export interface CollisionInfo {
+    type: string;
+    position?: vec3;
+}
+
 export interface ICollidable {
     getCollider(): Collider;
     getPosition(): vec3;
     onCollision?(other: ICollidable): void;
     getCollisionResponse?(other: ICollidable): CollisionResponse;
+    getCollisionInfo?(): CollisionInfo;
 }
 
 export class BoxCollider implements Collider {
