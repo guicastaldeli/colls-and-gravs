@@ -19,6 +19,11 @@ export class RandomBlocks {
     preloadModel;
     preloadTex;
     outline;
+    size = {
+        w: 0.1,
+        h: 0.1,
+        d: 0.1
+    };
     constructor(device, loader, shaderLoader) {
         this.device = device;
         this.loader = loader;
@@ -79,8 +84,8 @@ export class RandomBlocks {
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
-            mat4.scale(modelMatrix, modelMatrix, [0.1, 0.1, 0.1]);
-            const collider = new BoxCollider([1, 1, 1], [position[0], position[1], position[2]]);
+            mat4.scale(modelMatrix, modelMatrix, [this.size.w, this.size.h, this.size.d]);
+            const collider = new BoxCollider([this.size.w * 10, this.size.h * 10, this.size.d * 10], vec3.fromValues(position[0], position[1], position[2]));
             const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
             if (!sharedResource)
                 throw new Error('err');
@@ -146,7 +151,7 @@ export class RandomBlocks {
         }
     }
     async addBlocksRaycaster(playerController, hud) {
-        const minDistance = 1.0;
+        const minDistance = 2.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);

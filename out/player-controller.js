@@ -3,7 +3,7 @@ import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider } from "./collider.js";
 export class PlayerController {
     _initialPosition;
-    _position = vec3.fromValues(0, 5, 0);
+    _position = vec3.fromValues(0, 15, 0);
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;
@@ -26,7 +26,7 @@ export class PlayerController {
         this.updateVectors();
         this.initJump();
         this._Rigidbody = new Rigidbody();
-        this._Collider = new BoxCollider([0.5, 0.0, 0.4]);
+        this._Collider = new BoxCollider([0.5, 5.0, 0.4]);
         if (collidables)
             this._Collidables = collidables;
     }
@@ -132,8 +132,7 @@ export class PlayerController {
                 this.resolveCollision(box, otherBox);
                 if (collidable.onCollision)
                     collidable.onCollision(this);
-                if (this.onCollision)
-                    this.onCollision(collidable);
+                //if(this.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -187,25 +186,24 @@ export class PlayerController {
         }
         const depth = overlaps[minAxis];
         const correction = vec3.create();
+        correction[minAxis] = depth * 0.1;
         const playerCenter = vec3.fromValues((box.min[0] + box.max[0]) / 2, (box.min[1] + box.max[1]) / 2, (box.min[2] + box.max[2]) / 2);
         const otherCenter = vec3.fromValues((otherBox.min[0] + otherBox.max[0]) / 2, (otherBox.min[1] + otherBox.max[1]) / 2, (otherBox.min[2] + otherBox.max[2]) / 2);
         const direction = vec3.create();
         vec3.sub(direction, playerCenter, otherCenter);
-        if (minAxis === 0) {
-            correction[0] = (direction[0] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[0] = 0;
-        }
-        else if (minAxis === 1) {
-            correction[1] = (direction[1] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[1] = 0;
-            if (direction[1] > 0)
+        if (minAxis === 1) {
+            if (direction[1] > 0) {
                 this._Rigidbody.isColliding = true;
+            }
+            this._position[1] += correction[1];
+            if (direction[1] > 0 && this._Rigidbody.velocity[1] < 0)
+                this._Rigidbody.velocity[1] = 0;
+            if (direction[1] < 0 && this._Rigidbody.velocity[1] > 0)
+                this._Rigidbody.velocity[1] = 0;
         }
         else {
-            correction[2] = (direction[2] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[2] = 0;
+            this._position[minAxis] += direction[minAxis] > 0 ? correction[minAxis] : -correction[minAxis];
         }
-        vec3.add(this._position, this._position, correction);
     }
     updateRotation(xOffset, yOffset) {
         xOffset *= this._mouseSensv;
@@ -218,12 +216,18 @@ export class PlayerController {
             this.pitch = -89.0;
         this.updateVectors();
     }
+    getVelocityIfNotColliding() {
+        return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.velocity);
+    }
+    getAccelerationIfNotColliding() {
+        return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.acceleration);
+    }
     getForward() { return this._forward; }
     getUp() { return this._up; }
     getRight() { return this._right; }
     update(deltaTime) {
         this._Rigidbody.isColliding = false;
-        this._Rigidbody.update(deltaTime, this._position);
         this.checkCollisions();
+        this._Rigidbody.update(deltaTime, this._position);
     }
 }

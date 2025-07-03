@@ -4,7 +4,7 @@ import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collide
 
 export class PlayerController implements ICollidable {
     private _initialPosition: vec3;
-    private _position: vec3 = vec3.fromValues(0, 5, 0);
+    private _position: vec3 = vec3.fromValues(0, 15, 0);
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;
@@ -21,7 +21,7 @@ export class PlayerController implements ICollidable {
 
     private _Rigidbody: Rigidbody;
     private _Collider: Collider;
-    private _Collidables: ICollidable[] = [];
+    public _Collidables: ICollidable[] = [];
         
     constructor(_initialPosition?: vec3, collidables?: ICollidable[]) {
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
@@ -33,7 +33,7 @@ export class PlayerController implements ICollidable {
         this.updateVectors();
         this.initJump();
         this._Rigidbody = new Rigidbody();
-        this._Collider = new BoxCollider([0.5, 0.0, 0.4]);
+        this._Collider = new BoxCollider([0.5, 5.0, 0.4]);
         if(collidables) this._Collidables = collidables;
     }
     
@@ -150,7 +150,7 @@ export class PlayerController implements ICollidable {
             if(this.checkAABBCollision(box, otherBox)) {
                 this.resolveCollision(box, otherBox);
                 if(collidable.onCollision) collidable.onCollision(this);
-                if(this.onCollision) this.onCollision(collidable);
+                //if(this.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -222,6 +222,7 @@ export class PlayerController implements ICollidable {
 
         const depth = overlaps[minAxis];
         const correction = vec3.create();
+        correction[minAxis] = depth * 0.1;
 
         const playerCenter = vec3.fromValues(
             (box.min[0] + box.max[0]) / 2,
@@ -237,19 +238,17 @@ export class PlayerController implements ICollidable {
         const direction = vec3.create();
         vec3.sub(direction, playerCenter, otherCenter);
 
-        if(minAxis === 0) {
-            correction[0] = (direction[0] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[0] = 0;
-        } else if(minAxis === 1) {
-            correction[1] = (direction[1] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[1] = 0;
-            if(direction[1] > 0) this._Rigidbody.isColliding = true;
-        } else {
-            correction[2] = (direction[2] > 0 ? depth : -depth) * 1.01;
-            this._Rigidbody.velocity[2] = 0;
-        }
+        if(minAxis === 1) {
+            if(direction[1] > 0) {
+                this._Rigidbody.isColliding = true;
+            }
 
-        vec3.add(this._position, this._position, correction);
+            this._position[1] += correction[1];
+            if(direction[1] > 0 && this._Rigidbody.velocity[1] < 0) this._Rigidbody.velocity[1] = 0;
+            if(direction[1] < 0 && this._Rigidbody.velocity[1] > 0) this._Rigidbody.velocity[1] = 0;
+        } else {
+            this._position[minAxis] += direction[minAxis] > 0 ? correction[minAxis] : -correction[minAxis];
+        }
     }
 
     public updateRotation(xOffset: number, yOffset: number): void {
@@ -263,15 +262,22 @@ export class PlayerController implements ICollidable {
         if(this.pitch < -89.0) this.pitch = -89.0;
         this.updateVectors();
     }
+
+    public getVelocityIfNotColliding(): vec3 | null {
+    return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.velocity);
+}
+
+public getAccelerationIfNotColliding(): vec3 | null {
+    return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.acceleration);
+}
     
     public getForward(): vec3 { return this._forward; }
     public getUp(): vec3 { return this._up; }
     public getRight(): vec3 { return this._right; }
     
-
     public update(deltaTime: number): void {
         this._Rigidbody.isColliding = false;
-        this._Rigidbody.update(deltaTime, this._position);
         this.checkCollisions();
+        this._Rigidbody.update(deltaTime, this._position);
     }
 }

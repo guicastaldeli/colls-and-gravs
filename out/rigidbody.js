@@ -28,6 +28,10 @@ export class Rigidbody {
     ;
     set velocity(value) { this._velocity = value; }
     ;
+    get acceleration() { return this._acceleration; }
+    ;
+    set acceleration(value) { this._acceleration = value; }
+    ;
     get isColliding() { return this._timer > 0; }
     ;
     set isColliding(value) {

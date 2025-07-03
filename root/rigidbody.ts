@@ -31,6 +31,9 @@ export class Rigidbody {
 
     public get velocity(): vec3 { return this._velocity };
     public set velocity(value: vec3) { this._velocity = value };
+
+    public get acceleration(): vec3 { return this._acceleration };
+    public set acceleration(value: vec3) { this._acceleration = value };
     
     public get isColliding(): boolean { return this._timer > 0 };
     public set isColliding(value: boolean) {

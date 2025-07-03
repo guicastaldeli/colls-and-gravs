@@ -56,6 +56,12 @@ export class RandomBlocks {
 
     public outline: OutlineConfig;
 
+    size = {
+        w: 0.1,
+        h: 0.1,
+        d: 0.1
+    }
+
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
         this.loader = loader;
@@ -131,12 +137,12 @@ export class RandomBlocks {
             mat4.scale(
                 modelMatrix,
                 modelMatrix,
-                [0.1, 0.1, 0.1]
+                [this.size.w, this.size.h, this.size.d]
             )
     
             const collider = new BoxCollider(
-                [1, 1, 1],
-                [position[0], position[1], position[2]]
+                [this.size.w * 10, this.size.h * 10, this.size.d * 10],
+                vec3.fromValues(position[0], position[1], position[2])
             );
     
             const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
@@ -214,7 +220,7 @@ export class RandomBlocks {
         playerController: PlayerController, 
         hud: Hud
     ): Promise<void> {
-        const minDistance = 1.0;
+        const minDistance = 2.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
 

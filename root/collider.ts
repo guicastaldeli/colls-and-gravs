@@ -75,7 +75,7 @@ export class BoxCollider implements Collider {
         if(tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
         if((tmin > tzmax) || (tzmin > tmax)) return { hit: false };
         if(tzmin > tmin) tmin = tzmin;
-        if(tzmax < tzmax) tmax = tzmax;
+        if(tzmax < tmax) tmax = tzmax;
 
         if(tmax < 0) return { hit: false };
         const t = tmin >= 0 ? tmin : tmax;

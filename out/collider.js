@@ -54,7 +54,7 @@ export class BoxCollider {
             return { hit: false };
         if (tzmin > tmin)
             tmin = tzmin;
-        if (tzmax < tzmax)
+        if (tzmax < tmax)
             tmax = tzmax;
         if (tmax < 0)
             return { hit: false };
