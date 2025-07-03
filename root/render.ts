@@ -14,7 +14,7 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
 import { ICollidable } from "./collider.js";
 
-import { RandomBlocks } from "./random-blocks/random-blocks.js";
+import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -307,7 +307,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
-        if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
+        if(!randomBlocks) randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader);
 
         //Colliders
         if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);

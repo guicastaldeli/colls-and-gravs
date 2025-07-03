@@ -1,5 +1,5 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider } from "../collider.js";
+import { mat4, vec3 } from "../../../node_modules/gl-matrix/esm/index.js";
+import { BoxCollider } from "../../collider.js";
 import { ResourceManager } from "./resource-manager.js";
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";

@@ -1,11 +1,12 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../../../node_modules/gl-matrix/esm/index.js";
 
-import { BoxCollider, Collider, ICollidable } from "../collider.js";
-import { Loader } from "../loader.js";
+import { Tick } from "../../tick.js";
+import { BoxCollider, Collider, ICollidable } from "../../collider.js";
+import { Loader } from "../../loader.js";
 import { ResourceManager } from "./resource-manager.js";
-import { PlayerController } from "../player-controller.js";
-import { Hud } from "../hud.js";
-import { ShaderLoader } from "../shader-loader.js";
+import { PlayerController } from "../../player-controller.js";
+import { Hud } from "../../hud.js";
+import { ShaderLoader } from "../../shader-loader.js";
 
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
@@ -34,6 +35,7 @@ interface SharedResource {
 }
 
 export class RandomBlocks implements ICollidable {
+    private tick: Tick;
     private device: GPUDevice;
     private loader: Loader;
     private shaderLoader: ShaderLoader;
@@ -64,7 +66,13 @@ export class RandomBlocks implements ICollidable {
         d: 0.1
     }
 
-    constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
+    constructor(
+        tick: Tick,
+        device: GPUDevice, 
+        loader: Loader, 
+        shaderLoader: ShaderLoader
+    ) {
+        this.tick = tick;
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
@@ -249,8 +257,11 @@ export class RandomBlocks implements ICollidable {
     ): void {
         document.addEventListener('click', async (e) => {
             const eKey = e.button;
-            if(eKey === 0) await this.addBlocksRaycaster(playerController, hud);
-            if(eKey === 2) this.removeBlockRaycaster(playerController);
+
+            if(!this.tick.isPaused) {
+                if(eKey === 0) await this.addBlocksRaycaster(playerController, hud);
+                if(eKey === 2) this.removeBlockRaycaster(playerController);
+            }
         });
     }
 

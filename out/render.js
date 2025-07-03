@@ -9,7 +9,7 @@ import { ShaderLoader } from "./shader-loader.js";
 import { PlayerController } from "./player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./get-colliders.js";
-import { RandomBlocks } from "./random-blocks/random-blocks.js";
+import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
 let tick;
@@ -276,7 +276,7 @@ export async function render(canvas) {
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks)
-            randomBlocks = new RandomBlocks(device, loader, shaderLoader);
+            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader);
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);
