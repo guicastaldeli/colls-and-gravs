@@ -141,7 +141,7 @@ export class RandomBlocks implements ICollidable {
 
             const collider = new BoxCollider(
                 [this.size.w * 8, this.size.h * 10, this.size.d * 10],
-                [position[0] / 55, position[1], position[2] / 55]
+                [position[0] / 55, position[1] - 1.5, position[2] / 65]
             )
     
             this.blocks.push(newBlock);
