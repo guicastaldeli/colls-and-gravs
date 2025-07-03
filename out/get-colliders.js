@@ -1,9 +1,7 @@
 export class GetColliders {
     envRenderer;
-    randomBlocks;
-    constructor(envRenderer, randomBlocks) {
+    constructor(envRenderer) {
         this.envRenderer = envRenderer;
-        this.randomBlocks = randomBlocks;
     }
     getColliders() {
         const colliders = [
@@ -11,10 +9,6 @@ export class GetColliders {
                 type: 'ground',
                 colliders: this.envRenderer.ground.getAllColliders()
             },
-            {
-                type: 'blocks',
-                colliders: this.randomBlocks.getAllColliders()
-            }
         ];
         return colliders;
     }

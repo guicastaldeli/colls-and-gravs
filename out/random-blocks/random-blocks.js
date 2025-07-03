@@ -1,13 +1,12 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider } from "../collider.js";
 import { ResourceManager } from "./resource-manager.js";
+import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
 export class RandomBlocks {
     device;
     loader;
     shaderLoader;
     blocks = [];
-    _Colliders = [];
     resourceManager;
     blockIdCounter = 0;
     targetBlockIndex = -1;
@@ -18,6 +17,7 @@ export class RandomBlocks {
     keyPressed = false;
     preloadModel;
     preloadTex;
+    raycaster;
     outline;
     size = {
         w: 0.1,
@@ -30,6 +30,7 @@ export class RandomBlocks {
         this.shaderLoader = shaderLoader;
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
+        this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
     }
     async preloadAssets() {
@@ -47,16 +48,6 @@ export class RandomBlocks {
     }
     getBlocks() {
         return this.blocks;
-    }
-    getCollider() {
-        return this._Colliders[0];
-    }
-    getAllColliders() {
-        return this.blocks.map(block => ({
-            collider: block.collider,
-            position: vec3.clone(block.collider)['_offset'],
-            type: 'blocks'
-        }));
     }
     addSharedResource(id) {
         const resource = this.sharedResources.get(id);
@@ -85,7 +76,6 @@ export class RandomBlocks {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
             mat4.scale(modelMatrix, modelMatrix, [this.size.w, this.size.h, this.size.d]);
-            const collider = new BoxCollider([this.size.w * 10, this.size.h * 10, this.size.d * 10], vec3.fromValues(position[0], position[1], position[2]));
             const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
             if (!sharedResource)
                 throw new Error('err');
@@ -93,7 +83,6 @@ export class RandomBlocks {
                 id: `block-${this.blockIdCounter++}`,
                 modelMatrix,
                 position: vec3.clone(position),
-                collider,
                 vertex: sharedResource.vertex,
                 color: sharedResource.color,
                 index: sharedResource.index,
@@ -103,7 +92,6 @@ export class RandomBlocks {
                 sharedResourceId: this.defaultSharedResourceId
             };
             this.blocks.push(newBlock);
-            this._Colliders.push(collider);
             return newBlock;
         }
         catch (err) {
@@ -119,14 +107,26 @@ export class RandomBlocks {
         let closestDistance = Infinity;
         for (let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
-            const intersection = block.collider.rayIntersect(rayOrigin, rayDirection);
-            if (intersection?.hit && intersection.distance !== undefined) {
-                if (intersection.distance < maxDistance && intersection.distance < closestDistance) {
-                    closestDistance = intersection.distance;
-                    this.targetBlockIndex = i;
-                }
+            const min = [
+                block.position[0] - this.size.w * 5.5,
+                block.position[1] - this.size.h * 5.5,
+                block.position[2] - this.size.d * 5.5,
+            ];
+            const max = [
+                block.position[0] + this.size.w * 5.5,
+                block.position[1] + this.size.h * 5.5,
+                block.position[2] + this.size.d * 5.5,
+            ];
+            const intersection = this.raycaster.rayAABBIntersect(rayOrigin, rayDirection, min, max);
+            if (intersection.hit &&
+                intersection.distance !== undefined &&
+                intersection.distance < maxDistance &&
+                intersection.distance < closestDistance) {
+                closestDistance = intersection.distance;
+                this.targetBlockIndex = i;
             }
         }
+        console.log(this.targetBlockIndex);
     }
     removeBlock(i) {
         if (i < 0 || i >= this.blocks.length)
@@ -136,7 +136,6 @@ export class RandomBlocks {
             if (!block)
                 return;
             this.blocks.splice(i, 1);
-            this._Colliders.splice(i, 1);
             this.releaseSharedResource(block.sharedResourceId);
             const resouce = this.sharedResources.get(block.sharedResourceId);
             if (!resouce)
@@ -156,12 +155,12 @@ export class RandomBlocks {
         const rayDirection = playerController.getForward();
         const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
         const blockPos = vec3.create();
-        blockPos[0] = Math.round(targetPos[0]);
-        blockPos[1] = Math.round(targetPos[1]);
-        blockPos[2] = Math.round(targetPos[2]);
-        const positionOccupied = this.blocks.some(block => block.position[0] === blockPos[0] &&
-            block.position[1] === blockPos[1] &&
-            block.position[2] === blockPos[2]);
+        blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
+        blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
+        blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
+        const positionOccupied = this.blocks.some(block => Math.abs(block.position[0] - blockPos[0]) < this.size.w &&
+            Math.abs(block.position[1] - blockPos[1]) < this.size.h &&
+            Math.abs(block.position[2] - blockPos[2]) < this.size.d);
         if (!positionOccupied)
             await this.addBlock(blockPos, playerController);
     }

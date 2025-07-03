@@ -186,7 +186,7 @@ export class PlayerController {
         }
         const depth = overlaps[minAxis];
         const correction = vec3.create();
-        correction[minAxis] = depth * 0.1;
+        correction[minAxis] = depth * 0.2;
         const playerCenter = vec3.fromValues((box.min[0] + box.max[0]) / 2, (box.min[1] + box.max[1]) / 2, (box.min[2] + box.max[2]) / 2);
         const otherCenter = vec3.fromValues((otherBox.min[0] + otherBox.max[0]) / 2, (otherBox.min[1] + otherBox.max[1]) / 2, (otherBox.min[2] + otherBox.max[2]) / 2);
         const direction = vec3.create();
@@ -204,6 +204,7 @@ export class PlayerController {
         else {
             this._position[minAxis] += direction[minAxis] > 0 ? correction[minAxis] : -correction[minAxis];
         }
+        this._Rigidbody.velocity[minAxis] = 0;
     }
     updateRotation(xOffset, yOffset) {
         xOffset *= this._mouseSensv;

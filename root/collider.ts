@@ -19,8 +19,8 @@ export interface ICollidable {
 }
 
 export class BoxCollider implements Collider {
-    private _size: vec3;
-    private _offset: vec3;
+    public _size: vec3;
+    public _offset: vec3;
 
     constructor(_size: vec3, _offset?: vec3) {
         this._size = vec3.clone(_size);

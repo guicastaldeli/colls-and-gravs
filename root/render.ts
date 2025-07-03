@@ -308,7 +308,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
 
-        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
+        if(!getColliders) getColliders = new GetColliders(envRenderer);
         const colliders = getColliders.getCollidersMap();
 
         if(!playerController) {

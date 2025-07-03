@@ -277,7 +277,7 @@ export async function render(canvas) {
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader, shaderLoader);
         if (!getColliders)
-            getColliders = new GetColliders(envRenderer, randomBlocks);
+            getColliders = new GetColliders(envRenderer);
         const colliders = getColliders.getCollidersMap();
         if (!playerController) {
             const collidableList = colliders.map(c => ({

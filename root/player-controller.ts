@@ -222,7 +222,7 @@ export class PlayerController implements ICollidable {
 
         const depth = overlaps[minAxis];
         const correction = vec3.create();
-        correction[minAxis] = depth * 0.1;
+        correction[minAxis] = depth * 0.2;
 
         const playerCenter = vec3.fromValues(
             (box.min[0] + box.max[0]) / 2,
@@ -249,6 +249,8 @@ export class PlayerController implements ICollidable {
         } else {
             this._position[minAxis] += direction[minAxis] > 0 ? correction[minAxis] : -correction[minAxis];
         }
+
+        this._Rigidbody.velocity[minAxis] = 0;
     }
 
     public updateRotation(xOffset: number, yOffset: number): void {
