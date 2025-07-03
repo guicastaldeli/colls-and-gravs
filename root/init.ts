@@ -1,18 +1,21 @@
 import { Tick } from "./tick.js";
 import { render } from "./render.js";
+import { Input } from "./input.js";
 
-export const canvas = <HTMLCanvasElement>( document.querySelector('#content'));
+export const canvas = <HTMLCanvasElement>(document.querySelector('#content'));
 export const context = <GPUCanvasContext>(canvas.getContext('webgpu'));
 export let device: GPUDevice;
 let tick: Tick;
+let input: Input;
 
 function resize(): void {
     const width = window.innerWidth * window.devicePixelRatio;
     const height = window.innerHeight * window.devicePixelRatio;
-    canvas.width = width;
-    canvas.height = height;
-    
-    window.addEventListener('resize', resize);
+    canvas.width = Math.max(1, width);
+    canvas.height = Math.max(1, height);
+
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
 }
 
 async function config(): Promise<void> {
@@ -31,15 +34,21 @@ async function config(): Promise<void> {
         format: navigator.gpu.getPreferredCanvasFormat(),
         alphaMode: 'premultiplied'
     });
+
+    resize();
 }
 
 async function init(): Promise<void> {
-    resize();
+    window.addEventListener('resize', resize);
     await config();
 
     tick = new Tick();
     tick.getTimeScale();
+
     await render(canvas);
+
+    input = new Input();
+    input.lockPointer(canvas);
 }
 
 init();

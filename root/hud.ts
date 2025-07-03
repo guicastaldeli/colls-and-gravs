@@ -78,10 +78,26 @@ export class Hud {
         this.buffers.index.unmap();
     }
 
-    private crosshairScale(): void {
-        const scale = 2.0;
+    private crosshairScale(w: number, h: number): void {
+        const refWidth = 808;
+        const refHeight = 460;
+        
+        const widthRatio = w / refWidth;
+        const heightRatio = h / refHeight;
+        const maxRatio = Math.max(widthRatio, heightRatio);
+
+        const baseScale = 3.5;
+        const minScale = 1.5;
+        let dynamicScale = baseScale;
+
+        if(maxRatio > 1.0) {
+            dynamicScale = baseScale / maxRatio;
+            dynamicScale = Math.max(minScale, dynamicScale);
+        }
+
         const transform = mat4.create();
-        mat4.scale(transform, transform, [scale, scale, 1]);
+        mat4.scale(transform, transform, [dynamicScale, dynamicScale, 1]);
+        if(this.transformBuffer) this.transformBuffer.destroy();
 
         this.transformBuffer = this.device.createBuffer({
             size: 64,
@@ -195,11 +211,15 @@ export class Hud {
         return worldPos;
     }
 
-    public async init(): Promise<void> {
+    public async update(w: number, h: number): Promise<void> {
+        this.crosshairScale(w, h);
+    }
+
+    public async init(w: number, h: number): Promise<void> {
         try {
             await this.drawCrosshair();
             await this.initShaders();
-            this.crosshairScale();
+            this.crosshairScale(w, h);
             this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
             this.sampler = this.device.createSampler({
                 magFilter: 'linear',

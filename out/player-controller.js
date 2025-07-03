@@ -3,6 +3,7 @@ import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider } from "./collider.js";
 import { GetColliders } from "./get-colliders.js";
 export class PlayerController {
+    tick;
     _initialPosition;
     _position = vec3.fromValues(0, 15, 0);
     _forward = vec3.fromValues(0, 0, -1);
@@ -19,7 +20,8 @@ export class PlayerController {
     _Collider;
     _Collidables = [];
     _GetColliders;
-    constructor(_initialPosition, collidables) {
+    constructor(tick, _initialPosition, collidables) {
+        this.tick = tick;
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
         this._worldUp = this._worldUp ? vec3.clone(this._worldUp) : this._worldUp;
@@ -48,6 +50,10 @@ export class PlayerController {
         return cameraPos;
     }
     setKeyboard(direction, deltaTime) {
+        if (this.tick.isPaused) {
+            this.clearForces();
+            return;
+        }
         const velocity = this._movSpeed * deltaTime;
         const force = vec3.create();
         if (direction === 'FORWARD') {
@@ -134,8 +140,7 @@ export class PlayerController {
                 this.resolveCollision(box, otherBox);
                 if (collidable.onCollision)
                     collidable.onCollision(this);
-                if (collidable.onCollision)
-                    this.onCollision(collidable);
+                //if(collidable.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -213,6 +218,10 @@ export class PlayerController {
         }
         this._Rigidbody.velocity[minAxis] = 0;
     }
+    clearForces() {
+        if (this._Rigidbody)
+            vec3.set(this._Rigidbody.velocity, 0, 0, 0);
+    }
     updateRotation(xOffset, yOffset) {
         xOffset *= this._mouseSensv;
         yOffset *= this._mouseSensv;
@@ -224,16 +233,14 @@ export class PlayerController {
             this.pitch = -89.0;
         this.updateVectors();
     }
-    getVelocityIfNotColliding() {
-        return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.velocity);
-    }
-    getAccelerationIfNotColliding() {
-        return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.acceleration);
-    }
     getForward() { return this._forward; }
     getUp() { return this._up; }
     getRight() { return this._right; }
     update(deltaTime) {
+        if (this.tick.isPaused) {
+            this.clearForces();
+            return;
+        }
         this._Rigidbody.isColliding = false;
         this.checkCollisions();
         this._Rigidbody.update(deltaTime, this._position);

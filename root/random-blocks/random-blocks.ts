@@ -121,7 +121,7 @@ export class RandomBlocks implements ICollidable {
                 modelMatrix,
                 modelMatrix,
                 [this.size.w, this.size.h, this.size.d]
-            )
+            );
 
             const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
             if(!sharedResource) throw new Error('err');

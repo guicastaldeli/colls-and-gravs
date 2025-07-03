@@ -31,9 +31,10 @@ export class Camera {
         mat4.perspective(this.projectionMatrix, this._fov * Math.PI / 180, aspectRatio, 0.1, 100.0);
         return this.projectionMatrix;
     }
-    async initHud() {
+    async initHud(w, h) {
         this.hud = new Hud(this.device, this.pipeline, this.loader, this.shaderLoader);
-        await this.hud.init();
+        await this.hud.update(w, h);
+        await this.hud.init(w, h);
     }
     async renderHud(passEncoder) {
         await this.hud.render(passEncoder);

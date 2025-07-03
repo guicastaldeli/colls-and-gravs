@@ -1,9 +1,13 @@
 import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
+
+import { Tick } from "./tick.js";
 import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collider.js";
 import { GetColliders } from "./get-colliders.js";
 
 export class PlayerController implements ICollidable {
+    private tick: Tick;
+
     private _initialPosition: vec3;
     private _position: vec3 = vec3.fromValues(0, 15, 0);
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
@@ -26,9 +30,12 @@ export class PlayerController implements ICollidable {
     private _GetColliders: GetColliders;
         
     constructor(
+        tick: Tick,
         _initialPosition?: vec3, 
         collidables?: GetColliders,
     ) {
+        this.tick = tick;
+
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
         this._worldUp = this._worldUp ? vec3.clone(this._worldUp) : this._worldUp;
@@ -63,6 +70,11 @@ export class PlayerController implements ICollidable {
     }
 
     public setKeyboard(direction: string, deltaTime: number): void {
+        if(this.tick.isPaused) {
+            this.clearForces();
+            return;
+        }
+        
         const velocity = this._movSpeed * deltaTime;
         const force = vec3.create();
     
@@ -157,7 +169,7 @@ export class PlayerController implements ICollidable {
             if(this.checkAABBCollision(box, otherBox)) {
                 this.resolveCollision(box, otherBox);
                 if(collidable.onCollision) collidable.onCollision(this);
-                if(collidable.onCollision) this.onCollision(collidable);
+                //if(collidable.onCollision) this.onCollision(collidable);
             }
         }
     }
@@ -265,6 +277,10 @@ export class PlayerController implements ICollidable {
         this._Rigidbody.velocity[minAxis] = 0;
     }
 
+    public clearForces(): void {
+        if(this._Rigidbody) vec3.set(this._Rigidbody.velocity, 0, 0, 0);
+    }
+
     public updateRotation(xOffset: number, yOffset: number): void {
         xOffset *= this._mouseSensv;
         yOffset *= this._mouseSensv;
@@ -276,20 +292,17 @@ export class PlayerController implements ICollidable {
         if(this.pitch < -89.0) this.pitch = -89.0;
         this.updateVectors();
     }
-
-    public getVelocityIfNotColliding(): vec3 | null {
-    return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.velocity);
-}
-
-public getAccelerationIfNotColliding(): vec3 | null {
-    return this._Rigidbody.isColliding ? null : vec3.clone(this._Rigidbody.acceleration);
-}
     
     public getForward(): vec3 { return this._forward; }
     public getUp(): vec3 { return this._up; }
     public getRight(): vec3 { return this._right; }
     
     public update(deltaTime: number): void {
+        if(this.tick.isPaused) {
+            this.clearForces();
+            return;
+        }
+
         this._Rigidbody.isColliding = false;
         this.checkCollisions();
         this._Rigidbody.update(deltaTime, this._position);

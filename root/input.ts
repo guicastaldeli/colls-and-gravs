@@ -1,3 +1,4 @@
+import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
 import { PlayerController } from "./player-controller.js";
 
@@ -5,27 +6,38 @@ export class Input {
     private lastTime: number = 0;
     private firstMouse: boolean = true;
     private isPointerLocked: boolean = false;
+    private isRequestingLock: boolean = false;
+    private interval: number = 200;
 
-    private camera: Camera;
-    private playerController: PlayerController;
+    private tick?: Tick;
+    private camera?: Camera;
+    private keys: Record<string, boolean> = {};
+    private playerController?: PlayerController;
 
-    constructor(camera: Camera, playerController: PlayerController) {
+    constructor(
+        tick?: Tick,
+        camera?: Camera, 
+        playerController?: PlayerController
+    ) {
+        this.tick = tick;
         this.camera = camera;
         this.playerController = playerController;
     }
 
     public setupInputControls(canvas: HTMLCanvasElement): void {
-        const keys: Record<string, boolean> = {};
+        this.keys = {};
 
         window.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
+            this.keys[e.key.toLowerCase()] = true;
         });
 
         window.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
+            this.keys[e.key.toLowerCase()] = false;
         });
 
         canvas.addEventListener('mousemove', (e) => {
+            if(!this.playerController) return;
+
             if(this.isPointerLocked) {
                 const xOffset = e.movementX;
                 const yOffset = -e.movementY;
@@ -34,18 +46,53 @@ export class Input {
         });
 
         canvas.addEventListener('click', () => {
-            canvas.requestPointerLock = canvas.requestPointerLock;
-            canvas.requestPointerLock();
+            setTimeout(() => {
+                canvas.requestPointerLock = canvas.requestPointerLock;
+                canvas.requestPointerLock();
+            }, this.interval);
         });
 
         document.addEventListener('pointerlockchange', this.onPointerLock.bind(this, canvas));
+
+        this.requestPointerLock(canvas);
         this.lastTime = performance.now();
-        this.initLoop(this.playerController, keys);
+        if(this.playerController) this.initLoop(this.playerController, this.keys);
+    }
+
+    private requestPointerLock(canvas: HTMLCanvasElement): void {
+        canvas.requestPointerLock = canvas.requestPointerLock;
+    }
+
+    public lockPointer(canvas: HTMLCanvasElement): void {
+        if(this.isRequestingLock || this.isPointerLocked) return;
+        this.isRequestingLock = true;
+
+        canvas.requestPointerLock()
+        .catch(err => {
+            console.warn(err);
+        })
+        .finally(() => {
+            this.isRequestingLock = false;
+        });
     }
 
     private onPointerLock(canvas: HTMLCanvasElement): void {
+        if(!this.tick) return;
         this.isPointerLocked = document.pointerLockElement === canvas;
-        if(this.isPointerLocked) this.firstMouse = true;
+
+        if(this.isPointerLocked) {
+            setTimeout(() => {
+                this.firstMouse = true;
+                if(this.tick) this.tick.resume(); 
+            }, this.interval)
+        } else {
+            this.clearKeys();
+            this.tick.pause();
+        }
+    }
+
+    public clearKeys(): void {
+        for(const key in this.keys) this.keys[key] = false;
     }
 
     private update(
@@ -53,15 +100,20 @@ export class Input {
         keys: Record<string, boolean>,
         time: number,
     ): void {
-        if(!time) return;
+        if(!this.tick || !this.playerController) return;
+        if(!time || this.tick.isPaused) return;
 
         const deltaTime = (time - this.lastTime) / 1000;
         this.lastTime = time;
-        this.playerController.updateInput(keys, deltaTime);
+        this.playerController.updateInput(this.keys, deltaTime);
     }
 
-    private initLoop(playerController: PlayerController, keys: Record<string, boolean>) {
+    private initLoop(
+        playerController: PlayerController, 
+        keys: Record<string, boolean>
+    ) {        
         const loop = (time: number) => {
+            if(!this.playerController) return;
             this.update(this.playerController, keys, time);
             requestAnimationFrame(loop);
         }

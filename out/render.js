@@ -264,7 +264,8 @@ export async function render(canvas) {
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();
-        tick.update(currentTime);
+        const deltaTime = tick.update(currentTime);
+        //Render Related
         if (!loader)
             loader = new Loader(device);
         if (!shaderLoader)
@@ -276,20 +277,27 @@ export async function render(canvas) {
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks)
             randomBlocks = new RandomBlocks(device, loader, shaderLoader);
+        //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);
+        //Player Controller
         if (!playerController)
-            playerController = new PlayerController(undefined, getColliders);
-        playerController.update(currentTime);
+            playerController = new PlayerController(tick, undefined, getColliders);
+        playerController.update(deltaTime);
+        //Camera
         if (!camera) {
             camera = new Camera(device, pipeline, loader, shaderLoader, playerController);
-            await camera.initHud();
+            await camera.initHud(canvas.width, canvas.height);
+            console.log(canvas.width, canvas.height);
         }
         if (!input) {
-            input = new Input(camera, playerController);
+            input = new Input(tick, camera, playerController);
             input.setupInputControls(canvas);
         }
         const hud = camera.getHud();
+        hud.update(canvas.width, canvas.height);
+        camera.getProjectionMatrix(canvas.width / canvas.height);
+        //
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             format: 'depth24plus',
@@ -314,15 +322,17 @@ export async function render(canvas) {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
+        const modelMatrix = mat4.create();
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        const modelMatrix = mat4.create();
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        //Render Hud
+        camera.renderHud(passEncoder);
+        //Random Blocks
         if (randomBlocks)
             randomBlocks.init(canvas, playerController, format, hud);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
-        camera.renderHud(passEncoder);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

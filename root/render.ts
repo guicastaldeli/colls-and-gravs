@@ -297,8 +297,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         const currentTime = performance.now();
         if(!tick) tick = new Tick();
-        tick.update(currentTime);
-
+        const deltaTime = tick.update(currentTime);
+        
+        //Render Related
         if(!loader) loader = new Loader(device);
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!pipeline) await initShaders();
@@ -308,26 +309,34 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) randomBlocks = new RandomBlocks(device, loader, shaderLoader);
 
+        //Colliders
         if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
-        if(!playerController) playerController = new PlayerController(undefined, getColliders);
 
-        playerController.update(currentTime);
-        if(!camera) {
-            camera = new Camera(
-                device, 
-                pipeline, 
-                loader, 
-                shaderLoader, 
-                playerController
-            );
+        //Player Controller
+        if(!playerController) playerController = new PlayerController(tick, undefined, getColliders);
+        playerController.update(deltaTime);
 
-            await camera.initHud();
-        }
-        if(!input) {
-            input = new Input(camera, playerController);
-            input.setupInputControls(canvas);
-        }
-        const hud = camera.getHud();
+        //Camera
+            if(!camera) {
+                camera = new Camera(
+                    device, 
+                    pipeline, 
+                    loader, 
+                    shaderLoader, 
+                    playerController
+                );
+
+                await camera.initHud(canvas.width, canvas.height);
+                console.log(canvas.width, canvas.height)
+            }
+            if(!input) {
+                input = new Input(tick, camera, playerController);
+                input.setupInputControls(canvas);
+            }
+            const hud = camera.getHud();
+            hud.update(canvas.width, canvas.height);
+            camera.getProjectionMatrix(canvas.width / canvas.height);
+        //
             
         const depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
@@ -357,16 +366,18 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
     
+        const modelMatrix = mat4.create();
         const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        const modelMatrix = mat4.create();
-
-        if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
-        
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+
+        //Render Hud
         camera.renderHud(passEncoder);
+
+        //Random Blocks
+        if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
 
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);

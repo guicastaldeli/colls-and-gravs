@@ -2,21 +2,28 @@ export class Input {
     lastTime = 0;
     firstMouse = true;
     isPointerLocked = false;
+    isRequestingLock = false;
+    interval = 200;
+    tick;
     camera;
+    keys = {};
     playerController;
-    constructor(camera, playerController) {
+    constructor(tick, camera, playerController) {
+        this.tick = tick;
         this.camera = camera;
         this.playerController = playerController;
     }
     setupInputControls(canvas) {
-        const keys = {};
+        this.keys = {};
         window.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
+            this.keys[e.key.toLowerCase()] = true;
         });
         window.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
+            this.keys[e.key.toLowerCase()] = false;
         });
         canvas.addEventListener('mousemove', (e) => {
+            if (!this.playerController)
+                return;
             if (this.isPointerLocked) {
                 const xOffset = e.movementX;
                 const yOffset = -e.movementY;
@@ -24,27 +31,65 @@ export class Input {
             }
         });
         canvas.addEventListener('click', () => {
-            canvas.requestPointerLock = canvas.requestPointerLock;
-            canvas.requestPointerLock();
+            setTimeout(() => {
+                canvas.requestPointerLock = canvas.requestPointerLock;
+                canvas.requestPointerLock();
+            }, this.interval);
         });
         document.addEventListener('pointerlockchange', this.onPointerLock.bind(this, canvas));
+        this.requestPointerLock(canvas);
         this.lastTime = performance.now();
-        this.initLoop(this.playerController, keys);
+        if (this.playerController)
+            this.initLoop(this.playerController, this.keys);
+    }
+    requestPointerLock(canvas) {
+        canvas.requestPointerLock = canvas.requestPointerLock;
+    }
+    lockPointer(canvas) {
+        if (this.isRequestingLock || this.isPointerLocked)
+            return;
+        this.isRequestingLock = true;
+        canvas.requestPointerLock()
+            .catch(err => {
+            console.warn(err);
+        })
+            .finally(() => {
+            this.isRequestingLock = false;
+        });
     }
     onPointerLock(canvas) {
+        if (!this.tick)
+            return;
         this.isPointerLocked = document.pointerLockElement === canvas;
-        if (this.isPointerLocked)
-            this.firstMouse = true;
+        if (this.isPointerLocked) {
+            setTimeout(() => {
+                this.firstMouse = true;
+                if (this.tick)
+                    this.tick.resume();
+            }, this.interval);
+        }
+        else {
+            this.clearKeys();
+            this.tick.pause();
+        }
+    }
+    clearKeys() {
+        for (const key in this.keys)
+            this.keys[key] = false;
     }
     update(playerController, keys, time) {
-        if (!time)
+        if (!this.tick || !this.playerController)
+            return;
+        if (!time || this.tick.isPaused)
             return;
         const deltaTime = (time - this.lastTime) / 1000;
         this.lastTime = time;
-        this.playerController.updateInput(keys, deltaTime);
+        this.playerController.updateInput(this.keys, deltaTime);
     }
     initLoop(playerController, keys) {
         const loop = (time) => {
+            if (!this.playerController)
+                return;
             this.update(this.playerController, keys, time);
             requestAnimationFrame(loop);
         };

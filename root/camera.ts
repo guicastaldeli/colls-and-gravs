@@ -59,7 +59,7 @@ export class Camera {
         return this.projectionMatrix;
     }
 
-    public async initHud(): Promise<void> {
+    public async initHud(w: number, h: number): Promise<void> {
         this.hud = new Hud(
             this.device, 
             this.pipeline,
@@ -67,7 +67,8 @@ export class Camera {
             this.shaderLoader
         );
 
-        await this.hud.init();
+        await this.hud.update(w, h);
+        await this.hud.init(w, h);
     }
 
     public async renderHud(passEncoder: GPURenderPassEncoder): Promise<void> {
