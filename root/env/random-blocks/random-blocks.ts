@@ -193,7 +193,7 @@ export class RandomBlocks implements ICollidable {
                 vec3.clone(position),
                 collider
             );
-            physicsObj.isStatic = false;
+            physicsObj.isStatic = false; //off on
             vec3.set(physicsObj.velocity, 0, 0, 0);
 
             this.physicsObjects.set(newBlock.id, physicsObj);
@@ -254,20 +254,28 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
-    private removeBlock(i: number): void {
+    private removeBlock(i: number, playerController: PlayerController): void {
         if(i < 0 || i >= this.blocks.length) return;
 
         if(i >= 0 && i < this.blocks.length) {
             const block = this.blocks[i];
             if(!block) return;
             
+            const physicsObj = this.physicsObjects.get(block.id);
+            if(physicsObj) {
+                this.physicsSystem.removePhysicsObject(physicsObj);
+                this.physicsGrid.removeObject(physicsObj);
+            }
             this.physicsObjects.delete(block.id);
+
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
             
             this.releaseSharedResource(block.sharedResourceId);
             const resouce = this.sharedResources.get(block.sharedResourceId);
             if(!resouce) this.resourceManager.waitCleanup();
+
+            this.updatePhysicsCollidables(playerController);
         }
     }
 
@@ -275,7 +283,7 @@ export class RandomBlocks implements ICollidable {
         this.updateTargetBlock(playerController);
         if(this.targetBlockIndex >= 0) {
             const blockToRemove = this.targetBlockIndex;
-            this.removeBlock(blockToRemove);
+            this.removeBlock(blockToRemove, playerController);
         }
     }
 
@@ -409,7 +417,7 @@ export class RandomBlocks implements ICollidable {
             const physicsObj = this.physicsObjects.get(block.id);
 
             if(physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
-                console.error('Invalid block', block.id);
+                console.error('Removing Invalid block', block.id);
             }
         }
     }

@@ -16,6 +16,15 @@ export class PhysicsGrid {
             this.grid.set(key, []);
         this.grid.get(key).push(obj);
     }
+    removeObject(obj) {
+        const cellKey = this.getCellKey(obj.position);
+        const cell = this.grid.get(cellKey);
+        if (cell) {
+            const i = cell.indexOf(obj);
+            if (i !== -1)
+                cell.splice(i, 1);
+        }
+    }
     getNearbyObjects(position) {
         const results = [];
         const centerKey = this.getCellKey(position);

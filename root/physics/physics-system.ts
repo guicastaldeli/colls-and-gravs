@@ -22,6 +22,11 @@ export class PhysicsSystem {
         this.physicsObjects.push(obj);
     }
 
+    public removePhysicsObject(obj: PhysicsObject): void {
+        const i = this.physicsObjects.indexOf(obj);
+        if(i !== -1) this.physicsObjects.slice(i, 1);
+    }
+
     public setCollidables(collidables: ICollidable[]): void {
         this.collidables = collidables;
     }

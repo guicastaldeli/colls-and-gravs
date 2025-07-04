@@ -128,7 +128,7 @@ export class RandomBlocks {
             ]);
             //Physics
             const physicsObj = new PhysicsObject(vec3.clone(position), collider);
-            physicsObj.isStatic = false;
+            physicsObj.isStatic = false; //off on
             vec3.set(physicsObj.velocity, 0, 0, 0);
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
@@ -172,13 +172,18 @@ export class RandomBlocks {
             }
         }
     }
-    removeBlock(i) {
+    removeBlock(i, playerController) {
         if (i < 0 || i >= this.blocks.length)
             return;
         if (i >= 0 && i < this.blocks.length) {
             const block = this.blocks[i];
             if (!block)
                 return;
+            const physicsObj = this.physicsObjects.get(block.id);
+            if (physicsObj) {
+                this.physicsSystem.removePhysicsObject(physicsObj);
+                this.physicsGrid.removeObject(physicsObj);
+            }
             this.physicsObjects.delete(block.id);
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
@@ -186,13 +191,14 @@ export class RandomBlocks {
             const resouce = this.sharedResources.get(block.sharedResourceId);
             if (!resouce)
                 this.resourceManager.waitCleanup();
+            this.updatePhysicsCollidables(playerController);
         }
     }
     removeBlockRaycaster(playerController) {
         this.updateTargetBlock(playerController);
         if (this.targetBlockIndex >= 0) {
             const blockToRemove = this.targetBlockIndex;
-            this.removeBlock(blockToRemove);
+            this.removeBlock(blockToRemove, playerController);
         }
     }
     async addBlocksRaycaster(playerController, hud) {
@@ -286,7 +292,7 @@ export class RandomBlocks {
             const block = this.blocks[i];
             const physicsObj = this.physicsObjects.get(block.id);
             if (physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
-                console.error('Invalid block', block.id);
+                console.error('Removing Invalid block', block.id);
             }
         }
     }
