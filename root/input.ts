@@ -7,7 +7,7 @@ export class Input {
     private firstMouse: boolean = true;
     private isPointerLocked: boolean = false;
     private isRequestingLock: boolean = false;
-    private interval: number = 200;
+    private interval: number = 500;
 
     private tick?: Tick;
     private camera?: Camera;

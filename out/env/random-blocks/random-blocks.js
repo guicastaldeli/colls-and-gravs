@@ -26,6 +26,17 @@ export class RandomBlocks {
     //Collision
     _Colliders = [];
     type = 'block';
+    colliderScale = {
+        w: 8,
+        h: 10,
+        d: 10
+    };
+    positionAdjusted = {
+        x: 55,
+        y: 1.5,
+        z: 65
+    };
+    //
     //Raycaster
     raycaster;
     outline;
@@ -86,7 +97,6 @@ export class RandomBlocks {
         }
     }
     async addBlock(position, playerController) {
-        console.log("Adding block at position:", position);
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -106,16 +116,20 @@ export class RandomBlocks {
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId
             };
-            console.log("New block created:", newBlock);
             //Collision
-            const collider = new BoxCollider([this.size.w * 8, this.size.h * 10, this.size.d * 10], [position[0] / 55, position[1] - 1.5, position[2] / 65]);
+            const collider = new BoxCollider([
+                this.size.w * this.colliderScale.w,
+                this.size.h * this.colliderScale.h,
+                this.size.d * this.colliderScale.d
+            ], [
+                position[0] / this.positionAdjusted.x,
+                position[1] - this.positionAdjusted.y,
+                position[2] / this.positionAdjusted.z
+            ]);
             //Physics
             const physicsObj = new PhysicsObject(vec3.clone(position), collider);
             physicsObj.isStatic = false;
-            physicsObj.mass = 1.0;
-            physicsObj.restitution = 0.5;
-            console.log("Physics object created:", physicsObj);
-            console.log("Physics object position:", physicsObj.position);
+            vec3.set(physicsObj.velocity, 0, 0, 0);
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
             this.physicsGrid.addObject(physicsObj);
@@ -187,6 +201,10 @@ export class RandomBlocks {
         const rayDirection = playerController.getForward();
         const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
         const blockPos = vec3.create();
+        if (!targetPos || targetPos.some(isNaN)) {
+            console.error('Invalid target');
+            return;
+        }
         blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
         blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
         blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
@@ -246,6 +264,10 @@ export class RandomBlocks {
         for (const block of this.blocks) {
             const physicsObj = this.physicsObjects.get(block.id);
             if (physicsObj && !physicsObj.isStatic) {
+                if (physicsObj.position.some(isNaN)) {
+                    console.error('Invalid object position', physicsObj);
+                    continue;
+                }
                 vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
@@ -253,11 +275,18 @@ export class RandomBlocks {
                 const colliderIndex = this.blocks.indexOf(block);
                 if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [
-                        block.position[0] / 55,
-                        block.position[1] - 1.5,
-                        block.position[2] / 65
+                        block.position[0],
+                        block.position[1],
+                        block.position[2]
                     ];
                 }
+            }
+        }
+        for (let i = this.blocks.length - 1; i >= 0; i--) {
+            const block = this.blocks[i];
+            const physicsObj = this.physicsObjects.get(block.id);
+            if (physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
+                console.error('Invalid block', block.id);
             }
         }
     }

@@ -17,10 +17,9 @@ export class PhysicsObject implements ICollidable {
 
     constructor(position: vec3, collider: Collider) {
         this.position = vec3.clone(position);
-        this.collider = collider;
-
         this.velocity = vec3.create();
         this.angularVelocity = vec3.create();
+        this.collider = collider;
     }
 
     public getPosition(): vec3 {

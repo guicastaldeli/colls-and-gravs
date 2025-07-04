@@ -328,7 +328,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 );
 
                 await camera.initHud(canvas.width, canvas.height);
-                console.log(canvas.width, canvas.height)
             }
             if(!input) {
                 input = new Input(tick, camera, playerController);

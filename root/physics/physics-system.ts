@@ -10,6 +10,15 @@ export class PhysicsSystem {
     private fixedTimestep: number = 1/60;
 
     public addPhysicsObject(obj: PhysicsObject): void {
+        if(!obj || !obj.position || obj.position.some(isNaN)) {
+            console.error('Attempt to add invalid');
+        }
+        
+        if(!obj.velocity || obj.velocity.some(isNaN)) {
+            console.warn('Physics object jas invalid velocity');
+            obj.velocity = vec3.create();
+        }
+
         this.physicsObjects.push(obj);
     }
 
@@ -57,7 +66,7 @@ export class PhysicsSystem {
             normal[2] = obj.position[2] < otherPosition[2] ? -1 : 1;
         }
 
-        if(vec3.length(normal) < 0.001) vec3.set(normal, 0, 1, 0);
+        if(vec3.length(normal) < 0.001 || normal.some(isNaN)) vec3.set(normal, 0, 1, 0);
         vec3.normalize(normal, normal);
         return normal;
     }
@@ -122,10 +131,20 @@ export class PhysicsSystem {
 
         const e = Math.max(0, Math.min(1, Math.min(obj.restitution, otherObj ? otherObj.restitution : 0)));
         const j = -(1 + e) * velAlongNormal;
-        const invMass1 = 1 / Math.max(obj.mass, 0.001);
-        const invMass2 = otherObj ? 1 / Math.max(otherObj.mass, 0.001) : 0;
-        const impulse = j / (invMass1 + invMass2);
 
+        const minMass = 0.01
+        const invMass1 = 1 / Math.max(obj.mass, minMass);
+        const invMass2 = otherObj ? 1 / Math.max(otherObj.mass, minMass) : 0;
+        const totalInvMass = invMass1 + invMass2;
+        
+        if(totalInvMass === 0) {
+            return {
+                newPosition: vec3.clone(obj.position),
+                newVelocity: vec3.clone(obj.velocity)
+            }
+        }
+
+        const impulse = j / totalInvMass;
         const impulseVec = vec3.scale(vec3.create(), normal, impulse);
         const newVelocity = vec3.create();
         vec3.scaleAndAdd(newVelocity, obj.velocity, normal, impulseVec * invMass1);
@@ -217,9 +236,14 @@ export class PhysicsSystem {
     }
 
     private fixedUpdate(deltaTime: number): void {
+        if(deltaTime < 0) return;
+
         for(const obj of this.physicsObjects) {
-            if(obj.position.some(isNaN)) {
+            if(obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
                 console.error('Invalid position', obj.position);
+
+                const index = this.physicsObjects.lastIndexOf(obj);
+                if(index > -1) this.physicsObjects.splice(this.physicsObjects.indexOf(obj), 1);
                 continue;
             }
 
@@ -234,6 +258,14 @@ export class PhysicsSystem {
                     obj.velocity,
                     deltaTime
                 );
+
+                if(obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
+                    console.error('NaN detected after update');
+
+                    vec3.set(obj.position, 0, 0, 0);
+                    vec3.set(obj.velocity, 0, 0, 0);
+                    continue;
+                }
 
                 this.resolveCollisions(obj);
                 this.checkStability(obj);

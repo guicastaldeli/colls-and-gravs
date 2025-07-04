@@ -59,8 +59,21 @@ export class RandomBlocks implements ICollidable {
     private preloadTex!: GPUTexture;
 
     //Collision
-    private _Colliders: BoxCollider[] = [];
-    public type = 'block';
+        private _Colliders: BoxCollider[] = [];
+        public type = 'block';
+
+        private colliderScale = { 
+            w: 8, 
+            h: 10, 
+            d: 10 
+        }
+
+        private positionAdjusted = { 
+            x: 55, 
+            y: 1.5, 
+            z: 65 
+        }
+    //
 
     //Raycaster
     private raycaster: Raycaster;
@@ -136,7 +149,6 @@ export class RandomBlocks implements ICollidable {
     }
 
     public async addBlock(position: vec3, playerController: PlayerController): Promise<BlockData> {
-        console.log("Adding block at position:", position); 
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -162,12 +174,18 @@ export class RandomBlocks implements ICollidable {
                 sharedResourceId: this.defaultSharedResourceId
             }
 
-            console.log("New block created:", newBlock);
-
             //Collision
             const collider = new BoxCollider(
-                [this.size.w * 8, this.size.h * 10, this.size.d * 10],
-                [position[0] / 55, position[1] - 1.5, position[2] / 65]
+                [
+                    this.size.w * this.colliderScale.w,
+                    this.size.h * this.colliderScale.h,
+                    this.size.d * this.colliderScale.d
+                ],
+                [
+                    position[0] / this.positionAdjusted.x,
+                    position[1] - this.positionAdjusted.y,
+                    position[2] / this.positionAdjusted.z
+                ]
             );
 
             //Physics
@@ -176,10 +194,7 @@ export class RandomBlocks implements ICollidable {
                 collider
             );
             physicsObj.isStatic = false;
-            physicsObj.mass = 1.0;
-            physicsObj.restitution = 0.5
-            console.log("Physics object created:", physicsObj);
-            console.log("Physics object position:", physicsObj.position);
+            vec3.set(physicsObj.velocity, 0, 0, 0);
 
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
@@ -275,6 +290,11 @@ export class RandomBlocks implements ICollidable {
         const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
         const blockPos = vec3.create();
 
+        if(!targetPos || targetPos.some(isNaN)) {
+            console.error('Invalid target');
+            return;
+        }
+
         blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
         blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
         blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
@@ -359,8 +379,12 @@ export class RandomBlocks implements ICollidable {
             const physicsObj = this.physicsObjects.get(block.id);
 
             if(physicsObj && !physicsObj.isStatic) {
-                vec3.copy(block.position, physicsObj.position);
+                if(physicsObj.position.some(isNaN)) {
+                    console.error('Invalid object position', physicsObj);
+                    continue;
+                }
 
+                vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
                 mat4.scale(
@@ -372,11 +396,20 @@ export class RandomBlocks implements ICollidable {
                 const colliderIndex = this.blocks.indexOf(block);
                 if(colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [
-                        block.position[0] / 55,
-                        block.position[1] - 1.5,
-                        block.position[2] / 65
+                        block.position[0],
+                        block.position[1],
+                        block.position[2]
                     ];
                 }
+            }
+        }
+
+        for(let i = this.blocks.length - 1; i >= 0; i--) {
+            const block = this.blocks[i];
+            const physicsObj = this.physicsObjects.get(block.id);
+
+            if(physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
+                console.error('Invalid block', block.id);
             }
         }
     }

@@ -3,7 +3,7 @@ export class Input {
     firstMouse = true;
     isPointerLocked = false;
     isRequestingLock = false;
-    interval = 200;
+    interval = 500;
     tick;
     camera;
     keys = {};

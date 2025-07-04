@@ -13,9 +13,9 @@ export class PhysicsObject {
     sleepDelay = 2.0;
     constructor(position, collider) {
         this.position = vec3.clone(position);
-        this.collider = collider;
         this.velocity = vec3.create();
         this.angularVelocity = vec3.create();
+        this.collider = collider;
     }
     getPosition() {
         return this.position;
