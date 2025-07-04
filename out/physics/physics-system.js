@@ -17,7 +17,7 @@ export class PhysicsSystem {
     removePhysicsObject(obj) {
         const i = this.physicsObjects.indexOf(obj);
         if (i !== -1)
-            this.physicsObjects.slice(i, 1);
+            this.physicsObjects.splice(i, 1);
     }
     setCollidables(collidables) {
         this.collidables = collidables;
@@ -72,56 +72,45 @@ export class PhysicsSystem {
         }
     }
     calculateCollisionResponse(obj, other, otherPosition) {
-        if (obj.position.some(isNaN) || otherPosition.some(isNaN)) {
-            console.error('NaN detected in collision!');
-            return {
-                newPosition: obj.position,
-                newVelocity: obj.velocity
-            };
-        }
-        if (!obj || !other || !otherPosition || !obj.position || !obj.velocity) {
-            return {
-                newPosition: vec3.clone(obj?.position || [0, 0, 0]),
-                newVelocity: vec3.clone(obj?.velocity || [0, 0, 0])
-            };
+        const result = {
+            newPosition: vec3.clone(obj.position),
+            newVelocity: vec3.clone(obj.velocity)
+        };
+        vec3.copy(result.newPosition, obj.position);
+        vec3.copy(result.newVelocity, obj.velocity);
+        if (!obj || !other || !otherPosition) {
+            console.error('Invalid collision params');
+            return result;
         }
         const otherObj = other;
         const normal = this.calculateCollisionNormal(obj, other, otherPosition);
-        const otherVel = otherObj?.velocity ? vec3.clone(otherObj.velocity) : vec3.create();
+        if (normal.some(isNaN))
+            return result;
+        const otherVel = other?.velocity ?
+            vec3.clone(other.velocity) :
+            vec3.create();
         const relativeVel = vec3.sub(vec3.create(), obj.velocity, otherVel);
         const velAlongNormal = vec3.dot(relativeVel, normal);
-        if (velAlongNormal > 0) {
-            return {
-                newPosition: vec3.clone(obj.position),
-                newVelocity: vec3.clone(obj.velocity)
-            };
-        }
-        const e = Math.max(0, Math.min(1, Math.min(obj.restitution, otherObj ? otherObj.restitution : 0)));
+        if (velAlongNormal > 0)
+            return result;
+        const e = Math.max(0.9, Math.max(0, obj.restitution));
         const j = -(1 + e) * velAlongNormal;
-        const minMass = 0.01;
+        const minMass = 0.001;
         const invMass1 = 1 / Math.max(obj.mass, minMass);
-        const invMass2 = otherObj ? 1 / Math.max(otherObj.mass, minMass) : 0;
+        const invMass2 = other?.mass !== undefined ?
+            1 / Math.max(other.mass, minMass) : 0;
         const totalInvMass = invMass1 + invMass2;
-        if (totalInvMass === 0) {
-            return {
-                newPosition: vec3.clone(obj.position),
-                newVelocity: vec3.clone(obj.velocity)
-            };
-        }
+        if (totalInvMass <= 0.0001)
+            return result;
         const impulse = j / totalInvMass;
-        const impulseVec = vec3.scale(vec3.create(), normal, impulse);
-        const newVelocity = vec3.create();
-        vec3.scaleAndAdd(newVelocity, obj.velocity, normal, impulseVec * invMass1);
+        const impulseScaled = impulse * invMass1;
+        vec3.scaleAndAdd(result.newVelocity, obj.velocity, normal, impulseScaled);
         const percent = 0.2;
         const slop = 0.01;
-        const correction = Math.max(slop, 0.0) / (invMass1 + invMass2) * percent;
+        const correction = Math.min(0.1, Math.max(slop, 0.0) / (invMass1 * invMass2) * percent);
         const correctionVec = vec3.scale(vec3.create(), normal, correction);
-        const newPosition = vec3.create();
-        vec3.scaleAndAdd(newPosition, obj.position, correctionVec, invMass1);
-        return {
-            newPosition,
-            newVelocity
-        };
+        vec3.scaleAndAdd(result.newPosition, obj.position, correctionVec, invMass1);
+        return result;
     }
     applyFriction(obj, normal, deltaTime) {
         const tangent = vec3.create();
@@ -178,7 +167,7 @@ export class PhysicsSystem {
             return;
         for (const obj of this.physicsObjects) {
             if (obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
-                console.error('Invalid position', obj.position);
+                console.error('err', obj.position);
                 const index = this.physicsObjects.lastIndexOf(obj);
                 if (index > -1)
                     this.physicsObjects.splice(this.physicsObjects.indexOf(obj), 1);

@@ -4,17 +4,17 @@ export class PhysicsObject {
     velocity = vec3.create();
     angularVelocity = vec3.create();
     isStatic = false;
-    mass = 1.0;
+    mass = 60.0;
     restitution = 0.5;
     collider;
     isSleeping = false;
     sleepTimer = 0.0;
     sleepThreshold = 0.1;
     sleepDelay = 2.0;
-    constructor(position, collider) {
+    constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
-        this.velocity = vec3.create();
-        this.angularVelocity = vec3.create();
+        this.velocity = vec3.clone(velocity);
+        this.angularVelocity = vec3.clone(angularVelocity);
         this.collider = collider;
     }
     getPosition() {
@@ -36,10 +36,6 @@ export class PhysicsObject {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
-        }
-        else {
-            this.sleepTimer = 0.0;
-            this.isSleeping = true;
         }
     }
 }

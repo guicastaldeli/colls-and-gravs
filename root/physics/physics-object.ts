@@ -6,7 +6,7 @@ export class PhysicsObject implements ICollidable {
     public velocity: vec3 = vec3.create();
     public angularVelocity: vec3 = vec3.create();
     public isStatic: boolean = false;
-    public mass: number = 1.0;
+    public mass: number = 60.0;
     public restitution: number = 0.5;
     public collider: Collider;
 
@@ -15,10 +15,15 @@ export class PhysicsObject implements ICollidable {
     private sleepThreshold: number = 0.1;
     private sleepDelay: number = 2.0;
 
-    constructor(position: vec3, collider: Collider) {
+    constructor(
+        position: vec3,
+        velocity: vec3,
+        angularVelocity: vec3,
+        collider: Collider
+    ) {
         this.position = vec3.clone(position);
-        this.velocity = vec3.create();
-        this.angularVelocity = vec3.create();
+        this.velocity = vec3.clone(velocity);
+        this.angularVelocity = vec3.clone(angularVelocity);
         this.collider = collider;
     }
 
@@ -46,9 +51,6 @@ export class PhysicsObject implements ICollidable {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
-        } else {
-            this.sleepTimer = 0.0;
-            this.isSleeping = true;
         }
     }
 }

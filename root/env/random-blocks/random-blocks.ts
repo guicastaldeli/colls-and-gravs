@@ -51,10 +51,6 @@ export class RandomBlocks implements ICollidable {
     public sharedResources: Map<string, SharedResource> = new Map();
     private defaultSharedResourceId = 'default-m';
 
-    private lastMouseClickTime: number = 0;
-    private clickCooldown: number = 0;
-    private keyPressed: boolean = false;
-
     private preloadModel: any;
     private preloadTex!: GPUTexture;
 
@@ -191,11 +187,12 @@ export class RandomBlocks implements ICollidable {
             //Physics
             const physicsObj = new PhysicsObject(
                 vec3.clone(position),
+                vec3.create(),
+                vec3.create(),
                 collider
             );
-            physicsObj.isStatic = false; //off on
-            vec3.set(physicsObj.velocity, 0, 0, 0);
 
+            physicsObj.isStatic = false;
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
             this.physicsGrid.addObject(physicsObj);
@@ -203,9 +200,7 @@ export class RandomBlocks implements ICollidable {
             this.blocks.push(newBlock);
             this._Colliders.push(collider);
             playerController.updateCollidables();
-
             this.updatePhysicsCollidables(playerController);
-
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -359,7 +354,7 @@ export class RandomBlocks implements ICollidable {
     }
 
     public getCollider(): Collider {
-        throw new Error('hiuf')
+        throw new Error('.')
     }
 
     public getAllColliders(): {
@@ -388,8 +383,8 @@ export class RandomBlocks implements ICollidable {
 
             if(physicsObj && !physicsObj.isStatic) {
                 if(physicsObj.position.some(isNaN)) {
-                    console.error('Invalid object position', physicsObj);
-                    continue;
+                    console.error(physicsObj);
+                    return;
                 }
 
                 vec3.copy(block.position, physicsObj.position);
@@ -409,15 +404,6 @@ export class RandomBlocks implements ICollidable {
                         block.position[2]
                     ];
                 }
-            }
-        }
-
-        for(let i = this.blocks.length - 1; i >= 0; i--) {
-            const block = this.blocks[i];
-            const physicsObj = this.physicsObjects.get(block.id);
-
-            if(physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
-                console.error('Removing Invalid block', block.id);
             }
         }
     }

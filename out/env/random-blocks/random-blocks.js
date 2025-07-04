@@ -18,9 +18,6 @@ export class RandomBlocks {
     targetBlockIndex = -1;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
-    lastMouseClickTime = 0;
-    clickCooldown = 0;
-    keyPressed = false;
     preloadModel;
     preloadTex;
     //Collision
@@ -127,9 +124,8 @@ export class RandomBlocks {
                 position[2] / this.positionAdjusted.z
             ]);
             //Physics
-            const physicsObj = new PhysicsObject(vec3.clone(position), collider);
-            physicsObj.isStatic = false; //off on
-            vec3.set(physicsObj.velocity, 0, 0, 0);
+            const physicsObj = new PhysicsObject(vec3.clone(position), vec3.create(), vec3.create(), collider);
+            physicsObj.isStatic = false;
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
             this.physicsGrid.addObject(physicsObj);
@@ -251,7 +247,7 @@ export class RandomBlocks {
         return vec3.fromValues(0, 0, 0);
     }
     getCollider() {
-        throw new Error('hiuf');
+        throw new Error('.');
     }
     getAllColliders() {
         return this._Colliders.map((collider, i) => ({
@@ -271,8 +267,8 @@ export class RandomBlocks {
             const physicsObj = this.physicsObjects.get(block.id);
             if (physicsObj && !physicsObj.isStatic) {
                 if (physicsObj.position.some(isNaN)) {
-                    console.error('Invalid object position', physicsObj);
-                    continue;
+                    console.error(physicsObj);
+                    return;
                 }
                 vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);
@@ -286,13 +282,6 @@ export class RandomBlocks {
                         block.position[2]
                     ];
                 }
-            }
-        }
-        for (let i = this.blocks.length - 1; i >= 0; i--) {
-            const block = this.blocks[i];
-            const physicsObj = this.physicsObjects.get(block.id);
-            if (physicsObj && (physicsObj.position.some(isNaN) || physicsObj.velocity.some(isNaN))) {
-                console.error('Removing Invalid block', block.id);
             }
         }
     }
