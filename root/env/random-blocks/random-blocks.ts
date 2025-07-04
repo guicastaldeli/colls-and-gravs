@@ -13,6 +13,7 @@ import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
 import { GetColliders } from "../../get-colliders.js";
+import { Ground } from "../ground.js";
 
 interface BlockData {
     id: string,
@@ -80,6 +81,8 @@ export class RandomBlocks implements ICollidable {
     private physicsObjects: Map<string, PhysicsObject> = new Map();
     private physicsGrid: PhysicsGrid;
 
+    private ground: Ground;
+
     size = {
         w: 0.1,
         h: 0.1,
@@ -90,7 +93,8 @@ export class RandomBlocks implements ICollidable {
         tick: Tick,
         device: GPUDevice, 
         loader: Loader, 
-        shaderLoader: ShaderLoader
+        shaderLoader: ShaderLoader,
+        ground: Ground
     ) {
         this.tick = tick;
         this.device = device;
@@ -104,6 +108,8 @@ export class RandomBlocks implements ICollidable {
 
         this.physicsSystem = new PhysicsSystem();
         this.physicsGrid = new PhysicsGrid(2.0);
+
+        this.ground = ground;
     }
 
     public async preloadAssets(): Promise<void> {
@@ -298,9 +304,9 @@ export class RandomBlocks implements ICollidable {
             return;
         }
 
-        blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
-        blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
-        blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
+        blockPos[0] = Math.abs(targetPos[0] / this.size.w) * this.size.w;
+        blockPos[1] = Math.abs(targetPos[1] / this.size.h) * this.size.h;
+        blockPos[2] = Math.abs(targetPos[2] / this.size.d) * this.size.d;
 
         const positionOccupied = this.blocks.some(block =>
             Math.abs(block.position[0] - blockPos[0]) < this.size.w &&
@@ -385,6 +391,16 @@ export class RandomBlocks implements ICollidable {
                 if(physicsObj.position.some(isNaN)) {
                     console.error(physicsObj);
                     return;
+                }
+
+                const groundLevel = this.ground.getGroundLevelY(
+                    physicsObj.position[0],
+                    physicsObj.position[2]
+                );
+
+                if(physicsObj.position[1] < groundLevel) {
+                    physicsObj.position[1] = groundLevel + this.size.h;
+                    physicsObj.velocity[1] = 0;
                 }
 
                 vec3.copy(block.position, physicsObj.position);

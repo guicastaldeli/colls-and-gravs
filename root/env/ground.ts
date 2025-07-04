@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
-import { BoxCollider, Collider, CollisionInfo, ICollidable } from "../collider.js";
+import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collider.js";
 
 export class Ground implements ICollidable {
     private device: GPUDevice;
@@ -88,7 +88,14 @@ export class Ground implements ICollidable {
     }
 
     public getCollider(): Collider {
-        return this._Collider[0];
+        return new BoxCollider(
+            [this.count * this.pos.gap(), 0.1, this.count * this.pos.gap()],
+            [0, this.pos.y, 0]
+        );
+    }
+
+    public getCollisionResponse(other: ICollidable): CollisionResponse {
+        return CollisionResponse.BLOCK;
     }
 
     public getCollisionInfo(): CollisionInfo {
@@ -108,6 +115,10 @@ export class Ground implements ICollidable {
             position: vec3.clone((collider as BoxCollider))['_offset'],
             type: this.getCollisionInfo().type
         }));
+    }
+
+    public getGroundLevelY(x: number, z: number): number {
+        return this.pos.y;
     }
 
     public async init(): Promise<void> {

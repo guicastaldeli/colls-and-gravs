@@ -41,12 +41,13 @@ export class RandomBlocks {
     physicsSystem;
     physicsObjects = new Map();
     physicsGrid;
+    ground;
     size = {
         w: 0.1,
         h: 0.1,
         d: 0.1
     };
-    constructor(tick, device, loader, shaderLoader) {
+    constructor(tick, device, loader, shaderLoader, ground) {
         this.tick = tick;
         this.device = device;
         this.loader = loader;
@@ -57,6 +58,7 @@ export class RandomBlocks {
         this.outline = new OutlineConfig(device, shaderLoader);
         this.physicsSystem = new PhysicsSystem();
         this.physicsGrid = new PhysicsGrid(2.0);
+        this.ground = ground;
     }
     async preloadAssets() {
         this.preloadModel = await this.loader.parser('./assets/env/obj/smile.obj');
@@ -207,9 +209,9 @@ export class RandomBlocks {
             console.error('Invalid target');
             return;
         }
-        blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
-        blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
-        blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
+        blockPos[0] = Math.abs(targetPos[0] / this.size.w) * this.size.w;
+        blockPos[1] = Math.abs(targetPos[1] / this.size.h) * this.size.h;
+        blockPos[2] = Math.abs(targetPos[2] / this.size.d) * this.size.d;
         const positionOccupied = this.blocks.some(block => Math.abs(block.position[0] - blockPos[0]) < this.size.w &&
             Math.abs(block.position[1] - blockPos[1]) < this.size.h &&
             Math.abs(block.position[2] - blockPos[2]) < this.size.d);
@@ -269,6 +271,11 @@ export class RandomBlocks {
                 if (physicsObj.position.some(isNaN)) {
                     console.error(physicsObj);
                     return;
+                }
+                const groundLevel = this.ground.getGroundLevelY(physicsObj.position[0], physicsObj.position[2]);
+                if (physicsObj.position[1] < groundLevel) {
+                    physicsObj.position[1] = groundLevel + this.size.h;
+                    physicsObj.velocity[1] = 0;
                 }
                 vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);

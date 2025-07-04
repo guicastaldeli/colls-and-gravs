@@ -6,7 +6,7 @@ export class PhysicsObject implements ICollidable {
     public velocity: vec3 = vec3.create();
     public angularVelocity: vec3 = vec3.create();
     public isStatic: boolean = false;
-    public mass: number = 60.0;
+    public mass: number = 1.0;
     public restitution: number = 0.5;
     public collider: Collider;
 
@@ -19,7 +19,7 @@ export class PhysicsObject implements ICollidable {
         position: vec3,
         velocity: vec3,
         angularVelocity: vec3,
-        collider: Collider
+        collider: Collider,
     ) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);

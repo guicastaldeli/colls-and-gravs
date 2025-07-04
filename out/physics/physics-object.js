@@ -4,7 +4,7 @@ export class PhysicsObject {
     velocity = vec3.create();
     angularVelocity = vec3.create();
     isStatic = false;
-    mass = 60.0;
+    mass = 1.0;
     restitution = 0.5;
     collider;
     isSleeping = false;

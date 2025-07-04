@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider } from "../collider.js";
+import { BoxCollider, CollisionResponse } from "../collider.js";
 export class Ground {
     device;
     loader;
@@ -54,7 +54,10 @@ export class Ground {
         return vec3.fromValues(0, 0, 0);
     }
     getCollider() {
-        return this._Collider[0];
+        return new BoxCollider([this.count * this.pos.gap(), 0.1, this.count * this.pos.gap()], [0, this.pos.y, 0]);
+    }
+    getCollisionResponse(other) {
+        return CollisionResponse.BLOCK;
     }
     getCollisionInfo() {
         return {
@@ -68,6 +71,9 @@ export class Ground {
             position: vec3.clone(collider)['_offset'],
             type: this.getCollisionInfo().type
         }));
+    }
+    getGroundLevelY(x, z) {
+        return this.pos.y;
     }
     async init() {
         await this.createGround();

@@ -1,6 +1,6 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
-import { ICollidable } from "../collider.js";
+import { CollisionResponse, ICollidable } from "../collider.js";
 import { PhysicsObject } from "./physics-object.js";
 
 export class PhysicsSystem {
@@ -54,11 +54,15 @@ export class PhysicsSystem {
         );
 
         if(penX < penY && penX < penZ) {
-            normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
+            if(obj.velocity[1] < 0) {
+                normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
+            }
         } else if(penY < penX && penY < penZ) {
             normal[1] = obj.position[1] < otherPosition[1] ? -1 : 1;
+            obj.velocity[1] = [0];
         } else {
             normal[2] = obj.position[2] < otherPosition[2] ? -1 : 1;
+            obj.velocity[2] = 0;
         }
 
         const minPen = Math.min(penX, penY, penZ);
@@ -76,7 +80,7 @@ export class PhysicsSystem {
         return normal;
     }
 
-    private resolveCollisions(obj: PhysicsObject): void {
+    private resolveCollisions(obj: PhysicsObject, collidable: ICollidable): void {
         if(!obj || !obj.getCollider) return;
         
         for(const other of this.collidables) {
@@ -119,7 +123,7 @@ export class PhysicsSystem {
         }
 
         const otherObj = other as PhysicsObject;
-        const normal = this.calculateCollisionNormal(obj, other, otherPosition);
+        const normal = this.calculateCollisionNormal(obj, otherObj, otherPosition);
         if(normal.some(isNaN)) return result;
 
         const otherVel = (other as PhysicsObject)?.velocity?
@@ -133,7 +137,7 @@ export class PhysicsSystem {
         const e = Math.max(0.9, Math.max(0, obj.restitution));
         const j = -(1 + e) * velAlongNormal;
 
-        const minMass = 0.001;
+        const minMass = 20.0;
         const invMass1 = 1 / Math.max(obj.mass, minMass);
         const invMass2 = (other as PhysicsObject)?.mass !== undefined ?
         1 / Math.max((other as PhysicsObject).mass, minMass) : 0;
@@ -166,7 +170,7 @@ export class PhysicsSystem {
         if(vec3.length(tangent)) {
             vec3.normalize(tangent, tangent);
 
-            const friction = 0.5;
+            const friction = 0.1;
             const jt = -vec3.dot(obj.velocity, tangent);
             const invMass = 1 / obj.mass;
             const frictionImpulse = jt / invMass * friction;
@@ -241,7 +245,8 @@ export class PhysicsSystem {
             if(obj.isSleeping || obj.isStatic) continue;
 
             if(!obj.isStatic) {
-                obj.velocity[1] -= this.gravity * deltaTime;
+                const time = deltaTime * 10;
+                obj.velocity[1] -= this.gravity * time;
 
                 vec3.scaleAndAdd(
                     obj.position,
@@ -258,7 +263,13 @@ export class PhysicsSystem {
                     continue;
                 }
 
-                this.resolveCollisions(obj);
+                for(const collidable of this.collidables) {                    
+                    if(obj.getCollider().checkCollision(collidable.getCollider())) {
+                        const response = collidable.getCollisionResponse?.(obj);
+                        if(response === CollisionResponse.BLOCK) this.resolveCollisions(obj, collidable);
+                    }
+                }
+
                 this.checkStability(obj);
             }
 
