@@ -5,7 +5,7 @@ import { GetColliders } from "./get-colliders.js";
 export class PlayerController {
     tick;
     _initialPosition;
-    _position = vec3.fromValues(0, 15, 0);
+    _position = vec3.fromValues(0, 3, 0);
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;

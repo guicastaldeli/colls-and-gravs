@@ -7,9 +7,12 @@ import { ResourceManager } from "./resource-manager.js";
 import { PlayerController } from "../../player-controller.js";
 import { Hud } from "../../hud.js";
 import { ShaderLoader } from "../../shader-loader.js";
-
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
+import { PhysicsSystem } from "../../physics/physics-system.js";
+import { PhysicsObject } from "../../physics/physics-object.js";
+import { PhysicsGrid } from "../../physics/physics-grid.js";
+import { GetColliders } from "../../get-colliders.js";
 
 interface BlockData {
     id: string,
@@ -55,10 +58,18 @@ export class RandomBlocks implements ICollidable {
     private preloadModel: any;
     private preloadTex!: GPUTexture;
 
+    //Collision
     private _Colliders: BoxCollider[] = [];
     public type = 'block';
+
+    //Raycaster
     private raycaster: Raycaster;
     public outline: OutlineConfig;
+
+    //Physics
+    private physicsSystem: PhysicsSystem;
+    private physicsObjects: Map<string, PhysicsObject> = new Map();
+    private physicsGrid: PhysicsGrid;
 
     size = {
         w: 0.1,
@@ -81,6 +92,9 @@ export class RandomBlocks implements ICollidable {
 
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
+
+        this.physicsSystem = new PhysicsSystem();
+        this.physicsGrid = new PhysicsGrid(2.0);
     }
 
     public async preloadAssets(): Promise<void> {
@@ -122,6 +136,7 @@ export class RandomBlocks implements ICollidable {
     }
 
     public async addBlock(position: vec3, playerController: PlayerController): Promise<BlockData> {
+        console.log("Adding block at position:", position); 
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -147,14 +162,35 @@ export class RandomBlocks implements ICollidable {
                 sharedResourceId: this.defaultSharedResourceId
             }
 
+            console.log("New block created:", newBlock);
+
+            //Collision
             const collider = new BoxCollider(
                 [this.size.w * 8, this.size.h * 10, this.size.d * 10],
                 [position[0] / 55, position[1] - 1.5, position[2] / 65]
-            )
+            );
+
+            //Physics
+            const physicsObj = new PhysicsObject(
+                vec3.clone(position),
+                collider
+            );
+            physicsObj.isStatic = false;
+            physicsObj.mass = 1.0;
+            physicsObj.restitution = 0.5
+            console.log("Physics object created:", physicsObj);
+            console.log("Physics object position:", physicsObj.position);
+
+            this.physicsObjects.set(newBlock.id, physicsObj);
+            this.physicsSystem.addPhysicsObject(physicsObj);
+            this.physicsGrid.addObject(physicsObj);
     
             this.blocks.push(newBlock);
             this._Colliders.push(collider);
             playerController.updateCollidables();
+
+            this.updatePhysicsCollidables(playerController);
+
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -210,6 +246,7 @@ export class RandomBlocks implements ICollidable {
             const block = this.blocks[i];
             if(!block) return;
             
+            this.physicsObjects.delete(block.id);
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
             
@@ -307,6 +344,41 @@ export class RandomBlocks implements ICollidable {
             position: vec3.clone(this.blocks[i].position),
             type: this.type
         }));
+    }
+
+    public updatePhysicsCollidables(playerController: PlayerController): void {
+        const getColliders = new GetColliders(undefined, this);
+        this.physicsSystem.setCollidables(getColliders.getCollidables());
+        playerController.updateCollidables();
+    }
+
+    public update(deltaTime: number): void {
+        this.physicsSystem.update(deltaTime);
+
+        for(const block of this.blocks) {
+            const physicsObj = this.physicsObjects.get(block.id);
+
+            if(physicsObj && !physicsObj.isStatic) {
+                vec3.copy(block.position, physicsObj.position);
+
+                mat4.identity(block.modelMatrix);
+                mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
+                mat4.scale(
+                    block.modelMatrix,
+                    block.modelMatrix,
+                    [this.size.w, this.size.h, this.size.d]
+                );
+
+                const colliderIndex = this.blocks.indexOf(block);
+                if(colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
+                    this._Colliders[colliderIndex]._offset = [
+                        block.position[0] / 55,
+                        block.position[1] - 1.5,
+                        block.position[2] / 65
+                    ];
+                }
+            }
+        }
     }
 
     public async init(

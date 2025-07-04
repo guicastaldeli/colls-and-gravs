@@ -3,6 +3,10 @@ import { BoxCollider } from "../../collider.js";
 import { ResourceManager } from "./resource-manager.js";
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
+import { PhysicsSystem } from "../../physics/physics-system.js";
+import { PhysicsObject } from "../../physics/physics-object.js";
+import { PhysicsGrid } from "../../physics/physics-grid.js";
+import { GetColliders } from "../../get-colliders.js";
 export class RandomBlocks {
     tick;
     device;
@@ -19,10 +23,16 @@ export class RandomBlocks {
     keyPressed = false;
     preloadModel;
     preloadTex;
+    //Collision
     _Colliders = [];
     type = 'block';
+    //Raycaster
     raycaster;
     outline;
+    //Physics
+    physicsSystem;
+    physicsObjects = new Map();
+    physicsGrid;
     size = {
         w: 0.1,
         h: 0.1,
@@ -37,6 +47,8 @@ export class RandomBlocks {
         this.preloadAssets();
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
+        this.physicsSystem = new PhysicsSystem();
+        this.physicsGrid = new PhysicsGrid(2.0);
     }
     async preloadAssets() {
         this.preloadModel = await this.loader.parser('./assets/env/obj/smile.obj');
@@ -74,6 +86,7 @@ export class RandomBlocks {
         }
     }
     async addBlock(position, playerController) {
+        console.log("Adding block at position:", position);
         try {
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
@@ -93,10 +106,23 @@ export class RandomBlocks {
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId
             };
+            console.log("New block created:", newBlock);
+            //Collision
             const collider = new BoxCollider([this.size.w * 8, this.size.h * 10, this.size.d * 10], [position[0] / 55, position[1] - 1.5, position[2] / 65]);
+            //Physics
+            const physicsObj = new PhysicsObject(vec3.clone(position), collider);
+            physicsObj.isStatic = false;
+            physicsObj.mass = 1.0;
+            physicsObj.restitution = 0.5;
+            console.log("Physics object created:", physicsObj);
+            console.log("Physics object position:", physicsObj.position);
+            this.physicsObjects.set(newBlock.id, physicsObj);
+            this.physicsSystem.addPhysicsObject(physicsObj);
+            this.physicsGrid.addObject(physicsObj);
             this.blocks.push(newBlock);
             this._Colliders.push(collider);
             playerController.updateCollidables();
+            this.updatePhysicsCollidables(playerController);
             return newBlock;
         }
         catch (err) {
@@ -139,6 +165,7 @@ export class RandomBlocks {
             const block = this.blocks[i];
             if (!block)
                 return;
+            this.physicsObjects.delete(block.id);
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
             this.releaseSharedResource(block.sharedResourceId);
@@ -208,6 +235,31 @@ export class RandomBlocks {
             position: vec3.clone(this.blocks[i].position),
             type: this.type
         }));
+    }
+    updatePhysicsCollidables(playerController) {
+        const getColliders = new GetColliders(undefined, this);
+        this.physicsSystem.setCollidables(getColliders.getCollidables());
+        playerController.updateCollidables();
+    }
+    update(deltaTime) {
+        this.physicsSystem.update(deltaTime);
+        for (const block of this.blocks) {
+            const physicsObj = this.physicsObjects.get(block.id);
+            if (physicsObj && !physicsObj.isStatic) {
+                vec3.copy(block.position, physicsObj.position);
+                mat4.identity(block.modelMatrix);
+                mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
+                mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
+                const colliderIndex = this.blocks.indexOf(block);
+                if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
+                    this._Colliders[colliderIndex]._offset = [
+                        block.position[0] / 55,
+                        block.position[1] - 1.5,
+                        block.position[2] / 65
+                    ];
+                }
+            }
+        }
     }
     async init(canvas, playerController, format, hud) {
         await this.renderOutline(canvas, this.device, format);
