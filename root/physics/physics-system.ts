@@ -58,7 +58,7 @@ export class PhysicsSystem {
             if(obj.velocity[1] < 0) normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
         } else if(penY < penX && penY < penZ) {
             normal[1] = obj.position[1] < otherPosition[1] ? -1 : 1;
-            obj.velocity[1] = [0];
+            obj.velocity[1] = 0;
         } else {
             normal[2] = obj.position[2] < otherPosition[2] ? -1 : 1;
             obj.velocity[2] = 0;
@@ -179,8 +179,8 @@ export class PhysicsSystem {
         } else {
             const correction = vec3.scale(vec3.create(), normal, minPen * 1.01);
             vec3.add(result.newPosition, result.newPosition, correction);
-            relativeVel.newVelocity[0] *= 0.8;
-            relativeVel.newVelocity[2] *= 0.8;
+            result.newVelocity[0] *= 0.8;
+            result.newVelocity[2] *= 0.8;
         }
 
         const contactPoint = vec3.create();
@@ -192,7 +192,7 @@ export class PhysicsSystem {
         vec3.add(velocityAtContact, velAlongNormal, obj.velocity);
 
         const torque = vec3.cross(vec3.create(), r, normal);
-        vec3.scale(torque, torque, impulse);
+        vec3.scale(torque, torque, impulse * 0.5);
         obj.applyTorque(torque);
 
         const tangentVel = vec3.sub(vec3.create(), velocityAtContact,
@@ -261,17 +261,6 @@ export class PhysicsSystem {
         return supportPoints;
     }
 
-    private isPointSupportedPolygon(obj: PhysicsObject, point: vec3): boolean {
-        const bbox = obj.getCollider().getBoundingBox(obj.position);
-
-        return (
-            point[0] >= bbox.min[0] &&
-            point[0] <= bbox.max[0] &&
-            point[2] >= bbox.min[2] &&
-            point[2] <= bbox.max[2]
-        );
-    }
-
     private checkStability(obj: PhysicsObject): void {
         if(obj.isStatic) return;
 
@@ -282,8 +271,8 @@ export class PhysicsSystem {
             if(other === obj) continue;
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
 
-            if(otherBBox.max[1] <= objBBox.min[1] + 0.1 &&
-                otherBBox.max[1] >= objBBox.min[1] - 0.1
+            if(otherBBox.max[1] <= objBBox.min[1] + 0.6 &&
+                otherBBox.max[1] >= objBBox.min[1] - 0.6
             ) {
                 const overlapX = Math.min(objBBox.max[0], otherBBox.max[0]) - Math.max(objBBox.min[0], otherBBox.min[0]);
                 const overlapZ = Math.min(objBBox.max[2], otherBBox.max[2]) - Math.max(objBBox.min[2], otherBBox.min[2]);

@@ -32,6 +32,7 @@ export class PhysicsObject implements ICollidable {
         this.velocity = vec3.clone(velocity);
         this.angularVelocity = vec3.clone(angularVelocity);
         this.collider = collider;
+        this.calculateInertiaTensor();
     }
 
     public getPosition(): vec3 {
@@ -98,18 +99,18 @@ export class PhysicsObject implements ICollidable {
             deltaTime
         );
 
-        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - this.rollingFriction);
+        const frictionFactor = 1 - (this.rollingFriction * deltaTime);
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - frictionFactor);
 
         if(vec3.length(this.angularVelocity) > 0.001) {
-            const rotation = quat.setAxisAngle(
-                quat.create(),
-                this.angularVelocity,
-                vec3.length(this.angularVelocity) * deltaTime
-            );
+            const angle = vec3.length(this.angularVelocity) * deltaTime;
+            const axis = vec3.normalize(vec3.create(), this.angularVelocity);
+            const rotation = quat.setAxisAngle(quat.create(), axis, angle);
 
-            quat.multiply(this.orientation, rotation, this.orientation);
+            quat.multiply(this.orientation, this.orientation, rotation);
+            quat.normalize(this.orientation, this.orientation);
         }
 
-        vec3.scale(this.torque, 0, 0, 0);
+        vec3.set(this.torque, 0, 0, 0);
     }
 }
