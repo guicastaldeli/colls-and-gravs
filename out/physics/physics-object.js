@@ -60,17 +60,14 @@ export class PhysicsObject {
     updateRotation(deltaTime) {
         if (this.isStatic)
             return;
-        const rotationMatrix = mat3.fromQuat(mat3.create(), this.orientation);
-        const rotatedInertia = mat3.create();
-        mat3.multiply(rotatedInertia, rotationMatrix, this.inertiaTensor);
-        mat3.multiply(rotatedInertia, rotatedInertia, mat3.transpose(mat3.create(), rotationMatrix));
-        const invInertia = mat3.create();
-        mat3.invert(invInertia, this.inertiaTensor);
-        const angularAcceleration = vec3.create();
-        vec3.transformMat3(angularAcceleration, this.torque, invInertia);
-        vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
-        const frictionFactor = 1 - (this.rollingFriction * deltaTime);
-        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - frictionFactor);
+        if (vec3.length(this.torque) > 0.001) {
+            const invInertia = mat3.create();
+            mat3.invert(invInertia, this.inertiaTensor);
+            const angularAcceleration = vec3.create();
+            vec3.transformMat3(angularAcceleration, this.torque, invInertia);
+            vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
+        }
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (this.rollingFriction * deltaTime));
         if (vec3.length(this.angularVelocity) > 0.001) {
             const angle = vec3.length(this.angularVelocity) * deltaTime;
             const axis = vec3.normalize(vec3.create(), this.angularVelocity);
