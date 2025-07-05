@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
 import { CollisionResponse, ICollidable } from "../collider.js";
 import { PhysicsObject } from "./physics-object.js";
@@ -133,7 +133,7 @@ export class PhysicsSystem {
         const velAlongNormal = vec3.dot(relativeVel, normal);
         if(velAlongNormal > 0) return result;
 
-        const e = Math.max(0.9, Math.max(0, obj.restitution));
+        const e = Math.max(0.3, obj.restitution);
         const j = -(1 + e) * velAlongNormal;
 
         const minMass = 200 * 200;
@@ -171,16 +171,9 @@ export class PhysicsSystem {
         );
 
         const minPen = Math.min(penX, penY, penZ);
-
-        if(minPen === penY) {
-            const correction = normal[1] * minPen * 1.01;
-            result.newPosition[1] += correction;
-            if(normal[1] > 0 && obj.velocity[1] < 0) result.newVelocity[1] = 0;
-        } else {
-            const correction = vec3.scale(vec3.create(), normal, minPen * 1.01);
+        if(minPen > 0) {
+            const correction = vec3.scale(vec3.create(), normal, minPen * 0.5);
             vec3.add(result.newPosition, result.newPosition, correction);
-            result.newVelocity[0] *= 0.8;
-            result.newVelocity[2] *= 0.8;
         }
 
         const contactPoint = vec3.create();
@@ -266,52 +259,86 @@ export class PhysicsSystem {
 
         const objBBox = obj.getCollider().getBoundingBox(obj.position);
         let isSupported = false;
+        let totalSupportArea = 0;
 
         for(const other of this.collidables) {
             if(other === obj) continue;
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
 
-            if(otherBBox.max[1] <= objBBox.min[1] + 0.6 &&
-                otherBBox.max[1] >= objBBox.min[1] - 0.6
+            if(otherBBox.max[1] <= objBBox.min[1] + 0.8 &&
+                otherBBox.max[1] >= objBBox.min[1] - 0.8
             ) {
                 const overlapX = Math.min(objBBox.max[0], otherBBox.max[0]) - Math.max(objBBox.min[0], otherBBox.min[0]);
                 const overlapZ = Math.min(objBBox.max[2], otherBBox.max[2]) - Math.max(objBBox.min[2], otherBBox.min[2]);
 
                 if(overlapX > 0 && overlapZ > 0) {
                     isSupported = true;
-                    break;
+                    totalSupportArea += overlapX * overlapZ;
                 }
             }
         }
 
-        if(isSupported && vec3.length(obj.velocity) < 0.1) obj.isStatic = true;
+        const objSize = (objBBox.max[0] - objBBox.min[0]) * (objBBox.max[2] - objBBox.min[2]);
+        const supportRatio = totalSupportArea / objSize;
+
+        if(isSupported &&
+            vec3.length(obj.velocity) < 0.1 &&
+            vec3.length(obj.angularVelocity) < 0.1 &&
+            supportRatio > 0.3
+        ) {
+            obj.isStatic = true;
+        }
     }
 
     private checkEdgeStability(obj: PhysicsObject): void {
         if(obj.isStatic) return;
 
-        const supportPoints = this.getSupportedPoints(obj);
-        if(supportPoints.length === 0) return;
+        const objBBox = obj.getCollider().getBoundingBox(obj.position);
+        const objBottom = objBBox.min[1];
 
-        const center = vec3.create();
-        for(const point of supportPoints) vec3.add(center, center, center);
-        vec3.scale(center, center, 1 / supportPoints.length);
+        const supportingObjects: ICollidable[] = [];
+        for(const other of this.collidables) {
+            if(other === obj) continue;
+            const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
+
+            if(otherBBox.max[1] <= objBottom + 0.05 &&
+                otherBBox.max[1] >= objBottom - 0.05
+            ) {
+                supportingObjects.push(other);
+            }
+        }
+
+        if(supportingObjects.length === 0) return;
+
+        const supportCenter = vec3.create();
+        for(const other of supportingObjects) vec3.add(supportCenter, supportCenter, other.getPosition());
+        vec3.scale(supportCenter, supportCenter, 1 / supportingObjects.length);
 
         const com = vec3.clone(obj.position);
-        com[1] -= obj.collider.getSize()[1] / 2;
+        const toCOM = vec3.sub(vec3.create(), com, supportCenter);
+        toCOM[1] = 0;
 
-        const toCOM = vec3.sub(vec3.create(), com, center);
-        const supportRadius = supportPoints.reduce((max, point) => {
-            const dist = vec3.distance(point, center);
-            return Math.max(max, dist);
-        }, 0);
+        const distanceToEdge = vec3.length(toCOM);
+        const objectSize = Math.max(
+            objBBox.max[0] - objBBox.min[0],
+            objBBox.max[2] - objBBox[2]
+        );
 
-        if(vec3.length(toCOM) > supportRadius * 0.8) {
-            const torque = vec3.cross(vec3.create(), toCOM, [0, -1, 0]);
-            vec3.normalize(torque, torque);
-            vec3.scale(torque, torque, obj.mass * this.gravity * 0.1);
-            obj.applyTorque(torque);
-            obj.isStatic = false;
+        if(distanceToEdge > objectSize * 0.3) {
+            const torqueMagnitude = obj.mass * this.gravity * distanceToEdge * 0.2;
+            const torqueAxis = vec3.cross(vec3.create(), toCOM, [0, 1, 0]);
+
+            if(vec3.length(torqueAxis) > 0.001) {
+                vec3.normalize(torqueAxis, torqueAxis);
+
+                const angularImpulse = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
+                const invInertia = mat3.create();
+                mat3.invert(invInertia, obj.inertiaTensor);
+                vec3.transformMat3(angularImpulse, angularImpulse, invInertia);
+                vec3.add(obj.angularVelocity, obj.angularVelocity, angularImpulse);
+
+                obj.isStatic = false;
+            }
         }
     }
 
@@ -327,39 +354,39 @@ export class PhysicsSystem {
                 continue;
             }
 
-            obj.updateRotation(deltaTime);
-            if(obj.isSleeping || obj.isStatic) continue;
-
             if(!obj.isStatic) {
-                const time = deltaTime * 10;
-                obj.velocity[1] -= this.gravity * time;
-
-                vec3.scaleAndAdd(
-                    obj.position,
-                    obj.position,
-                    obj.velocity,
-                    deltaTime
-                );
-
-                if(obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
-                    console.error('NaN detected after update');
-
-                    vec3.set(obj.position, 0, 0, 0);
-                    vec3.set(obj.velocity, 0, 0, 0);
-                    continue;
-                }
-
-                for(const collidable of this.collidables) {                    
-                    if(obj.getCollider().checkCollision(collidable.getCollider())) {
-                        const response = collidable.getCollisionResponse?.(obj);
-                        if(response === CollisionResponse.BLOCK) this.resolveCollisions(obj, collidable);
-                    }
-                }
-
                 this.checkStability(obj);
                 this.checkEdgeStability(obj);
             }
 
+            if(obj.isSleeping || obj.isStatic) continue;
+            obj.updateRotation(deltaTime);
+
+            const time = deltaTime * 10;
+            obj.velocity[1] -= this.gravity * time;
+
+            vec3.scaleAndAdd(
+                obj.position,
+                obj.position,
+                obj.velocity,
+                deltaTime
+            );
+
+            if(obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
+                console.error('NaN detected after update');
+
+                vec3.set(obj.position, 0, 0, 0);
+                vec3.set(obj.velocity, 0, 0, 0);
+                continue;
+            }
+
+            for(const collidable of this.collidables) {                    
+                if(obj.getCollider().checkCollision(collidable.getCollider())) {
+                    const response = collidable.getCollisionResponse?.(obj);
+                    if(response === CollisionResponse.BLOCK) this.resolveCollisions(obj, collidable);
+                }
+            }
+            
             obj.checkSleep(deltaTime);
         }
     }

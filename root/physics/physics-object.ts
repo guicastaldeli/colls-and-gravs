@@ -7,20 +7,20 @@ export class PhysicsObject implements ICollidable {
 
     public isStatic: boolean = false;
     public mass: number = 1.0;
-    public restitution: number = 0.1;
+    public restitution: number = 0.5;
     public collider: Collider;
 
     public isSleeping: boolean = false;
     private sleepTimer: number = 0.0;
-    private sleepThreshold: number = 0.1;
+    private sleepThreshold: number = 0.5;
     private sleepDelay: number = 2.0;
 
     public inertiaTensor: mat3 = mat3.create();
     public torque: vec3 = vec3.create();
     public angularVelocity: vec3 = vec3.create();
     public orientation: quat = quat.create();
-    public friction: number = 0.2;
-    public rollingFriction: number = 0.01;
+    public friction: number = 0.5;
+    public rollingFriction: number = 0.5;
 
     constructor(
         position: vec3,
@@ -64,9 +64,9 @@ export class PhysicsObject implements ICollidable {
 
     private calculateInertiaTensor(): void {
         const size = this.collider.getSize();
-        const width = size[0];
-        const height = size[1];
-        const depth = size[2];
+        const width = size[0] * 2;
+        const height = size[1] * 2;
+        const depth = size[2] * 2;
 
         const Ixx = (this.mass / 12) * (height * height + depth * depth);
         const Iyy = (this.mass / 12) * (width * width + depth * depth);
@@ -85,6 +85,11 @@ export class PhysicsObject implements ICollidable {
 
     public updateRotation(deltaTime: number): void {
         if(this.isStatic) return;
+
+        const rotationMatrix = mat3.fromQuat(mat3.create(), this.orientation);
+        const rotatedInertia = mat3.create();
+        mat3.multiply(rotatedInertia, rotationMatrix, this.inertiaTensor);
+        mat3.multiply(rotatedInertia, rotatedInertia, mat3.transpose(mat3.create(), rotationMatrix));
 
         const invInertia = mat3.create();
         mat3.invert(invInertia, this.inertiaTensor);

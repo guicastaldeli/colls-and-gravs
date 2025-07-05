@@ -4,18 +4,18 @@ export class PhysicsObject {
     velocity = vec3.create();
     isStatic = false;
     mass = 1.0;
-    restitution = 0.1;
+    restitution = 0.5;
     collider;
     isSleeping = false;
     sleepTimer = 0.0;
-    sleepThreshold = 0.1;
+    sleepThreshold = 0.5;
     sleepDelay = 2.0;
     inertiaTensor = mat3.create();
     torque = vec3.create();
     angularVelocity = vec3.create();
     orientation = quat.create();
-    friction = 0.2;
-    rollingFriction = 0.01;
+    friction = 0.5;
+    rollingFriction = 0.5;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -46,9 +46,9 @@ export class PhysicsObject {
     }
     calculateInertiaTensor() {
         const size = this.collider.getSize();
-        const width = size[0];
-        const height = size[1];
-        const depth = size[2];
+        const width = size[0] * 2;
+        const height = size[1] * 2;
+        const depth = size[2] * 2;
         const Ixx = (this.mass / 12) * (height * height + depth * depth);
         const Iyy = (this.mass / 12) * (width * width + depth * depth);
         const Izz = (this.mass / 12) * (width * width + height * height);
@@ -60,6 +60,10 @@ export class PhysicsObject {
     updateRotation(deltaTime) {
         if (this.isStatic)
             return;
+        const rotationMatrix = mat3.fromQuat(mat3.create(), this.orientation);
+        const rotatedInertia = mat3.create();
+        mat3.multiply(rotatedInertia, rotationMatrix, this.inertiaTensor);
+        mat3.multiply(rotatedInertia, rotatedInertia, mat3.transpose(mat3.create(), rotationMatrix));
         const invInertia = mat3.create();
         mat3.invert(invInertia, this.inertiaTensor);
         const angularAcceleration = vec3.create();
