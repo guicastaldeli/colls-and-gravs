@@ -9,7 +9,7 @@ export class PhysicsGrid {
         this.cellSize = cellSize;
     }
 
-    private getCellKey(position: vec3): string {
+    public getCellKey(position: vec3): string {
         const x = Math.floor(position[0] / this.cellSize);
         const y = Math.floor(position[1] / this.cellSize);
         const z = Math.floor(position[2] / this.cellSize);
@@ -50,5 +50,24 @@ export class PhysicsGrid {
         }
 
         return results;
+    }
+
+    public updateObjectPosition(oldPos: vec3, obj: PhysicsObject): void {
+        const oldKey = this.getCellKey(oldPos);
+        const newKey = this.getCellKey(obj.position);
+
+        if(oldKey !== newKey) {
+            this.removeObjectFromCell(oldKey, obj);
+            this.addObject(obj);
+        }
+    }
+
+    public removeObjectFromCell(key: string, obj: PhysicsObject): void {
+        const cell = this.grid.get(key);
+
+        if(cell) {
+            const i = cell.indexOf(obj);
+            if(i !== -1) cell.splice(i, 1);
+        }
     }
 }

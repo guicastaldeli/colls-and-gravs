@@ -3,6 +3,7 @@ import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 export interface Collider {
     checkCollision(other: Collider): boolean;
     getBoundingBox(position?: vec3): { min: vec3, max: vec3 }
+    getSize()
 }
 
 export enum CollisionResponse {
@@ -53,6 +54,10 @@ export class BoxCollider implements Collider {
             min: vec3.sub(vec3.create(), center, halfSize),
             max: vec3.add(vec3.create(), center, halfSize)
         }
+    }
+
+    public getSize(): vec3 {
+        return vec3.clone(this._size);
     }
 
     public rayIntersect(rayOrigin: vec3, rayDirection: vec3): {

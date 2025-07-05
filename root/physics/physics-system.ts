@@ -182,6 +182,36 @@ export class PhysicsSystem {
             relativeVel.newVelocity[0] *= 0.8;
             relativeVel.newVelocity[2] *= 0.8;
         }
+
+        const contactPoint = vec3.create();
+        vec3.add(contactPoint, obj.position, otherPosition);
+        vec3.scale(contactPoint, contactPoint, 0.5);
+
+        const r = vec3.sub(vec3.create(), contactPoint, obj.position);
+        const velocityAtContact = vec3.cross(vec3.create(), obj.angularVelocity, r);
+        vec3.add(velocityAtContact, velAlongNormal, obj.velocity);
+
+        const torque = vec3.cross(vec3.create(), r, normal);
+        vec3.scale(torque, torque, impulse);
+        obj.applyTorque(torque);
+
+        const tangentVel = vec3.sub(vec3.create(), velocityAtContact,
+        vec3.scale(vec3.create(), normal, vec3.dot(velocityAtContact, normal)));
+
+        if(vec3.length(tangentVel) > 0.1) {
+            const tangentDir = vec3.normalize(vec3.create(), tangentVel);
+            const frictionImpulse = vec3.scale(vec3.create(), tangentDir, -impulse * obj.friction);
+
+            vec3.scaleAndAdd(
+                result.newVelocity,
+                result.newVelocity,
+                frictionImpulse,
+                1 / obj.mass
+            );
+
+            const frictionTorque = vec3.cross(vec3.create(), r, frictionImpulse);
+            obj.applyTorque(frictionTorque);
+        }
         
         return result;
     }
@@ -268,6 +298,34 @@ export class PhysicsSystem {
         if(isSupported && vec3.length(obj.velocity) < 0.1) obj.isStatic = true;
     }
 
+    private checkEdgeStability(obj: PhysicsObject): void {
+        if(obj.isStatic) return;
+
+        const supportPoints = this.getSupportedPoints(obj);
+        if(supportPoints.length === 0) return;
+
+        const center = vec3.create();
+        for(const point of supportPoints) vec3.add(center, center, center);
+        vec3.scale(center, center, 1 / supportPoints.length);
+
+        const com = vec3.clone(obj.position);
+        com[1] -= obj.collider.getSize()[1] / 2;
+
+        const toCOM = vec3.sub(vec3.create(), com, center);
+        const supportRadius = supportPoints.reduce((max, point) => {
+            const dist = vec3.distance(point, center);
+            return Math.max(max, dist);
+        }, 0);
+
+        if(vec3.length(toCOM) > supportRadius * 0.8) {
+            const torque = vec3.cross(vec3.create(), toCOM, [0, -1, 0]);
+            vec3.normalize(torque, torque);
+            vec3.scale(torque, torque, obj.mass * this.gravity * 0.1);
+            obj.applyTorque(torque);
+            obj.isStatic = false;
+        }
+    }
+
     private fixedUpdate(deltaTime: number): void {
         if(deltaTime < 0) return;
 
@@ -310,6 +368,7 @@ export class PhysicsSystem {
                 }
 
                 this.checkStability(obj);
+                this.checkEdgeStability(obj);
             }
 
             obj.checkSleep(deltaTime);

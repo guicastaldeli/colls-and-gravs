@@ -41,4 +41,20 @@ export class PhysicsGrid {
         }
         return results;
     }
+    updateObjectPosition(oldPos, obj) {
+        const oldKey = this.getCellKey(oldPos);
+        const newKey = this.getCellKey(obj.position);
+        if (oldKey !== newKey) {
+            this.removeObjectFromCell(oldKey, obj);
+            this.addObject(obj);
+        }
+    }
+    removeObjectFromCell(key, obj) {
+        const cell = this.grid.get(key);
+        if (cell) {
+            const i = cell.indexOf(obj);
+            if (i !== -1)
+                cell.splice(i, 1);
+        }
+    }
 }

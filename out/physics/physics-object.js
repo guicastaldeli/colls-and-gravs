@@ -1,9 +1,7 @@
-import { vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 export class PhysicsObject {
     position;
     velocity = vec3.create();
-    angularVelocity = vec3.create();
-    orientation = quat.create();
     isStatic = false;
     mass = 1.0;
     restitution = 0.1;
@@ -12,6 +10,12 @@ export class PhysicsObject {
     sleepTimer = 0.0;
     sleepThreshold = 0.1;
     sleepDelay = 2.0;
+    inertiaTensor = mat3.create();
+    torque = vec3.create();
+    angularVelocity = vec3.create();
+    orientation = quat.create();
+    friction = 0.2;
+    rollingFriction = 0.01;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -39,11 +43,32 @@ export class PhysicsObject {
             }
         }
     }
+    calculateInertiaTensor() {
+        const size = this.collider.getSize();
+        const width = size[0];
+        const height = size[1];
+        const depth = size[2];
+        const Ixx = (this.mass / 12) * (height * height + depth * depth);
+        const Iyy = (this.mass / 12) * (width * width + depth * depth);
+        const Izz = (this.mass / 12) * (width * width + height * height);
+        mat3.set(this.inertiaTensor, Ixx, 0, 0, 0, Iyy, 0, 0, 0, Izz);
+    }
+    applyTorque(torque) {
+        vec3.add(this.torque, this.torque, torque);
+    }
     updateRotation(deltaTime) {
-        if (vec3.length(this.angularVelocity) > 0) {
+        if (this.isStatic)
+            return;
+        const invInertia = mat3.create();
+        mat3.invert(invInertia, this.inertiaTensor);
+        const angularAcceleration = vec3.create();
+        vec3.transformMat3(angularAcceleration, this.torque, invInertia);
+        vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - this.rollingFriction);
+        if (vec3.length(this.angularVelocity) > 0.001) {
             const rotation = quat.setAxisAngle(quat.create(), this.angularVelocity, vec3.length(this.angularVelocity) * deltaTime);
             quat.multiply(this.orientation, rotation, this.orientation);
-            vec3.scale(this.angularVelocity, this.angularVelocity, 0.99);
         }
+        vec3.scale(this.torque, 0, 0, 0);
     }
 }

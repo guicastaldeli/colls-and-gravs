@@ -4,8 +4,6 @@ import { Collider, ICollidable } from "../collider.js";
 export class PhysicsObject implements ICollidable {
     public position: vec3;
     public velocity: vec3 = vec3.create();
-    public angularVelocity: vec3 = vec3.create();
-    public orientation: quat = quat.create();
 
     public isStatic: boolean = false;
     public mass: number = 1.0;
@@ -16,6 +14,13 @@ export class PhysicsObject implements ICollidable {
     private sleepTimer: number = 0.0;
     private sleepThreshold: number = 0.1;
     private sleepDelay: number = 2.0;
+
+    public inertiaTensor: mat3 = mat3.create();
+    public torque: vec3 = vec3.create();
+    public angularVelocity: vec3 = vec3.create();
+    public orientation: quat = quat.create();
+    public friction: number = 0.2;
+    public rollingFriction: number = 0.01;
 
     constructor(
         position: vec3,
@@ -56,8 +61,46 @@ export class PhysicsObject implements ICollidable {
         }
     }
 
+    private calculateInertiaTensor(): void {
+        const size = this.collider.getSize();
+        const width = size[0];
+        const height = size[1];
+        const depth = size[2];
+
+        const Ixx = (this.mass / 12) * (height * height + depth * depth);
+        const Iyy = (this.mass / 12) * (width * width + depth * depth);
+        const Izz = (this.mass / 12) * (width * width + height * height);
+
+        mat3.set(this.inertiaTensor,
+            Ixx, 0, 0,
+            0, Iyy, 0,
+            0, 0, Izz
+        );
+    }
+
+    public applyTorque(torque: vec3): void {
+        vec3.add(this.torque, this.torque, torque);
+    }
+
     public updateRotation(deltaTime: number): void {
-        if(vec3.length(this.angularVelocity) > 0) {
+        if(this.isStatic) return;
+
+        const invInertia = mat3.create();
+        mat3.invert(invInertia, this.inertiaTensor);
+
+        const angularAcceleration = vec3.create();
+        vec3.transformMat3(angularAcceleration, this.torque, invInertia);
+
+        vec3.scaleAndAdd(
+            this.angularVelocity,
+            this.angularVelocity,
+            angularAcceleration,
+            deltaTime
+        );
+
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - this.rollingFriction);
+
+        if(vec3.length(this.angularVelocity) > 0.001) {
             const rotation = quat.setAxisAngle(
                 quat.create(),
                 this.angularVelocity,
@@ -65,7 +108,8 @@ export class PhysicsObject implements ICollidable {
             );
 
             quat.multiply(this.orientation, rotation, this.orientation);
-            vec3.scale(this.angularVelocity, this.angularVelocity, 0.99);
         }
+
+        vec3.scale(this.torque, 0, 0, 0);
     }
 }

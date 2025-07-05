@@ -181,8 +181,9 @@ export class RandomBlocks {
             if (physicsObj) {
                 this.physicsSystem.removePhysicsObject(physicsObj);
                 this.physicsGrid.removeObject(physicsObj);
+                this.physicsGrid.removeObjectFromCell(this.physicsGrid.getCellKey(physicsObj.position), physicsObj);
+                this.physicsObjects.delete(block.id);
             }
-            this.physicsObjects.delete(block.id);
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
             this.releaseSharedResource(block.sharedResourceId);
@@ -270,6 +271,7 @@ export class RandomBlocks {
         for (const block of this.blocks) {
             const physicsObj = this.physicsObjects.get(block.id);
             if (physicsObj && !physicsObj.isStatic) {
+                const oldPosition = vec3.clone(physicsObj.position);
                 if (physicsObj.position.some(isNaN)) {
                     console.error(physicsObj);
                     return;
@@ -279,8 +281,11 @@ export class RandomBlocks {
                     physicsObj.position[1] = groundLevel + this.size.h;
                     physicsObj.velocity[1] = 0;
                 }
+                if (!vec3.equals(oldPosition, physicsObj.position))
+                    this.physicsGrid.updateObjectPosition(oldPosition, physicsObj);
                 vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);
+                mat4.fromQuat(block.modelMatrix, physicsObj.orientation);
                 mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
                 const colliderIndex = this.blocks.indexOf(block);

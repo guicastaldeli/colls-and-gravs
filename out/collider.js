@@ -28,6 +28,9 @@ export class BoxCollider {
             max: vec3.add(vec3.create(), center, halfSize)
         };
     }
+    getSize() {
+        return vec3.clone(this._size);
+    }
     rayIntersect(rayOrigin, rayDirection) {
         const bbox = this.getBoundingBox();
         const min = bbox.min;
