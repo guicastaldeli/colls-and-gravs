@@ -209,12 +209,14 @@ export class RandomBlocks {
             console.error('Invalid target');
             return;
         }
-        blockPos[0] = Math.abs(targetPos[0] / this.size.w) * this.size.w;
-        blockPos[1] = Math.abs(targetPos[1] / this.size.h) * this.size.h;
-        blockPos[2] = Math.abs(targetPos[2] / this.size.d) * this.size.d;
-        const positionOccupied = this.blocks.some(block => Math.abs(block.position[0] - blockPos[0]) < this.size.w &&
-            Math.abs(block.position[1] - blockPos[1]) < this.size.h &&
-            Math.abs(block.position[2] - blockPos[2]) < this.size.d);
+        blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
+        blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
+        blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
+        const tempCollider = new BoxCollider([this.size.w, this.size.h, this.size.d], blockPos);
+        const positionOccupied = this.blocks.some(block => {
+            const blockCollider = new BoxCollider([this.size.w, this.size.h, this.size.d], block.position);
+            return tempCollider.checkCollision(blockCollider);
+        });
         if (!positionOccupied)
             await this.addBlock(blockPos, playerController);
     }
@@ -284,9 +286,9 @@ export class RandomBlocks {
                 const colliderIndex = this.blocks.indexOf(block);
                 if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [
-                        block.position[0],
-                        block.position[1],
-                        block.position[2]
+                        block.position[0] / this.positionAdjusted.x,
+                        block.position[1] - this.positionAdjusted.y,
+                        block.position[2] / this.positionAdjusted.z
                     ];
                 }
             }

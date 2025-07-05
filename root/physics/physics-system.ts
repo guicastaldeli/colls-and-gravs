@@ -3,11 +3,12 @@ import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { CollisionResponse, ICollidable } from "../collider.js";
 import { PhysicsObject } from "./physics-object.js";
 
+
 export class PhysicsSystem {
-    private gravity: number = 9.8;
+    private gravity: number = 8.0;
     private collidables: ICollidable[] = [];
     private physicsObjects: PhysicsObject[] = [];
-    private fixedTimestep: number = 1/60;
+    private fixedTimestep: number = 1 / 60;
 
     public addPhysicsObject(obj: PhysicsObject): void {
         if(!obj || !obj.position || obj.position.some(isNaN)) {
@@ -54,9 +55,7 @@ export class PhysicsSystem {
         );
 
         if(penX < penY && penX < penZ) {
-            if(obj.velocity[1] < 0) {
-                normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
-            }
+            if(obj.velocity[1] < 0) normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
         } else if(penY < penX && penY < penZ) {
             normal[1] = obj.position[1] < otherPosition[1] ? -1 : 1;
             obj.velocity[1] = [0];
@@ -126,9 +125,9 @@ export class PhysicsSystem {
         const normal = this.calculateCollisionNormal(obj, otherObj, otherPosition);
         if(normal.some(isNaN)) return result;
 
-        const otherVel = (other as PhysicsObject)?.velocity?
-        vec3.clone((other as PhysicsObject).velocity) :
-        vec3.create();
+        const otherVel = (other as PhysicsObject)?.velocity
+        ? vec3.clone((other as PhysicsObject).velocity) 
+        : vec3.create();
 
         const relativeVel = vec3.sub(vec3.create(), obj.velocity, otherVel);
         const velAlongNormal = vec3.dot(relativeVel, normal);
@@ -137,23 +136,52 @@ export class PhysicsSystem {
         const e = Math.max(0.9, Math.max(0, obj.restitution));
         const j = -(1 + e) * velAlongNormal;
 
-        const minMass = 20.0;
-        const invMass1 = 1 / Math.max(obj.mass, minMass);
+        const minMass = 200 * 200;
+        const invMass1 = 10 / Math.max(obj.mass, minMass);
         const invMass2 = (other as PhysicsObject)?.mass !== undefined ?
         1 / Math.max((other as PhysicsObject).mass, minMass) : 0;
 
         const totalInvMass = invMass1 + invMass2;
-        if(totalInvMass <= 0.0001) return result;
+        if(totalInvMass <= 0.001) return result;
 
         const impulse = j / totalInvMass;
         const impulseScaled = impulse * invMass1
         vec3.scaleAndAdd(result.newVelocity, obj.velocity, normal, impulseScaled);
 
-        const percent = 0.2;
+        const percent = 0.1;
         const slop = 0.01;
         const correction = Math.min(0.1, Math.max(slop, 0.0) / (invMass1 * invMass2) * percent);
         const correctionVec = vec3.scale(vec3.create(), normal, correction);
         vec3.scaleAndAdd(result.newPosition, obj.position, correctionVec, invMass1);
+
+        const objBBox = obj.getCollider().getBoundingBox(obj.position);
+        const otherBBox = obj.getCollider().getBoundingBox(otherPosition);
+
+        const penX = Math.min(
+            objBBox.max[0] - otherBBox.min[0],
+            otherBBox.max[0] - objBBox.min[0]
+        );
+        const penY = Math.min(
+            objBBox.max[1] - otherBBox.min[1],
+            otherBBox.max[1] - objBBox.min[1]
+        );
+        const penZ = Math.min(
+            objBBox.max[2] - otherBBox.min[2],
+            otherBBox.max[2] - objBBox.min[2]
+        );
+
+        const minPen = Math.min(penX, penY, penZ);
+
+        if(minPen === penY) {
+            const correction = normal[1] * minPen * 1.01;
+            result.newPosition[1] += correction;
+            if(normal[1] > 0 && obj.velocity[1] < 0) result.newVelocity[1] = 0;
+        } else {
+            const correction = vec3.scale(vec3.create(), normal, minPen * 1.01);
+            vec3.add(result.newPosition, result.newPosition, correction);
+            relativeVel.newVelocity[0] *= 0.8;
+            relativeVel.newVelocity[2] *= 0.8;
+        }
         
         return result;
     }
@@ -215,19 +243,29 @@ export class PhysicsSystem {
     }
 
     private checkStability(obj: PhysicsObject): void {
-        const supportPoints = this.getSupportedPoints(obj);
+        if(obj.isStatic) return;
 
-        if(supportPoints.length > 0) {
-            const avgSupport = vec3.create();
-            for(const point of supportPoints) vec3.add(avgSupport, avgSupport, point);
-            vec3.scale(avgSupport, avgSupport, 1 / supportPoints.length);
+        const objBBox = obj.getCollider().getBoundingBox(obj.position);
+        let isSupported = false;
 
-            if(this.isPointSupportedPolygon(obj, avgSupport)) {
-                obj.isStatic = true;
-            } else {
-                obj.isStatic = false;
+        for(const other of this.collidables) {
+            if(other === obj) continue;
+            const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
+
+            if(otherBBox.max[1] <= objBBox.min[1] + 0.1 &&
+                otherBBox.max[1] >= objBBox.min[1] - 0.1
+            ) {
+                const overlapX = Math.min(objBBox.max[0], otherBBox.max[0]) - Math.max(objBBox.min[0], otherBBox.min[0]);
+                const overlapZ = Math.min(objBBox.max[2], otherBBox.max[2]) - Math.max(objBBox.min[2], otherBBox.min[2]);
+
+                if(overlapX > 0 && overlapZ > 0) {
+                    isSupported = true;
+                    break;
+                }
             }
         }
+
+        if(isSupported && vec3.length(obj.velocity) < 0.1) obj.isStatic = true;
     }
 
     private fixedUpdate(deltaTime: number): void {
@@ -242,6 +280,7 @@ export class PhysicsSystem {
                 continue;
             }
 
+            obj.updateRotation(deltaTime);
             if(obj.isSleeping || obj.isStatic) continue;
 
             if(!obj.isStatic) {

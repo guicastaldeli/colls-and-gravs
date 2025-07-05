@@ -1,10 +1,21 @@
 const { app, BrowserWindow } = require('electron/main')
 const path = require('node:path')
 
+const res = {
+  f: {
+    w: 808,
+    h: 460
+  },
+  s: {
+    w: 1280,
+    h: 720
+  }
+}
+
 const createWindow = () => {
   const win = new BrowserWindow({
-    width: 808,
-    height: 460,
+    width: res.s.w,
+    height: res.s.h,
     webPreferences: {
     nodeIntegration: false,
       contextIsolation: true,

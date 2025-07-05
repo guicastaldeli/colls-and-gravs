@@ -1,11 +1,12 @@
-import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 export class PhysicsObject {
     position;
     velocity = vec3.create();
     angularVelocity = vec3.create();
+    orientation = quat.create();
     isStatic = false;
     mass = 1.0;
-    restitution = 0.5;
+    restitution = 0.1;
     collider;
     isSleeping = false;
     sleepTimer = 0.0;
@@ -36,6 +37,13 @@ export class PhysicsObject {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
+        }
+    }
+    updateRotation(deltaTime) {
+        if (vec3.length(this.angularVelocity) > 0) {
+            const rotation = quat.setAxisAngle(quat.create(), this.angularVelocity, vec3.length(this.angularVelocity) * deltaTime);
+            quat.multiply(this.orientation, rotation, this.orientation);
+            vec3.scale(this.angularVelocity, this.angularVelocity, 0.99);
         }
     }
 }

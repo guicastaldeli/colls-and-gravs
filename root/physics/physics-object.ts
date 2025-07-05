@@ -1,13 +1,15 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 import { Collider, ICollidable } from "../collider.js";
 
 export class PhysicsObject implements ICollidable {
     public position: vec3;
     public velocity: vec3 = vec3.create();
     public angularVelocity: vec3 = vec3.create();
+    public orientation: quat = quat.create();
+
     public isStatic: boolean = false;
     public mass: number = 1.0;
-    public restitution: number = 0.5;
+    public restitution: number = 0.1;
     public collider: Collider;
 
     public isSleeping: boolean = false;
@@ -51,6 +53,19 @@ export class PhysicsObject implements ICollidable {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
+        }
+    }
+
+    public updateRotation(deltaTime: number): void {
+        if(vec3.length(this.angularVelocity) > 0) {
+            const rotation = quat.setAxisAngle(
+                quat.create(),
+                this.angularVelocity,
+                vec3.length(this.angularVelocity) * deltaTime
+            );
+
+            quat.multiply(this.orientation, rotation, this.orientation);
+            vec3.scale(this.angularVelocity, this.angularVelocity, 0.99);
         }
     }
 }
