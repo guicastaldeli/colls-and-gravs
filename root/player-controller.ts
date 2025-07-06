@@ -18,7 +18,7 @@ export class PlayerController implements ICollidable {
     private _worldUp: vec3 = vec3.fromValues(0, 1, 0);
     private _cameraOffset: vec3 = vec3.fromValues(0, 0, 0);
     
-    private yaw: number = 60;
+    private yaw: number = 0;
     private pitch: number = 0;
         
     private _movSpeed: number = 5.0;

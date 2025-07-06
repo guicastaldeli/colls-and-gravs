@@ -12,7 +12,7 @@ export class PlayerController {
     _jumpForce = 20.0;
     _worldUp = vec3.fromValues(0, 1, 0);
     _cameraOffset = vec3.fromValues(0, 0, 0);
-    yaw = 60;
+    yaw = 0;
     pitch = 0;
     _movSpeed = 5.0;
     _mouseSensv = 0.3;

@@ -22,6 +22,10 @@ export class PhysicsObject implements ICollidable {
     public friction: number = 0.5;
     public rollingFriction: number = 0.1;
 
+    public isOnGround: boolean = false;
+    public groundCheckTimer: number = 0.0;
+    public groundCheckInterval: number = 0.1;
+
     constructor(
         position: vec3,
         velocity: vec3,
@@ -83,8 +87,24 @@ export class PhysicsObject implements ICollidable {
         vec3.add(this.torque, this.torque, torque);
     }
 
-    public updateRotation(deltaTime: number): void {
+    public checkGroundContact(level: number, sizeY: number): boolean {
+        const halfHeight = sizeY / 2.0;
+        const bottom = this.position[1] - halfHeight;
+        this.isOnGround = bottom <= level + 0.01;
+        return this.isOnGround;
+    }
+
+    public updateRotation(deltaTime: number, groundLevel: number, sizeY: number): void {
         if(this.isStatic) return;
+
+        
+        this.groundCheckTimer += deltaTime;
+        if(this.groundCheckTimer >= this.groundCheckInterval) {
+            const bottom = this.position[1] - (sizeY / 2);
+            this.isOnGround = bottom <= groundLevel + 0.01;
+            this.groundCheckTimer = 0.0;
+        }
+        
 
         if(vec3.length(this.torque) > 0.001) {
             const invInertia = mat3.create();
@@ -95,7 +115,9 @@ export class PhysicsObject implements ICollidable {
             vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
         }
 
-        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (this.rollingFriction * deltaTime));
+        const frictionFactor = this.isOnGround ? this.rollingFriction * 10.0 : this.rollingFriction;
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (frictionFactor * deltaTime));
+        if(this.isOnGround && vec3.length(this.angularVelocity) > 0.01) vec3.set(this.angularVelocity, 0, 0, 0);
 
         if(vec3.length(this.angularVelocity) > 0.001) {
             const angle = vec3.length(this.angularVelocity) * deltaTime;

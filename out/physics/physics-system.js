@@ -8,6 +8,10 @@ export class PhysicsSystem {
     collidables = [];
     physicsObjects = [];
     fixedTimestep = 1 / 60;
+    ground;
+    constructor(ground) {
+        this.ground = ground;
+    }
     addPhysicsObject(obj) {
         if (!obj || !obj.position || obj.position.some(isNaN)) {
             console.error('Attempt to add invalid');
@@ -204,10 +208,10 @@ export class PhysicsSystem {
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
         const supportedArea = totalSupportArea / objBaseArea;
-        const isStable = (supportedArea > 0.9 &&
-            distanceToEdge <= maxDimension * this.stabilityThreshold * 2.5 &&
-            vec3.length(obj.velocity) < 0.1 &&
-            vec3.length(obj.angularVelocity) < 0.1);
+        const isStable = (supportedArea > 0.7 &&
+            distanceToEdge <= maxDimension * this.stabilityThreshold * 3.0 &&
+            vec3.length(obj.velocity) < 0.2 &&
+            vec3.length(obj.angularVelocity) < 0.2);
         obj.isStatic = isStable;
         if (isStable) {
             obj.velocity = vec3.create();
@@ -223,30 +227,23 @@ export class PhysicsSystem {
         const objBottom = objBBox.min[1];
         const objSizeX = objBBox.max[0] - objBBox.min[0];
         const objSizeZ = objBBox.max[2] - objBBox.min[2];
-        let totalSupportArea = 0;
         const supportPoints = [];
         for (const other of this.collidables) {
             if (other === obj)
                 continue;
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
-            if (otherBBox.max[1] <= objBottom + 0.05 &&
-                otherBBox.max[1] >= objBottom - 0.05) {
+            if (otherBBox.max[1] <= objBottom + 0.06 &&
+                otherBBox.max[1] >= objBottom - 0.06) {
                 const overlapX = Math.min(objBBox.max[0], otherBBox.max[0]) -
                     Math.max(objBBox.min[0], otherBBox.min[0]);
                 const overlapZ = Math.min(objBBox.max[2], otherBBox.max[2]) -
                     Math.max(objBBox.min[2], otherBBox.min[2]);
                 if (overlapX > 0 && overlapZ > 0) {
-                    const area = overlapX * overlapZ;
-                    totalSupportArea += area;
-                    const supportCenter = vec3.create();
-                    supportCenter[0] =
-                        (Math.min(objBBox.max[0], otherBBox.max[0]) +
-                            Math.max(objBBox.min[0], otherBBox.min[0])) * 0.5;
-                    supportCenter[1] = objBottom;
-                    supportCenter[2] =
-                        (Math.min(objBBox.max[2], otherBBox.max[2]) +
-                            Math.max(objBBox.min[2], otherBBox.min[2])) * 0.5;
-                    supportPoints.push(supportCenter);
+                    const centerX = Math.min(objBBox.max[0], otherBBox.max[0]) -
+                        Math.max(objBBox.min[0], otherBBox.min[0]);
+                    const centerZ = Math.min(objBBox.max[2], otherBBox.max[2]) -
+                        Math.max(objBBox.min[2], otherBBox.min[2]);
+                    supportPoints.push(vec3.fromValues(centerX, objBottom, centerZ));
                 }
             }
         }
@@ -265,11 +262,8 @@ export class PhysicsSystem {
         toCOM[1] = 0;
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
-        const baseArea = objSizeX * objSizeZ;
-        const supportedRatio = totalSupportArea / baseArea;
-        const stabilityFactor = Math.min(1.0, supportedRatio * 2.0);
-        if (distanceToEdge > maxDimension * this.stabilityThreshold * stabilityFactor) {
-            const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
+        if (distanceToEdge > maxDimension * this.stabilityThreshold) {
+            const torqueAxis = vec3.create();
             vec3.cross(torqueAxis, [0, 1, 0], toCOM);
             vec3.normalize(torqueAxis, torqueAxis);
             const torqueMagnitude = obj.mass * this.gravity * distanceToEdge * this.torqueMultiplier;
@@ -296,8 +290,11 @@ export class PhysicsSystem {
                 this.checkStability(obj);
                 this.checkEdgeStability(obj);
             }
-            vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDumping);
-            obj.updateRotation(deltaTime);
+            if (!obj.isOnGround)
+                vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDumping);
+            const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[1]);
+            const sizeY = obj.getCollider().getSize()[1];
+            obj.updateRotation(deltaTime, groundLevel, sizeY);
             if (!obj.isStatic && !obj.isSleeping) {
                 const time = deltaTime * 10;
                 obj.velocity[1] -= this.gravity * time;

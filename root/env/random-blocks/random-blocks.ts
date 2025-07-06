@@ -106,7 +106,7 @@ export class RandomBlocks implements ICollidable {
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
 
-        this.physicsSystem = new PhysicsSystem();
+        this.physicsSystem = new PhysicsSystem(ground);
         this.physicsGrid = new PhysicsGrid(2.0);
 
         this.ground = ground;
@@ -408,9 +408,17 @@ export class RandomBlocks implements ICollidable {
                     return;
                 }
 
+                const groundLevel = this.ground.getGroundLevelY(
+                    physicsObj.position[0],
+                    physicsObj.position[2]
+                );
+
+                const sizeY = this.size.h * this.colliderScale.h;
+                const halfHeight = sizeY / 20;
+
                 const halfSize = [
                     this.size.w * this.colliderScale.w / 2,
-                    this.size.h * this.colliderScale.h / 2,
+                    halfHeight,
                     this.size.d * this.colliderScale.d / 2
                 ];
 
@@ -418,10 +426,10 @@ export class RandomBlocks implements ICollidable {
                     vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
                     vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
                     vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
-                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]),
+                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]) 
                 ];
 
-                let lowestPoint = physicsObj.position[1] - halfSize[1];
+                let lowestPoint = Infinity;
                 for(const corner of corners) {
                     const rotatedCorner = vec3.create();
                     vec3.transformQuat(rotatedCorner, corner, physicsObj.orientation);
@@ -429,18 +437,16 @@ export class RandomBlocks implements ICollidable {
                     lowestPoint = Math.min(lowestPoint, worldY);
                 }
 
-                const groundLevel = this.ground.getGroundLevelY(
-                    physicsObj.position[0],
-                    physicsObj.position[2]
-                );
-
-                if(physicsObj.position[1] < groundLevel) {
-                    physicsObj.position[1] = groundLevel + this.size.h;
+                if(lowestPoint < groundLevel) {
+                    const correction = groundLevel - lowestPoint;
+                    physicsObj.position[1] += correction;
                     physicsObj.velocity[1] = 0;
+
+                    vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.9);
+                    if(vec3.length(physicsObj.angularVelocity) < 0.01) vec3.set(physicsObj.angularVelocity, 0, 0, 0);
                 }
 
                 if(!vec3.equals(oldPosition, physicsObj.position)) this.physicsGrid.updateObjectPosition(oldPosition, physicsObj);
-
                 vec3.copy(block.position, physicsObj.position);
                 mat4.identity(block.modelMatrix);
                 mat4.fromQuat(block.modelMatrix, physicsObj.orientation);

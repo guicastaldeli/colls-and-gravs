@@ -16,6 +16,9 @@ export class PhysicsObject {
     orientation = quat.create();
     friction = 0.5;
     rollingFriction = 0.1;
+    isOnGround = false;
+    groundCheckTimer = 0.0;
+    groundCheckInterval = 0.1;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -57,9 +60,21 @@ export class PhysicsObject {
     applyTorque(torque) {
         vec3.add(this.torque, this.torque, torque);
     }
-    updateRotation(deltaTime) {
+    checkGroundContact(level, sizeY) {
+        const halfHeight = sizeY / 2.0;
+        const bottom = this.position[1] - halfHeight;
+        this.isOnGround = bottom <= level + 0.01;
+        return this.isOnGround;
+    }
+    updateRotation(deltaTime, groundLevel, sizeY) {
         if (this.isStatic)
             return;
+        this.groundCheckTimer += deltaTime;
+        if (this.groundCheckTimer >= this.groundCheckInterval) {
+            const bottom = this.position[1] - (sizeY / 2);
+            this.isOnGround = bottom <= groundLevel + 0.01;
+            this.groundCheckTimer = 0.0;
+        }
         if (vec3.length(this.torque) > 0.001) {
             const invInertia = mat3.create();
             mat3.invert(invInertia, this.inertiaTensor);
@@ -67,7 +82,10 @@ export class PhysicsObject {
             vec3.transformMat3(angularAcceleration, this.torque, invInertia);
             vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
         }
-        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (this.rollingFriction * deltaTime));
+        const frictionFactor = this.isOnGround ? this.rollingFriction * 10.0 : this.rollingFriction;
+        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (frictionFactor * deltaTime));
+        if (this.isOnGround && vec3.length(this.angularVelocity) > 0.01)
+            vec3.set(this.angularVelocity, 0, 0, 0);
         if (vec3.length(this.angularVelocity) > 0.001) {
             const angle = vec3.length(this.angularVelocity) * deltaTime;
             const axis = vec3.normalize(vec3.create(), this.angularVelocity);
