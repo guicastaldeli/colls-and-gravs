@@ -276,33 +276,16 @@ export class RandomBlocks {
                     console.error(physicsObj);
                     return;
                 }
+                const bottom = physicsObj.position[1];
                 const groundLevel = this.ground.getGroundLevelY(physicsObj.position[0], physicsObj.position[2]);
-                const sizeY = this.size.h * this.colliderScale.h;
-                const halfHeight = sizeY / 20;
-                const halfSize = [
-                    this.size.w * this.colliderScale.w / 2,
-                    halfHeight,
-                    this.size.d * this.colliderScale.d / 2
-                ];
-                const corners = [
-                    vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
-                    vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
-                    vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
-                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2])
-                ];
-                let lowestPoint = Infinity;
-                for (const corner of corners) {
-                    const rotatedCorner = vec3.create();
-                    vec3.transformQuat(rotatedCorner, corner, physicsObj.orientation);
-                    const worldY = physicsObj.position[1] + rotatedCorner[1];
-                    lowestPoint = Math.min(lowestPoint, worldY);
-                }
-                if (lowestPoint < groundLevel) {
-                    const correction = groundLevel - lowestPoint;
+                if (bottom < groundLevel) {
+                    const correction = groundLevel - bottom;
                     physicsObj.position[1] += correction;
                     physicsObj.velocity[1] = 0;
+                    physicsObj.velocity[0] *= 0.9;
+                    physicsObj.velocity[2] *= 0.9;
                     vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.9);
-                    if (vec3.length(physicsObj.angularVelocity) < 0.01)
+                    if (vec3.length(physicsObj.angularVelocity < 0.01))
                         vec3.set(physicsObj.angularVelocity, 0, 0, 0);
                 }
                 if (!vec3.equals(oldPosition, physicsObj.position))
