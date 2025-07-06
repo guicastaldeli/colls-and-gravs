@@ -6,9 +6,9 @@ import { PhysicsObject } from "./physics-object.js";
 
 export class PhysicsSystem {
     private gravity: number = 8.0;
-    private angularDumping: number = 0.98;
-    private stabilityThreshold: number = 0.3;
-    private torqueMultiplier: number = 2.0;
+    private angularDumping: number = 1.0;
+    private stabilityThreshold: number = 0.1;
+    private torqueMultiplier: number = 3.0;
 
     private collidables: ICollidable[] = [];
     private physicsObjects: PhysicsObject[] = [];
@@ -239,26 +239,9 @@ export class PhysicsSystem {
         }
     }
 
-    private getSupportedPoints(obj: PhysicsObject): vec3[] {
-        const supportPoints: vec3[] = [];
-        const bbox = obj.getCollider().getBoundingBox(obj.position);
-
-        const checkPosition = vec3.clone(obj.position);
-        checkPosition[1] -= 0.1;
-
-        for(const other of this.collidables) {
-            if(other === obj) continue;
-            
-            const otherCollider = other.getCollider();
-            if(otherCollider.getBoundingBox(other.getPosition()).max[1] >= bbox.min[1] - 0.01) {
-                supportPoints.push(vec3.clone(other.getPosition()));
-            }
-        }
-
-        return supportPoints;
-    }
-
     private checkStability(obj: PhysicsObject): void {
+        if(obj.isStatic) return;
+
         const objBBox = obj.getCollider().getBoundingBox(obj.position);
         const objBottom = objBBox.min[1];
         const objSizeX = objBBox.max[0] - objBBox.min[0];
@@ -297,21 +280,13 @@ export class PhysicsSystem {
         }
 
         const objBaseArea = objSizeX * objSizeZ;
-        const supportedPercentage = totalSupportArea / objBaseArea;
-
-        if(supportedPercentage > 0.7) {
-            obj.isStatic = true;
-            obj.velocity = vec3.create();
-            obj.angularVelocity = vec3.create();
-        } else {
-            obj.isStatic = false;
-        }
-
         const supportCenter = vec3.create();
+
         for(const support of supportingObjects) {
             const supportPos = support.obj.getPosition();
             vec3.scaleAndAdd(supportCenter, supportCenter, supportPos, support.area);
         }
+
         vec3.scale(supportCenter, supportCenter, 1 / totalSupportArea);
 
         const com = vec3.create();
@@ -320,9 +295,23 @@ export class PhysicsSystem {
 
         const toCOM = vec3.sub(vec3.create(), com, supportCenter);
         toCOM[1] = 0;
+
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
-        if(distanceToEdge > maxDimension * this.stabilityThreshold * 1.2) obj.isStatic = false;
+        const supportedArea = totalSupportArea / objBaseArea;
+
+        const isStable = (
+            supportedArea > 0.9 &&
+            distanceToEdge <= maxDimension * this.stabilityThreshold * 2.5 &&
+            vec3.length(obj.velocity) < 0.1 &&
+            vec3.length(obj.angularVelocity) < 0.1
+        );
+
+        obj.isStatic = isStable;
+        if(isStable) {
+            obj.velocity = vec3.create();
+            obj.angularVelocity = vec3.create();
+        }
     }
 
     private checkEdgeStability(obj: PhysicsObject): void {
@@ -336,8 +325,8 @@ export class PhysicsSystem {
         const objSizeX = objBBox.max[0] - objBBox.min[0];
         const objSizeZ = objBBox.max[2] - objBBox.min[2];
 
-        const supportingObjects: { obj: ICollidable, area: number }[] = [];
         let totalSupportArea = 0;
+        const supportPoints: vec3[] = [];
 
         for(const other of this.collidables) {
             if(other === obj) continue;
@@ -357,23 +346,32 @@ export class PhysicsSystem {
 
                 if(overlapX > 0 && overlapZ > 0) {
                     const area = overlapX * overlapZ;
-                    supportingObjects.push({ obj: other, area });
                     totalSupportArea += area;
+                    const supportCenter = vec3.create();
+                    
+                    supportCenter[0] =
+                    (Math.min(objBBox.max[0], otherBBox.max[0]) + 
+                    Math.max(objBBox.min[0], otherBBox.min[0])) * 0.5;
+
+                    supportCenter[1] = objBottom;
+
+                    supportCenter[2] = 
+                    (Math.min(objBBox.max[2], otherBBox.max[2]) + 
+                    Math.max(objBBox.min[2], otherBBox.min[2])) * 0.5;
+
+                    supportPoints.push(supportCenter);
                 }
             }
         }
 
-        if(supportingObjects.length === 0) {
+        if(supportPoints.length === 0) {
             obj.isStatic = false;
             return;
         }
 
         const supportCenter = vec3.create();
-        for(const support of supportingObjects) {
-            const supportPos = support.obj.getPosition();
-            vec3.scaleAndAdd(supportCenter, supportCenter, supportPos, support.area);
-        }
-        vec3.scale(supportCenter, supportCenter, 1 / totalSupportArea);
+        for(const point of supportPoints) vec3.add(supportCenter, supportCenter, point);
+        vec3.scale(supportCenter, supportCenter, 1 / supportPoints.length);
 
         const com = vec3.create();
         vec3.add(com, objBBox.min, objBBox.max);
@@ -384,22 +382,24 @@ export class PhysicsSystem {
 
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
+        const baseArea = objSizeX * objSizeZ;
+        const supportedRatio = totalSupportArea / baseArea;
+        const stabilityFactor = Math.min(1.0, supportedRatio * 2.0);
 
-        if(distanceToEdge > maxDimension * this.stabilityThreshold) {
+        if(distanceToEdge > maxDimension * this.stabilityThreshold * stabilityFactor) {
+            const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
+            vec3.cross(torqueAxis, [0, 1, 0], toCOM);
+            vec3.normalize(torqueAxis, torqueAxis);
+
             const torqueMagnitude = obj.mass * this.gravity * distanceToEdge * this.torqueMultiplier;
-            const torqueAxis = vec3.cross(vec3.create(), toCOM, [0, 1, 0]);
+            const angularImpulse = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude * this.fixedTimestep);
 
-            if(vec3.length(torqueAxis) > 0.001) {
-                vec3.normalize(torqueAxis, torqueAxis);
+            const invInertia = mat3.create();
+            mat3.invert(invInertia, obj.inertiaTensor);
+            vec3.transformMat3(angularImpulse, angularImpulse, invInertia);
+            vec3.add(obj.angularVelocity, obj.angularVelocity, angularImpulse);
 
-                const angularImpulse = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude * this.fixedTimestep);
-                const invInertia = mat3.create();
-                mat3.invert(invInertia, obj.inertiaTensor);
-                vec3.transformMat3(angularImpulse, angularImpulse, invInertia);
-                vec3.add(obj.angularVelocity, obj.angularVelocity, angularImpulse);
-
-                obj.isStatic = false;
-            }
+            obj.isStatic = false;
         }
     }
 

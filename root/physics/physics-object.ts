@@ -20,7 +20,7 @@ export class PhysicsObject implements ICollidable {
     public angularVelocity: vec3 = vec3.create();
     public orientation: quat = quat.create();
     public friction: number = 0.5;
-    public rollingFriction: number = 0.5;
+    public rollingFriction: number = 0.1;
 
     constructor(
         position: vec3,
@@ -64,9 +64,9 @@ export class PhysicsObject implements ICollidable {
 
     private calculateInertiaTensor(): void {
         const size = this.collider.getSize();
-        const width = size[0] * 2;
-        const height = size[1] * 2;
-        const depth = size[2] * 2;
+        const width = size[0] * 5;
+        const height = size[1] * 5;
+        const depth = size[2] * 5;
 
         const Ixx = (this.mass / 12) * (height * height + depth * depth);
         const Iyy = (this.mass / 12) * (width * width + depth * depth);

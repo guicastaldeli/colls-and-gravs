@@ -276,6 +276,24 @@ export class RandomBlocks {
                     console.error(physicsObj);
                     return;
                 }
+                const halfSize = [
+                    this.size.w * this.colliderScale.w / 2,
+                    this.size.h * this.colliderScale.h / 2,
+                    this.size.d * this.colliderScale.d / 2
+                ];
+                const corners = [
+                    vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
+                    vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
+                    vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
+                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]),
+                ];
+                let lowestPoint = physicsObj.position[1] - halfSize[1];
+                for (const corner of corners) {
+                    const rotatedCorner = vec3.create();
+                    vec3.transformQuat(rotatedCorner, corner, physicsObj.orientation);
+                    const worldY = physicsObj.position[1] + rotatedCorner[1];
+                    lowestPoint = Math.min(lowestPoint, worldY);
+                }
                 const groundLevel = this.ground.getGroundLevelY(physicsObj.position[0], physicsObj.position[2]);
                 if (physicsObj.position[1] < groundLevel) {
                     physicsObj.position[1] = groundLevel + this.size.h;

@@ -15,7 +15,7 @@ export class PhysicsObject {
     angularVelocity = vec3.create();
     orientation = quat.create();
     friction = 0.5;
-    rollingFriction = 0.5;
+    rollingFriction = 0.1;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -46,9 +46,9 @@ export class PhysicsObject {
     }
     calculateInertiaTensor() {
         const size = this.collider.getSize();
-        const width = size[0] * 2;
-        const height = size[1] * 2;
-        const depth = size[2] * 2;
+        const width = size[0] * 5;
+        const height = size[1] * 5;
+        const depth = size[2] * 5;
         const Ixx = (this.mass / 12) * (height * height + depth * depth);
         const Iyy = (this.mass / 12) * (width * width + depth * depth);
         const Izz = (this.mass / 12) * (width * width + height * height);
