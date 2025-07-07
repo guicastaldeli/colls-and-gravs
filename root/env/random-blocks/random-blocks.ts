@@ -1,10 +1,11 @@
 import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
 
 import { Tick } from "../../tick.js";
-import { BoxCollider, Collider, ICollidable } from "../../collider.js";
+import { BoxCollider, Collider, ICollidable } from "../../collision/collider.js";
+import { GetColliders } from "../../collision/get-colliders.js";
 import { Loader } from "../../loader.js";
 import { ResourceManager } from "./resource-manager.js";
-import { PlayerController } from "../../player-controller.js";
+import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { ShaderLoader } from "../../shader-loader.js";
 import { Raycaster } from "./raycaster.js";
@@ -12,7 +13,6 @@ import { OutlineConfig } from "./outline-config.js";
 import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
-import { GetColliders } from "../../get-colliders.js";
 import { Ground } from "../ground.js";
 
 interface BlockData {

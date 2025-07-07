@@ -1,4 +1,4 @@
-import { mat4, vec3, quat } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 
 export interface Collider {
     checkCollision(other: Collider): boolean;

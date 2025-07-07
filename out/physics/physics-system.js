@@ -1,5 +1,5 @@
 import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { CollisionResponse } from "../collider.js";
+import { CollisionResponse } from "../collision/collider.js";
 export class PhysicsSystem {
     gravity = 8.0;
     angularDamping = 0.98;
@@ -304,7 +304,7 @@ export class PhysicsSystem {
                     this.physicsObjects.splice(this.physicsObjects.indexOf(obj), 1);
                 continue;
             }
-            const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[1]);
+            const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);
             if (!obj.isStatic) {
                 this.checkStability(obj);
                 this.checkEdgeStability(obj, groundLevel);

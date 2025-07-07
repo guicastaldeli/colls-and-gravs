@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
-import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collider.js";
+import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
 
 export class Ground implements ICollidable {
     private device: GPUDevice;

@@ -1,6 +1,6 @@
 import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
-import { CollisionResponse, ICollidable } from "../collider.js";
+import { CollisionResponse, ICollidable } from "../collision/collider.js";
 import { PhysicsObject } from "./physics-object.js";
 import { Ground } from "../env/ground.js";
 
@@ -432,7 +432,7 @@ export class PhysicsSystem {
 
             const groundLevel = this.ground.getGroundLevelY(
                 obj.position[0],
-                obj.position[1]
+                obj.position[2]
             );
 
             if(!obj.isStatic) {

@@ -1,5 +1,5 @@
-import { vec3 } from "../node_modules/gl-matrix/esm/index.js";
-import { CollisionResponse } from "./collision/collider.js";
+import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { CollisionResponse } from "./collider.js";
 export class GetColliders {
     envRenderer;
     randomBlocks;

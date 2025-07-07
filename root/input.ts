@@ -1,6 +1,6 @@
 import { Tick } from "./tick.js";
 import { Camera } from "./camera.js";
-import { PlayerController } from "./player-controller.js";
+import { PlayerController } from "./player/player-controller.js";
 
 export class Input {
     private lastTime: number = 0;

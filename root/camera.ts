@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
-import { PlayerController } from "./player-controller.js";
+import { PlayerController } from "./player/player-controller.js";
 
 import { Hud } from "./hud.js";
 import { Loader } from "./loader.js";

@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider, CollisionResponse } from "../collider.js";
+import { BoxCollider, CollisionResponse } from "../collision/collider.js";
 export class Ground {
     device;
     loader;

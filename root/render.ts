@@ -9,10 +9,10 @@ import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
-import { PlayerController } from "./player-controller.js";
+import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
-import { GetColliders } from "./get-colliders.js";
-import { ICollidable } from "./collider.js";
+import { GetColliders } from "./collision/get-colliders.js";
+import { ICollidable } from "./collision/collider.js";
 
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 

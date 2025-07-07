@@ -1,12 +1,12 @@
 import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider } from "../../collider.js";
+import { BoxCollider } from "../../collision/collider.js";
+import { GetColliders } from "../../collision/get-colliders.js";
 import { ResourceManager } from "./resource-manager.js";
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
 import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
-import { GetColliders } from "../../get-colliders.js";
 export class RandomBlocks {
     tick;
     device;

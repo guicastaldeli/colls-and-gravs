@@ -1,5 +1,5 @@
 import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
-import { Collider, ICollidable } from "../collider.js";
+import { Collider, ICollidable } from "../collision/collider.js";
 
 export class PhysicsObject implements ICollidable {
     public position: vec3;

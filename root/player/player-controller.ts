@@ -1,9 +1,9 @@
-import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
-import { Tick } from "./tick.js";
+import { Tick } from "../tick.js";
 import { Rigidbody } from "./rigidbody.js";
-import { BoxCollider, Collider, CollisionResponse, ICollidable } from "./collider.js";
-import { GetColliders } from "./get-colliders.js";
+import { BoxCollider, Collider, CollisionResponse, ICollidable } from "../collision/collider.js";
+import { GetColliders } from "../collision/get-colliders.js";
 
 export class PlayerController implements ICollidable {
     private tick: Tick;
