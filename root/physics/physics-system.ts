@@ -6,9 +6,9 @@ import { Ground } from "../env/ground.js";
 
 export class PhysicsSystem {
     private gravity: number = 8.0;
-    private angularDamping: number = 0.98;
-    private stabilityThreshold: number = 0.05;
-    private torqueMultiplier: number = 10.0;
+    private angularDamping: number = 1.0;
+    private stabilityThreshold: number = 50.0;
+    private torqueMultiplier: number = 0.1;
 
     private collidables: ICollidable[] = [];
     private physicsObjects: PhysicsObject[] = [];
@@ -72,16 +72,6 @@ export class PhysicsSystem {
         } else {
             normal[2] = obj.position[2] < otherPosition[2] ? -1 : 1;
             obj.velocity[2] = 0;
-        }
-
-        const minPen = Math.min(penX, penY, penZ);
-
-        if(minPen === penX) {
-            normal[0] = obj.position[0] < otherPosition[0] ? -1 : 1;
-        } else if(minPen === penY) {
-            normal[1] = obj.position[1] < otherPosition[1] ? -1 : 1;
-        } else {
-            normal[2] = obj.position[2] < otherPosition[2] ? -1 : 1;
         }
 
         if(vec3.length(normal) < 0.001 || normal.some(isNaN)) vec3.set(normal, 0, 1, 0);
@@ -215,6 +205,20 @@ export class PhysicsSystem {
             const frictionTorque = vec3.cross(vec3.create(), r, frictionImpulse);
             obj.applyTorque(frictionTorque);
         }
+
+        if((other as any).type === 'ground') {
+            const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);
+            const sizeY = obj.getCollider().getSize()[1];
+            const bottom = obj.position[1] - sizeY / 2;
+
+            if(bottom < groundLevel) {
+                result.newPosition[1] = groundLevel + sizeY / 2;
+                result.newVelocity[0] *= 0.8;
+                result.newVelocity[1] = 0.0;
+                result.newVelocity[2] *= 0.8;
+                return result;
+            }
+        }
         
         return result;
     }
@@ -253,7 +257,7 @@ export class PhysicsSystem {
         const objSizeX = objBBox.max[0] - objBBox.min[0];
         const objSizeZ = objBBox.max[2] - objBBox.min[2];
 
-        let totalSupportArea = 0;
+        let totalSupportArea = 0.0;
         const supportingObjects: { obj: ICollidable, area: number }[] = [];
 
         for(const other of this.collidables) {
@@ -261,8 +265,8 @@ export class PhysicsSystem {
 
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
 
-            if(otherBBox.max[1] <= objBottom + 0.6 &&
-                otherBBox.max[1] >= objBottom - 0.6
+            if(otherBBox.max[1] <= objBottom + 0.5 &&
+                otherBBox.max[1] >= objBottom - 0.5
             ) {
                 const overlapX = 
                 Math.min(objBBox.max[0], otherBBox.max[0]) -
@@ -300,35 +304,50 @@ export class PhysicsSystem {
         vec3.scale(com, com, 0.5);
 
         const toCOM = vec3.sub(vec3.create(), com, supportCenter);
-        toCOM[1] = 0;
+        toCOM[1] = 0.0;
 
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
         const supportedArea = totalSupportArea / objBaseArea;
-        const threshold = this.stabilityThreshold * 3.0;
 
         const isStable = (
             supportedArea > 0.5 &&
-            distanceToEdge <= maxDimension * threshold
+            distanceToEdge <= maxDimension
         );
 
         if(isStable) {
+            obj.isStatic = true;
             obj.velocity = vec3.create();
             obj.angularVelocity = vec3.create();
-        }
+        } else {
+            obj.isStatic = false;
 
-        obj.isStatic = isStable;
+            if(vec3.length(obj.angularVelocity) < 1.0) {
+                const instability = 1.0 - (supportedArea * 0.5 + (1.0 - (distanceToEdge / maxDimension)) * 0.5);
+                const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
+                vec3.normalize(torqueAxis, torqueAxis);
+
+                const torqueMagnitude = instability * obj.mass * this.gravity * 0.5;
+                const torque = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
+
+                const randomTorque = vec3.fromValues(
+                    (Math.random() - 0.5) * 0.2,
+                    0.0,
+                    (Math.random() - 0.5) * 0.2
+                );
+
+                vec3.add(torque, torque, randomTorque);
+                obj.applyTorque(torque);
+            }
+        }
     }
 
     private checkEdgeStability(obj: PhysicsObject, groundLevel: number): void {
-        if(obj.isStatic && vec3.length(obj.velocity) < 0.1) {
-            this.checkStability(obj);
-            return;
-        }
+        if(obj.isStatic && vec3.length(obj.velocity) < 0.1) return;
 
         const supportPoints = obj.calculateSupportPolygon(groundLevel);
         if(supportPoints.length < 3) {
-            obj.isStatic == false;
+            obj.isStatic = false;
             return
         }
 
@@ -358,8 +377,7 @@ export class PhysicsSystem {
                 const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
                 vec3.normalize(torqueAxis, torqueAxis);
 
-                const dynamicMultiplier = this.torqueMultiplier * (1 + distance * 5);
-                const torqueMagnitude = obj.mass * this.gravity * distance * dynamicMultiplier;
+                const torqueMagnitude = obj.mass * this.gravity * distance;
                 const torque = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
 
                 const randomTorque = vec3.fromValues(
@@ -430,10 +448,26 @@ export class PhysicsSystem {
                 continue;
             }
 
-            const groundLevel = this.ground.getGroundLevelY(
-                obj.position[0],
-                obj.position[2]
-            );
+            const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);
+            const sizeY = obj.getCollider().getSize()[1];
+            obj.checkGroundContact(groundLevel, sizeY);
+
+            if(obj.isOnGround) {
+                vec3.scale(obj.velocity, obj.velocity, 0.8);
+                vec3.scale(obj.angularVelocity, obj.angularVelocity, 0.8);
+
+                const bottom = obj.position[1] - sizeY / 2;
+                if(bottom < groundLevel) {
+                    obj.position[1] = groundLevel + sizeY / 2;
+                    obj.velocity[1] = 0;
+
+                    if(Math.abs(obj.angularVelocity[0]) > 0.1 ||
+                    Math.abs(obj.angularVelocity[2]) > 0.1) {
+                        obj.angularVelocity[0] *= 0.5;
+                        obj.angularVelocity[2] *= 0.5;
+                    }
+                }
+            }
 
             if(!obj.isStatic) {
                 this.checkStability(obj);
@@ -441,8 +475,6 @@ export class PhysicsSystem {
             }
 
             if(!obj.isOnGround) vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDamping);
-
-            const sizeY = obj.getCollider().getSize()[1];
             obj.updateRotation(deltaTime, groundLevel, sizeY);
 
             if(!obj.isStatic && !obj.isSleeping) {
@@ -455,6 +487,16 @@ export class PhysicsSystem {
                     obj.velocity,
                     deltaTime
                 );
+
+                const bottom = obj.position[1] - sizeY / 2;
+                if(bottom < groundLevel) {
+                    obj.position[1] = groundLevel + sizeY / 2;
+                    obj.velocity[1] = 0.0;
+                    obj.velocity[0] *= 0.5;
+                    obj.velocity[2] *= 0.5;
+                    obj.angularVelocity[0] *= 0.5;
+                    obj.angularVelocity[2] *= 0.5;
+                }
     
                 if(obj.position.some(isNaN) || obj.velocity.some(isNaN)) {
                     console.error('NaN detected after update');

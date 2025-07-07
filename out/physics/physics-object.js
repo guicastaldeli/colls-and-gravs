@@ -61,14 +61,15 @@ export class PhysicsObject {
             vec3.fromValues(0, -halfExtents[1], halfExtents[2]),
             vec3.fromValues(halfExtents[0], -halfExtents[1], halfExtents[2]),
         ];
-        const worldPoints = points.map(p => {
+        const threshold = 0.01;
+        const supportedPoints = points.map(p => {
             const world = vec3.create();
             vec3.transformQuat(world, p, this.orientation);
             vec3.add(world, world, this.position);
             return world;
-        });
-        const threshold = 0.1;
-        return worldPoints.filter(p => Math.abs(p[1] - groundLevel) < threshold);
+        }).filter(p => Math.abs(p[1] - groundLevel) < threshold);
+        this.isOnGround = supportedPoints.length > 0;
+        return supportedPoints;
     }
     calculateInertiaTensor() {
         const size = this.collider.getSize();
@@ -86,7 +87,13 @@ export class PhysicsObject {
     checkGroundContact(level, sizeY) {
         const halfHeight = sizeY / 2.0;
         const bottom = this.position[1] - halfHeight;
-        this.isOnGround = bottom <= level + 0.01;
+        this.isOnGround = bottom <= level + 0.05;
+        if (this.isOnGround && bottom < level) {
+            this.position[1] = level + sizeY / 2;
+            this.velocity[1] = 0.0;
+            if (vec3.length(this.angularVelocity) > 0.1)
+                vec3.scale(this.angularVelocity, this.angularVelocity, 0.8);
+        }
         return this.isOnGround;
     }
     updateRotation(deltaTime, groundLevel, y) {

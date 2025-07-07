@@ -194,7 +194,7 @@ export class RandomBlocks implements ICollidable {
 
             const initialOrientaton = quat.create();
             if(faceNormal) {
-                const up = vec3.fromValues(0, 1, 0);
+                const up = vec3.fromValues(0, 0, 0);
                 const rotationAxis = vec3.cross(vec3.create(), up, faceNormal);
                 const angle = Math.acos(vec3.dot(up, faceNormal));
                 quat.setAxisAngle(initialOrientaton, rotationAxis, angle);
@@ -232,6 +232,10 @@ export class RandomBlocks implements ICollidable {
             this._Colliders.push(collider);
             playerController.updateCollidables();
             this.updatePhysicsCollidables(playerController);
+
+            const groundLevel = this.ground.getGroundLevelY(position[0], position[2]);
+            if(position[1] < groundLevel + this.size.h) position[1] = groundLevel + this.size.h;
+
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -390,7 +394,7 @@ export class RandomBlocks implements ICollidable {
                 }
 
                 newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
-                newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
+                newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y;
                 newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
                 if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController, faceNormal);
             } else {
@@ -506,12 +510,6 @@ export class RandomBlocks implements ICollidable {
             const physicsObj = this.physicsObjects.get(block.id);
 
             if(physicsObj && !physicsObj.isStatic) {
-                if(physicsObj.isStatic) {
-                    physicsObj.position[0] = Math.abs(physicsObj.position[0] / this.gridSize.x) * this.gridSize.x;
-                    physicsObj.position[1] = Math.abs(physicsObj.position[1] / this.gridSize.y) * this.gridSize.y;
-                    physicsObj.position[2] = Math.abs(physicsObj.position[2] / this.gridSize.z) * this.gridSize.z;
-                }
-
                 const oldPosition = vec3.clone(physicsObj.position);
 
                 if(physicsObj.position.some(isNaN)) {
@@ -537,7 +535,11 @@ export class RandomBlocks implements ICollidable {
                     vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
                     vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
                     vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
-                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]) 
+                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]),
+                    vec3.fromValues(-halfSize[0], halfSize[1], -halfSize[2]),
+                    vec3.fromValues(-halfSize[0], halfSize[1], halfSize[2]),
+                    vec3.fromValues(halfSize[0], halfSize[1], -halfSize[2]),
+                    vec3.fromValues(halfSize[0], halfSize[1], halfSize[2])
                 ];
 
                 let lowestPoint = Infinity;
@@ -551,9 +553,10 @@ export class RandomBlocks implements ICollidable {
                 if(lowestPoint < groundLevel) {
                     const correction = groundLevel - lowestPoint;
                     physicsObj.position[1] += correction;
-                    physicsObj.velocity[1] = 0;
+                    physicsObj.velocity[1] = 0.0;
 
-                    vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.9);
+                    vec3.scale(physicsObj.velocity, physicsObj.velocity, 0.7);
+                    vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.5);
                     if(vec3.length(physicsObj.angularVelocity) < 0.01) vec3.set(physicsObj.angularVelocity, 0, 0, 0);
                 }
 
