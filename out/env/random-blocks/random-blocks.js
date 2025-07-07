@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
 import { BoxCollider } from "../../collider.js";
 import { ResourceManager } from "./resource-manager.js";
 import { Raycaster } from "./raycaster.js";
@@ -104,7 +104,7 @@ export class RandomBlocks {
             this.sharedResources.delete(id);
         }
     }
-    async addBlock(position, playerController) {
+    async addBlock(position, playerController, faceNormal) {
         try {
             if (this.isPositionOccupied(position))
                 throw new Error('err pos');
@@ -126,6 +126,13 @@ export class RandomBlocks {
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId
             };
+            const initialOrientaton = quat.create();
+            if (faceNormal) {
+                const up = vec3.fromValues(0, 1, 0);
+                const rotationAxis = vec3.cross(vec3.create(), up, faceNormal);
+                const angle = Math.acos(vec3.dot(up, faceNormal));
+                quat.setAxisAngle(initialOrientaton, rotationAxis, angle);
+            }
             //Collision
             const collider = new BoxCollider([
                 this.size.w * this.colliderScale.w,
@@ -139,6 +146,7 @@ export class RandomBlocks {
             //Physics
             const physicsObj = new PhysicsObject(vec3.clone(position), vec3.create(), vec3.create(), collider);
             physicsObj.isStatic = false;
+            physicsObj.orientation = quat.clone(initialOrientaton);
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
             this.physicsGrid.addObject(physicsObj);
@@ -232,6 +240,7 @@ export class RandomBlocks {
             if (this.targetBlockIndex >= 0) {
                 const targetBlock = this.blocks[this.targetBlockIndex];
                 const offset = this.size.w * 5;
+                const faceNormal = this.getFaceNormal(this.lastHitFace);
                 switch (this.lastHitFace) {
                     case 0:
                         vec3.set(newPos, targetBlock.position[0] + offset * 2, targetBlock.position[1], targetBlock.position[2]);
@@ -256,7 +265,7 @@ export class RandomBlocks {
                 newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
                 newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
                 if (!this.isPositionOccupied(newPos))
-                    await this.addBlock(newPos, playerController);
+                    await this.addBlock(newPos, playerController, faceNormal);
             }
             else {
                 const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
@@ -272,6 +281,17 @@ export class RandomBlocks {
         }
         finally {
             this.isPlacingBlock = false;
+        }
+    }
+    getFaceNormal(i) {
+        switch (i) {
+            case 0: return vec3.fromValues(1, 0, 0);
+            case 1: return vec3.fromValues(-1, 0, 0);
+            case 2: return vec3.fromValues(0, 1, 0);
+            case 3: return vec3.fromValues(0, -1, 0);
+            case 4: return vec3.fromValues(0, 0, 1);
+            case 5: return vec3.fromValues(0, 0, -1);
+            default: return vec3.fromValues(0, 1, 0);
         }
     }
     isPositionOccupied(pos) {

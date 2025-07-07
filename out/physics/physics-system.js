@@ -2,9 +2,9 @@ import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { CollisionResponse } from "../collider.js";
 export class PhysicsSystem {
     gravity = 8.0;
-    angularDumping = 1.0;
-    stabilityThreshold = 0.1;
-    torqueMultiplier = 3.0;
+    angularDamping = 0.98;
+    stabilityThreshold = 0.05;
+    torqueMultiplier = 10.0;
     collidables = [];
     physicsObjects = [];
     fixedTimestep = 1 / 60;
@@ -138,7 +138,7 @@ export class PhysicsSystem {
         const velocityAtContact = vec3.cross(vec3.create(), obj.angularVelocity, r);
         vec3.add(velocityAtContact, velAlongNormal, obj.velocity);
         const torque = vec3.cross(vec3.create(), r, normal);
-        vec3.scale(torque, torque, impulse * 0.5);
+        vec3.scale(torque, torque, impulse * 2.0);
         obj.applyTorque(torque);
         const tangentVel = vec3.sub(vec3.create(), velocityAtContact, vec3.scale(vec3.create(), normal, vec3.dot(velocityAtContact, normal)));
         if (vec3.length(tangentVel) > 0.1) {
@@ -208,41 +208,80 @@ export class PhysicsSystem {
         const distanceToEdge = vec3.length(toCOM);
         const maxDimension = Math.max(objSizeX, objSizeZ);
         const supportedArea = totalSupportArea / objBaseArea;
+        const threshold = this.stabilityThreshold * 3.0;
         const isStable = (supportedArea > 0.5 &&
-            distanceToEdge <= maxDimension * this.stabilityThreshold * 5.0);
-        obj.isStatic = isStable;
+            distanceToEdge <= maxDimension * threshold);
         if (isStable) {
             obj.velocity = vec3.create();
             obj.angularVelocity = vec3.create();
         }
+        obj.isStatic = isStable;
     }
     checkEdgeStability(obj, groundLevel) {
-        if (obj.isStatic) {
+        if (obj.isStatic && vec3.length(obj.velocity) < 0.1) {
             this.checkStability(obj);
             return;
         }
         const supportPoints = obj.calculateSupportPolygon(groundLevel);
-        if (supportPoints.length === 0) {
+        if (supportPoints.length < 3) {
             obj.isStatic == false;
             return;
         }
-        const supportCenter = vec3.create();
-        for (const point of supportPoints)
-            vec3.add(supportCenter, supportCenter, point);
-        vec3.scale(supportCenter, supportCenter, 1 / supportPoints.length);
-        const com = vec3.create();
-        const comGround = vec3.fromValues(com[0], groundLevel, com[2]);
-        const supportedCenterGround = vec3.fromValues(supportCenter[0], groundLevel, supportCenter[2]);
-        const toCOM = vec3.sub(vec3.create(), comGround, supportedCenterGround);
-        const isStable = this.isPointInConvexHull(comGround, supportPoints);
-        if (isStable) {
-            const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
-            vec3.normalize(torqueAxis, torqueAxis);
-            const torqueMagnitude = obj.mass * this.gravity * vec3.length(toCOM) * this.torqueMultiplier;
-            const torque = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
-            obj.applyTorque(torque);
+        const hullPoints = this.calculateConvexHull(supportPoints);
+        if (hullPoints.length < 3) {
             obj.isStatic = false;
+            return;
         }
+        const com = vec3.create();
+        const bbox = obj.getCollider().getBoundingBox(obj.position);
+        vec3.add(com, bbox.min, bbox.max);
+        vec3.scale(com, com, 0.5);
+        const comGround = vec3.fromValues(com[0], groundLevel, com[2]);
+        if (!this.isPointInConvexHull(comGround, hullPoints)) {
+            obj.isStatic = false;
+            const supportCenter = vec3.create();
+            for (const p of hullPoints)
+                vec3.add(supportCenter, supportCenter, p);
+            vec3.scale(supportCenter, supportCenter, 1 / hullPoints.length);
+            const toCOM = vec3.sub(vec3.create(), comGround, supportCenter);
+            const distance = vec3.length(toCOM);
+            if (distance > 0.01) {
+                const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
+                vec3.normalize(torqueAxis, torqueAxis);
+                const dynamicMultiplier = this.torqueMultiplier * (1 + distance * 5);
+                const torqueMagnitude = obj.mass * this.gravity * distance * dynamicMultiplier;
+                const torque = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
+                const randomTorque = vec3.fromValues((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.5);
+                vec3.add(torque, torque, randomTorque);
+                obj.applyTorque(torque);
+            }
+        }
+    }
+    calculateConvexHull(points) {
+        if (points.length < 3)
+            return points;
+        let hull = [];
+        let leftmost = 0;
+        for (let i = 1; i < points.length; i++) {
+            if (points[i][0] < points[leftmost][0]) {
+                leftmost = i;
+            }
+        }
+        let p = leftmost;
+        do {
+            hull.push(points[p]);
+            let q = (p + 1) % points.length;
+            for (let i = 0; i < points.length; i++) {
+                if (i === p || i === q)
+                    continue;
+                const cross = (points[q][0] - points[p][0]) * (points[i][2] - points[q][2]) -
+                    (points[q][2] - points[p][2]) * (points[i][0] - points[q][0]);
+                if (cross < 0)
+                    q = i;
+            }
+            p = q;
+        } while (p !== leftmost);
+        return hull;
     }
     isPointInConvexHull(point, hull) {
         if (hull.length < 3)
@@ -266,11 +305,12 @@ export class PhysicsSystem {
                 continue;
             }
             const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[1]);
-            this.checkStability(obj);
-            if (!obj.isStatic)
+            if (!obj.isStatic) {
+                this.checkStability(obj);
                 this.checkEdgeStability(obj, groundLevel);
+            }
             if (!obj.isOnGround)
-                vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDumping);
+                vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDamping);
             const sizeY = obj.getCollider().getSize()[1];
             obj.updateRotation(deltaTime, groundLevel, sizeY);
             if (!obj.isStatic && !obj.isSleeping) {

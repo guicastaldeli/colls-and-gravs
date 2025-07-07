@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
 
 import { Tick } from "../../tick.js";
 import { BoxCollider, Collider, ICollidable } from "../../collider.js";
@@ -160,7 +160,11 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
-    public async addBlock(position: vec3, playerController: PlayerController): Promise<BlockData> {
+    public async addBlock(
+        position: vec3, 
+        playerController: PlayerController,
+        faceNormal?: vec3
+    ): Promise<BlockData> {
         try {
             if(this.isPositionOccupied(position)) throw new Error('err pos');
 
@@ -188,6 +192,14 @@ export class RandomBlocks implements ICollidable {
                 sharedResourceId: this.defaultSharedResourceId
             }
 
+            const initialOrientaton = quat.create();
+            if(faceNormal) {
+                const up = vec3.fromValues(0, 1, 0);
+                const rotationAxis = vec3.cross(vec3.create(), up, faceNormal);
+                const angle = Math.acos(vec3.dot(up, faceNormal));
+                quat.setAxisAngle(initialOrientaton, rotationAxis, angle);
+            }
+
             //Collision
             const collider = new BoxCollider(
                 [
@@ -211,6 +223,7 @@ export class RandomBlocks implements ICollidable {
             );
 
             physicsObj.isStatic = false;
+            physicsObj.orientation = quat.clone(initialOrientaton);
             this.physicsObjects.set(newBlock.id, physicsObj);
             this.physicsSystem.addPhysicsObject(physicsObj);
             this.physicsGrid.addObject(physicsObj);
@@ -335,6 +348,7 @@ export class RandomBlocks implements ICollidable {
             if(this.targetBlockIndex >= 0) {
                 const targetBlock = this.blocks[this.targetBlockIndex];
                 const offset = this.size.w * 5;
+                const faceNormal = this.getFaceNormal(this.lastHitFace);
     
                 switch(this.lastHitFace) {
                     case 0:
@@ -378,7 +392,7 @@ export class RandomBlocks implements ICollidable {
                 newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
                 newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
                 newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
-                if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController);
+                if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController, faceNormal);
             } else {
                 const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
                 if(!targetPos) throw new Error('err target');
@@ -391,6 +405,18 @@ export class RandomBlocks implements ICollidable {
             }
         } finally {
             this.isPlacingBlock = false;
+        }
+    }
+
+    private getFaceNormal(i: number): vec3 {
+        switch(i) {
+            case 0: return vec3.fromValues(1, 0, 0);
+            case 1: return vec3.fromValues(-1, 0, 0);
+            case 2: return vec3.fromValues(0, 1, 0);
+            case 3: return vec3.fromValues(0, -1, 0);
+            case 4: return vec3.fromValues(0, 0, 1);
+            case 5: return vec3.fromValues(0, 0, -1);
+            default: return vec3.fromValues(0, 1, 0);
         }
     }
 

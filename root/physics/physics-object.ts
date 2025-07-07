@@ -12,7 +12,7 @@ export class PhysicsObject implements ICollidable {
 
     public isSleeping: boolean = false;
     private sleepTimer: number = 0.0;
-    private sleepThreshold: number = 0.5;
+    private sleepThreshold: number = 0.05;
     private sleepDelay: number = 2.0;
 
     public inertiaTensor: mat3 = mat3.create();
@@ -20,7 +20,7 @@ export class PhysicsObject implements ICollidable {
     public angularVelocity: vec3 = vec3.create();
     public orientation: quat = quat.create();
     public friction: number = 0.5;
-    public rollingFriction: number = 0.1;
+    public rollingFriction: number = 0.05;
 
     public isOnGround: boolean = false;
     public groundCheckTimer: number = 0.0;
@@ -68,28 +68,29 @@ export class PhysicsObject implements ICollidable {
 
     public calculateSupportPolygon(groundLevel: number): vec3[] {
         const size = this.collider.getSize();
-        const halfWidth = size[0] / 2;
-        const halfDepth = size[2] / 2;
+        const halfExtents = vec3.fromValues(size[0] / 2, size[1] / 2, size[2] / 2);
 
-        const corners = [
-            vec3.fromValues(-halfWidth, 0, -halfDepth),
-            vec3.fromValues(-halfWidth, 0, halfDepth),
-            vec3.fromValues(halfWidth, 0, -halfDepth),
-            vec3.fromValues(halfWidth, 0, halfDepth)
+        const points = [
+            vec3.fromValues(-halfExtents[0], -halfExtents[1], -halfExtents[2]),
+            vec3.fromValues(0, -halfExtents[1], -halfExtents[2]),
+            vec3.fromValues(halfExtents[0], -halfExtents[1], -halfExtents[2]),
+            vec3.fromValues(-halfExtents[0], -halfExtents[1], 0),
+            vec3.fromValues(0, -halfExtents[1], 0),
+            vec3.fromValues(halfExtents[0], -halfExtents[1], 0),
+            vec3.fromValues(-halfExtents[0], -halfExtents[1], halfExtents[2]),
+            vec3.fromValues(0, -halfExtents[1], halfExtents[2]),
+            vec3.fromValues(halfExtents[0], -halfExtents[1], halfExtents[2]),
         ];
 
-        const rotatedCorners = corners.map(corner => {
-            const rotated = vec3.create();
-            vec3.transformQuat(rotated, corner, this.orientation);
-            return rotated;
+        const worldPoints = points.map(p => {
+            const world = vec3.create();
+            vec3.transformQuat(world, p, this.orientation);
+            vec3.add(world, world, this.position);
+            return world;
         });
 
-        const supportPoints = rotatedCorners.filter(corner => {
-            const worldY = this.position[1] + corner[1];
-            return Math.abs(worldY - groundLevel) < 0.1;
-        });
-
-        return supportPoints;
+        const threshold = 0.1
+        return worldPoints.filter(p => Math.abs(p[1] - groundLevel) < threshold);
     }
 
     private calculateInertiaTensor(): void {
@@ -120,13 +121,13 @@ export class PhysicsObject implements ICollidable {
         return this.isOnGround;
     }
 
-    public updateRotation(deltaTime: number, groundLevel: number, sizeY: number): void {
+    public updateRotation(deltaTime: number, groundLevel: number, y: number): void {
         if(this.isStatic) return;
         
         this.groundCheckTimer += deltaTime;
         if(this.groundCheckTimer >= this.groundCheckInterval) {
-            const bottom = this.position[1] - (sizeY / 2);
-            this.isOnGround = bottom <= groundLevel + 0.01;
+            const bottom = this.position[1] - (y / 2);
+            this.isOnGround = bottom <= groundLevel + 0.05;
             this.groundCheckTimer = 0.0;
         }
 
@@ -136,12 +137,20 @@ export class PhysicsObject implements ICollidable {
 
             const angularAcceleration = vec3.create();
             vec3.transformMat3(angularAcceleration, this.torque, invInertia);
-            vec3.scaleAndAdd(this.angularVelocity, this.angularVelocity, angularAcceleration, deltaTime);
+            
+            const airMultiplier = this.isOnGround ? 1.0 : 1.5;
+            vec3.scaleAndAdd(
+                this.angularVelocity,
+                this.angularVelocity,
+                angularAcceleration,
+                deltaTime * airMultiplier
+            );
         }
 
-        const frictionFactor = this.isOnGround ? this.rollingFriction * 10.0 : this.rollingFriction;
-        vec3.scale(this.angularVelocity, this.angularVelocity, 1 - (frictionFactor * deltaTime));
-        if(this.isOnGround && vec3.length(this.angularVelocity) > 0.01) vec3.set(this.angularVelocity, 0, 0, 0);
+        const dampingFactor = this.isOnGround ?
+        (1 - (this.rollingFriction * deltaTime)) :
+        (1 - (this.rollingFriction * deltaTime * 0.3));
+        vec3.scale(this.angularVelocity, this.angularVelocity, dampingFactor);
 
         if(vec3.length(this.angularVelocity) > 0.001) {
             const angle = vec3.length(this.angularVelocity) * deltaTime;
