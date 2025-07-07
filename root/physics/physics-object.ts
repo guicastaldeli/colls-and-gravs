@@ -96,7 +96,6 @@ export class PhysicsObject implements ICollidable {
 
     public updateRotation(deltaTime: number, groundLevel: number, sizeY: number): void {
         if(this.isStatic) return;
-
         
         this.groundCheckTimer += deltaTime;
         if(this.groundCheckTimer >= this.groundCheckInterval) {
@@ -104,7 +103,6 @@ export class PhysicsObject implements ICollidable {
             this.isOnGround = bottom <= groundLevel + 0.01;
             this.groundCheckTimer = 0.0;
         }
-        
 
         if(vec3.length(this.torque) > 0.001) {
             const invInertia = mat3.create();

@@ -16,10 +16,19 @@ export class RandomBlocks {
     resourceManager;
     blockIdCounter = 0;
     targetBlockIndex = -1;
+    lastHitFace = 0;
+    lastHitPoint = vec3.create();
+    isPlacingBlock = false;
+    eventListenersInitialized = false;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
     preloadModel;
     preloadTex;
+    gridSize = {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0
+    };
     //Collision
     _Colliders = [];
     type = 'block';
@@ -97,6 +106,8 @@ export class RandomBlocks {
     }
     async addBlock(position, playerController) {
         try {
+            if (this.isPositionOccupied(position))
+                throw new Error('err pos');
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
             mat4.scale(modelMatrix, modelMatrix, [this.size.w, this.size.h, this.size.d]);
@@ -148,25 +159,33 @@ export class RandomBlocks {
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         let closestDistance = Infinity;
+        const halfWidth = this.size.w * 5;
+        const halfHeight = this.size.h * 5;
+        const halfDepth = this.size.d * 5;
         for (let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
             const min = [
-                block.position[0] - this.size.w * 5,
-                block.position[1] - this.size.h * 5,
-                block.position[2] - this.size.d * 5,
+                block.position[0] - halfWidth,
+                block.position[1] - halfHeight,
+                block.position[2] - halfDepth,
             ];
             const max = [
-                block.position[0] + this.size.w * 5,
-                block.position[1] + this.size.h * 5,
-                block.position[2] + this.size.d * 5,
+                block.position[0] + halfWidth,
+                block.position[1] + halfHeight,
+                block.position[2] + halfDepth,
             ];
             const intersection = this.raycaster.rayAABBIntersect(rayOrigin, rayDirection, min, max);
             if (intersection.hit &&
                 intersection.distance !== undefined &&
                 intersection.distance < maxDistance &&
                 intersection.distance < closestDistance) {
-                closestDistance = intersection.distance;
-                this.targetBlockIndex = i;
+                if (intersection.face !== undefined) {
+                    closestDistance = intersection.distance;
+                    this.targetBlockIndex = i;
+                    this.lastHitFace = intersection.face;
+                    this.lastHitPoint = vec3.create();
+                    vec3.scaleAndAdd(this.lastHitPoint, rayOrigin, rayDirection, intersection.distance);
+                }
             }
         }
     }
@@ -201,27 +220,74 @@ export class RandomBlocks {
         }
     }
     async addBlocksRaycaster(playerController, hud) {
-        const minDistance = 2.0;
-        const rayOrigin = playerController.getCameraPosition();
-        const rayDirection = playerController.getForward();
-        const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
-        const blockPos = vec3.create();
-        if (!targetPos || targetPos.some(isNaN)) {
-            console.error('Invalid target');
+        if (this.isPlacingBlock)
             return;
+        this.isPlacingBlock = true;
+        try {
+            const newPos = vec3.create();
+            const minDistance = 2.0;
+            const rayOrigin = playerController.getCameraPosition();
+            const rayDirection = playerController.getForward();
+            this.updateTargetBlock(playerController);
+            if (this.targetBlockIndex >= 0) {
+                const targetBlock = this.blocks[this.targetBlockIndex];
+                const offset = this.size.w * 5;
+                switch (this.lastHitFace) {
+                    case 0:
+                        vec3.set(newPos, targetBlock.position[0] + offset * 2, targetBlock.position[1], targetBlock.position[2]);
+                        break;
+                    case 1:
+                        vec3.set(newPos, targetBlock.position[0] - offset * 2, targetBlock.position[1], targetBlock.position[2]);
+                        break;
+                    case 2:
+                        vec3.set(newPos, targetBlock.position[0], targetBlock.position[1] + offset * 2, targetBlock.position[2]);
+                        break;
+                    case 3:
+                        vec3.set(newPos, targetBlock.position[0], targetBlock.position[1] - offset * 2, targetBlock.position[2]);
+                        break;
+                    case 4:
+                        vec3.set(newPos, targetBlock.position[0], targetBlock.position[1], targetBlock.position[2] + offset * 2);
+                        break;
+                    case 5:
+                        vec3.set(newPos, targetBlock.position[0], targetBlock.position[1], targetBlock.position[2] - offset * 2);
+                        break;
+                }
+                newPos[0] = Math.round(newPos[0] / this.gridSize.x) * this.gridSize.x;
+                newPos[1] = Math.round(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
+                newPos[2] = Math.round(newPos[2] / this.gridSize.z) * this.gridSize.z;
+                if (!this.isPositionOccupied(newPos))
+                    await this.addBlock(newPos, playerController);
+            }
+            else {
+                const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
+                if (!targetPos)
+                    throw new Error('err target');
+                const newPos = vec3.create();
+                newPos[0] = Math.round(targetPos[0] / this.gridSize.x) * this.gridSize.x;
+                newPos[1] = Math.round(targetPos[1] / this.gridSize.y) * this.gridSize.y;
+                newPos[2] = Math.round(targetPos[2] / this.gridSize.z) * this.gridSize.z;
+                if (!this.isPositionOccupied(newPos))
+                    await this.addBlock(newPos, playerController);
+            }
         }
-        blockPos[0] = Math.round(targetPos[0] / this.size.w) * this.size.w;
-        blockPos[1] = Math.round(targetPos[1] / this.size.h) * this.size.h;
-        blockPos[2] = Math.round(targetPos[2] / this.size.d) * this.size.d;
-        const tempCollider = new BoxCollider([this.size.w, this.size.h, this.size.d], blockPos);
-        const positionOccupied = this.blocks.some(block => {
-            const blockCollider = new BoxCollider([this.size.w, this.size.h, this.size.d], block.position);
-            return tempCollider.checkCollision(blockCollider);
+        finally {
+            this.isPlacingBlock = false;
+        }
+    }
+    isPositionOccupied(pos) {
+        const occupiedBlock = this.blocks.some(block => {
+            return Math.abs(block.position[0] - pos[0]) < 0.01 &&
+                Math.abs(block.position[1] - pos[1]) < 0.01 &&
+                Math.abs(block.position[2] - pos[2]) < 0.01;
         });
-        if (!positionOccupied)
-            await this.addBlock(blockPos, playerController);
+        const groundLevel = this.ground.getGroundLevelY(pos[0], pos[2]);
+        const belowGround = pos[1] < groundLevel;
+        return occupiedBlock || belowGround;
     }
     initListeners(playerController, hud) {
+        if (this.eventListenersInitialized)
+            return;
+        this.eventListenersInitialized = true;
         document.addEventListener('click', async (e) => {
             const eKey = e.button;
             if (!this.tick.isPaused) {
@@ -271,21 +337,43 @@ export class RandomBlocks {
         for (const block of this.blocks) {
             const physicsObj = this.physicsObjects.get(block.id);
             if (physicsObj && !physicsObj.isStatic) {
+                if (physicsObj.isStatic) {
+                    physicsObj.position[0] = Math.round(physicsObj.position[0] / this.gridSize.x) * this.gridSize.x;
+                    physicsObj.position[1] = Math.round(physicsObj.position[1] / this.gridSize.y) * this.gridSize.y;
+                    physicsObj.position[2] = Math.round(physicsObj.position[2] / this.gridSize.z) * this.gridSize.z;
+                }
                 const oldPosition = vec3.clone(physicsObj.position);
                 if (physicsObj.position.some(isNaN)) {
                     console.error(physicsObj);
                     return;
                 }
-                const bottom = physicsObj.position[1];
                 const groundLevel = this.ground.getGroundLevelY(physicsObj.position[0], physicsObj.position[2]);
-                if (bottom < groundLevel) {
-                    const correction = groundLevel - bottom;
+                const sizeY = this.size.h * this.colliderScale.h;
+                const halfHeight = sizeY / 20;
+                const halfSize = [
+                    this.size.w * this.colliderScale.w / 2,
+                    halfHeight,
+                    this.size.d * this.colliderScale.d / 2
+                ];
+                const corners = [
+                    vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
+                    vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
+                    vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
+                    vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2])
+                ];
+                let lowestPoint = Infinity;
+                for (const corner of corners) {
+                    const rotatedCorner = vec3.create();
+                    vec3.transformQuat(rotatedCorner, corner, physicsObj.orientation);
+                    const worldY = physicsObj.position[1] + rotatedCorner[1];
+                    lowestPoint = Math.min(lowestPoint, worldY);
+                }
+                if (lowestPoint < groundLevel) {
+                    const correction = groundLevel - lowestPoint;
                     physicsObj.position[1] += correction;
                     physicsObj.velocity[1] = 0;
-                    physicsObj.velocity[0] *= 0.9;
-                    physicsObj.velocity[2] *= 0.9;
                     vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.9);
-                    if (vec3.length(physicsObj.angularVelocity < 0.01))
+                    if (vec3.length(physicsObj.angularVelocity) < 0.01)
                         vec3.set(physicsObj.angularVelocity, 0, 0, 0);
                 }
                 if (!vec3.equals(oldPosition, physicsObj.position))

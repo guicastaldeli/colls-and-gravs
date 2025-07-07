@@ -236,6 +236,7 @@ export class PlayerController {
     getForward() { return this._forward; }
     getUp() { return this._up; }
     getRight() { return this._right; }
+    getVelocity() { return this._Rigidbody.velocity; }
     update(deltaTime) {
         if (this.tick.isPaused) {
             this.clearForces();

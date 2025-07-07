@@ -1,4 +1,4 @@
-import { vec3 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 export var CollisionResponse;
 (function (CollisionResponse) {
     CollisionResponse[CollisionResponse["BLOCK"] = 0] = "BLOCK";
@@ -27,6 +27,27 @@ export class BoxCollider {
             min: vec3.sub(vec3.create(), center, halfSize),
             max: vec3.add(vec3.create(), center, halfSize)
         };
+    }
+    getCorners(position, orientation) {
+        const halfSize = vec3.scale(vec3.create(), this._size, 0.5);
+        const corners = [
+            vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
+            vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
+            vec3.fromValues(-halfSize[0], halfSize[1], -halfSize[2]),
+            vec3.fromValues(halfSize[0], halfSize[1], -halfSize[2]),
+            vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
+            vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]),
+            vec3.fromValues(-halfSize[0], halfSize[1], halfSize[2]),
+            vec3.fromValues(halfSize[0], halfSize[1], halfSize[2])
+        ];
+        const rotatedCorners = [];
+        const rotationMatrix = mat4.fromQuat(mat4.create(), orientation);
+        for (const corner of corners) {
+            const rotatedCorner = vec3.transformMat4(vec3.create(), corner, rotationMatrix);
+            vec3.add(rotatedCorner, rotatedCorner, position);
+            rotatedCorners.push(rotatedCorner);
+        }
+        return rotatedCorners;
     }
     getSize() {
         return vec3.clone(this._size);

@@ -261,8 +261,8 @@ export class PhysicsSystem {
 
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
 
-            if(otherBBox.max[1] <= objBottom + 0.05 &&
-                otherBBox.max[1] >= objBottom - 0.05
+            if(otherBBox.max[1] <= objBottom + 0.6 &&
+                otherBBox.max[1] >= objBottom - 0.6
             ) {
                 const overlapX = 
                 Math.min(objBBox.max[0], otherBBox.max[0]) -
@@ -307,10 +307,8 @@ export class PhysicsSystem {
         const supportedArea = totalSupportArea / objBaseArea;
 
         const isStable = (
-            supportedArea > 0.7 &&
-            distanceToEdge <= maxDimension * this.stabilityThreshold * 3.0 &&
-            vec3.length(obj.velocity) < 0.2 &&
-            vec3.length(obj.angularVelocity) < 0.2
+            supportedArea > 0.5 &&
+            distanceToEdge <= maxDimension * this.stabilityThreshold * 10.0
         );
 
         obj.isStatic = isStable;
@@ -338,8 +336,8 @@ export class PhysicsSystem {
 
             const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
 
-            if(otherBBox.max[1] <= objBottom + 0.02 &&
-                otherBBox.max[1] >= objBottom - 0.02
+            if(otherBBox.max[1] <= objBottom + 0.1 &&
+                otherBBox.max[1] >= objBottom - 0.1
             ) {
                 const overlapX = 
                 Math.min(objBBox.max[0], otherBBox.max[0]) -
@@ -420,21 +418,10 @@ export class PhysicsSystem {
 
             const groundLevel = this.ground.getGroundLevelY(
                 obj.position[0],
-                obj.position[2]
+                obj.position[1]
             );
-            const colliderSize = obj.getCollider().getSize()[1];
-            const bottom = obj.position[1] - colliderSize[1];
-
-            if(bottom < groundLevel) {
-                const correction = groundLevel - bottom;
-                obj.position[1] += correction;
-                if(obj.velocity[1] < 0) obj.velocity[1] = -obj.velocity[1] * obj.restitution;
-
-                obj.velocity[0] *= 0.95;
-                obj.velocity[2] *= 0.95;
-
-                vec3.scale(obj.angularVelocity, obj.angularVelocity * 0.95);
-            }
+            const sizeY = obj.getCollider().getSize()[1];
+            obj.updateRotation(deltaTime, groundLevel, sizeY);
 
             if(!obj.isStatic && !obj.isSleeping) {
                 const time = deltaTime * 10;
