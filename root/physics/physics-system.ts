@@ -308,7 +308,7 @@ export class PhysicsSystem {
 
         const isStable = (
             supportedArea > 0.5 &&
-            distanceToEdge <= maxDimension * this.stabilityThreshold * 10.0
+            distanceToEdge <= maxDimension * this.stabilityThreshold * 5.0
         );
 
         obj.isStatic = isStable;
@@ -318,52 +318,16 @@ export class PhysicsSystem {
         }
     }
 
-    private checkEdgeStability(obj: PhysicsObject): void {
+    private checkEdgeStability(obj: PhysicsObject, groundLevel: number): void {
         if(obj.isStatic) {
             this.checkStability(obj);
             return;
         }
 
-        const objBBox = obj.getCollider().getBoundingBox(obj.position);
-        const objBottom = objBBox.min[1];
-        const objSizeX = objBBox.max[0] - objBBox.min[0];
-        const objSizeZ = objBBox.max[2] - objBBox.min[2];
-
-        const supportPoints: vec3[] = [];
-
-        for(const other of this.collidables) {
-            if(other === obj) continue;
-
-            const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
-
-            if(otherBBox.max[1] <= objBottom + 0.1 &&
-                otherBBox.max[1] >= objBottom - 0.1
-            ) {
-                const overlapX = 
-                Math.min(objBBox.max[0], otherBBox.max[0]) -
-                Math.max(objBBox.min[0], otherBBox.min[0]);
-
-                const overlapZ = 
-                Math.min(objBBox.max[2], otherBBox.max[2]) -
-                Math.max(objBBox.min[2], otherBBox.min[2]);
-
-                if(overlapX > 0 && overlapZ > 0) {
-                    const centerX = 
-                    Math.min(objBBox.max[0], otherBBox.max[0]) -
-                    Math.max(objBBox.min[0], otherBBox.min[0]);
-
-                    const centerZ = 
-                    Math.min(objBBox.max[2], otherBBox.max[2]) -
-                    Math.max(objBBox.min[2], otherBBox.min[2]);
-
-                    supportPoints.push(vec3.fromValues(centerX, objBottom, centerZ));
-                }
-            }
-        }
-
+        const supportPoints = obj.calculateSupportPolygon(groundLevel);
         if(supportPoints.length === 0) {
-            obj.isStatic = false;
-            return;
+            obj.isStatic == false;
+            return
         }
 
         const supportCenter = vec3.create();
@@ -371,30 +335,33 @@ export class PhysicsSystem {
         vec3.scale(supportCenter, supportCenter, 1 / supportPoints.length);
 
         const com = vec3.create();
-        vec3.add(com, objBBox.min, objBBox.max);
-        vec3.scale(com, com, 0.5);
+        const comGround = vec3.fromValues(com[0], groundLevel, com[2]);
+        const supportedCenterGround = vec3.fromValues(supportCenter[0], groundLevel, supportCenter[2]);
+        const toCOM = vec3.sub(vec3.create(), comGround, supportedCenterGround);
+        const isStable = this.isPointInConvexHull(comGround, supportPoints);
 
-        const toCOM = vec3.sub(vec3.create(), com, supportCenter);
-        toCOM[1] = 0;
-
-        const distanceToEdge = vec3.length(toCOM);
-        const maxDimension = Math.max(objSizeX, objSizeZ);
-
-        if(distanceToEdge > maxDimension * this.stabilityThreshold) {
-            const torqueAxis = vec3.create();
-            vec3.cross(torqueAxis, [0, 1, 0], toCOM);
+        if(isStable) {
+            const torqueAxis = vec3.cross(vec3.create(), [0, 1, 0], toCOM);
             vec3.normalize(torqueAxis, torqueAxis);
 
-            const torqueMagnitude = obj.mass * this.gravity * distanceToEdge * this.torqueMultiplier;
-            const angularImpulse = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude * this.fixedTimestep);
+            const torqueMagnitude = obj.mass * this.gravity * vec3.length(toCOM) * this.torqueMultiplier;
+            const torque = vec3.scale(vec3.create(), torqueAxis, torqueMagnitude);
 
-            const invInertia = mat3.create();
-            mat3.invert(invInertia, obj.inertiaTensor);
-            vec3.transformMat3(angularImpulse, angularImpulse, invInertia);
-            vec3.add(obj.angularVelocity, obj.angularVelocity, angularImpulse);
-
+            obj.applyTorque(torque);
             obj.isStatic = false;
         }
+    }
+
+    private isPointInConvexHull(point: vec3, hull: vec3[]): boolean {
+        if(hull.length < 3) return false;
+
+        const minX = Math.min(...hull.map(p => p[0]));
+        const maxX = Math.max(...hull.map(p => p[0]));
+        const minZ = Math.min(...hull.map(p => p[2]));
+        const maxZ = Math.max(...hull.map(p => p[2]));
+        
+        return point[0] >= minX && point[0] <= maxX && 
+            point[2] >= minZ && point[2] <= maxZ;
     }
 
     private fixedUpdate(deltaTime: number): void {
@@ -409,17 +376,15 @@ export class PhysicsSystem {
                 continue;
             }
 
-            if(!obj.isStatic) {
-                this.checkStability(obj);
-                this.checkEdgeStability(obj);
-            }
-
-            if(!obj.isOnGround) vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDumping);
-
             const groundLevel = this.ground.getGroundLevelY(
                 obj.position[0],
                 obj.position[1]
             );
+
+            this.checkStability(obj);
+            if(!obj.isStatic) this.checkEdgeStability(obj, groundLevel);
+            if(!obj.isOnGround) vec3.scale(obj.angularVelocity, obj.angularVelocity, this.angularDumping);
+
             const sizeY = obj.getCollider().getSize()[1];
             obj.updateRotation(deltaTime, groundLevel, sizeY);
 

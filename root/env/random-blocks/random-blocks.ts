@@ -345,7 +345,7 @@ export class RandomBlocks implements ICollidable {
                         break;
                     case 1:
                         vec3.set(newPos, 
-                            targetBlock.position[0] - offset * 2, 
+                            targetBlock.position[0] - offset, 
                             targetBlock.position[1], 
                             targetBlock.position[2]);
                         break;
@@ -375,18 +375,18 @@ export class RandomBlocks implements ICollidable {
                         break;
                 }
 
-                newPos[0] = Math.round(newPos[0] / this.gridSize.x) * this.gridSize.x;
-                newPos[1] = Math.round(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
-                newPos[2] = Math.round(newPos[2] / this.gridSize.z) * this.gridSize.z;
+                newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
+                newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y * 1.2;
+                newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
                 if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController);
             } else {
                 const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
                 if(!targetPos) throw new Error('err target');
         
                 const newPos = vec3.create();
-                newPos[0] = Math.round(targetPos[0] / this.gridSize.x) * this.gridSize.x;
-                newPos[1] = Math.round(targetPos[1] / this.gridSize.y) * this.gridSize.y;
-                newPos[2] = Math.round(targetPos[2] / this.gridSize.z) * this.gridSize.z;
+                newPos[0] = Math.abs(targetPos[0] / this.gridSize.x) * this.gridSize.x;
+                newPos[1] = Math.abs(targetPos[1] / this.gridSize.y) * this.gridSize.y;
+                newPos[2] = Math.abs(targetPos[2] / this.gridSize.z) * this.gridSize.z;
                 if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController)
             }
         } finally {
@@ -481,9 +481,9 @@ export class RandomBlocks implements ICollidable {
 
             if(physicsObj && !physicsObj.isStatic) {
                 if(physicsObj.isStatic) {
-                    physicsObj.position[0] = Math.round(physicsObj.position[0] / this.gridSize.x) * this.gridSize.x;
-                    physicsObj.position[1] = Math.round(physicsObj.position[1] / this.gridSize.y) * this.gridSize.y;
-                    physicsObj.position[2] = Math.round(physicsObj.position[2] / this.gridSize.z) * this.gridSize.z;
+                    physicsObj.position[0] = Math.abs(physicsObj.position[0] / this.gridSize.x) * this.gridSize.x;
+                    physicsObj.position[1] = Math.abs(physicsObj.position[1] / this.gridSize.y) * this.gridSize.y;
+                    physicsObj.position[2] = Math.abs(physicsObj.position[2] / this.gridSize.z) * this.gridSize.z;
                 }
 
                 const oldPosition = vec3.clone(physicsObj.position);

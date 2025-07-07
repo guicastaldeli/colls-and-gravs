@@ -47,6 +47,27 @@ export class PhysicsObject {
             }
         }
     }
+    calculateSupportPolygon(groundLevel) {
+        const size = this.collider.getSize();
+        const halfWidth = size[0] / 2;
+        const halfDepth = size[2] / 2;
+        const corners = [
+            vec3.fromValues(-halfWidth, 0, -halfDepth),
+            vec3.fromValues(-halfWidth, 0, halfDepth),
+            vec3.fromValues(halfWidth, 0, -halfDepth),
+            vec3.fromValues(halfWidth, 0, halfDepth)
+        ];
+        const rotatedCorners = corners.map(corner => {
+            const rotated = vec3.create();
+            vec3.transformQuat(rotated, corner, this.orientation);
+            return rotated;
+        });
+        const supportPoints = rotatedCorners.filter(corner => {
+            const worldY = this.position[1] + corner[1];
+            return Math.abs(worldY - groundLevel) < 0.1;
+        });
+        return supportPoints;
+    }
     calculateInertiaTensor() {
         const size = this.collider.getSize();
         const width = size[0] * 5;
