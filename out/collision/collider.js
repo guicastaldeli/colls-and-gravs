@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 export var CollisionResponse;
 (function (CollisionResponse) {
     CollisionResponse[CollisionResponse["BLOCK"] = 0] = "BLOCK";
@@ -8,6 +8,7 @@ export var CollisionResponse;
 export class BoxCollider {
     _size;
     _offset;
+    _orientation = quat.create();
     constructor(_size, _offset) {
         this._size = vec3.clone(_size);
         this._offset = _offset ? vec3.clone(_offset) : vec3.create();

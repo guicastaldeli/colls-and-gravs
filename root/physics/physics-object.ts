@@ -136,7 +136,7 @@ export class PhysicsObject implements ICollidable {
         this.groundCheckTimer += deltaTime;
         if(this.groundCheckTimer >= this.groundCheckInterval) {
             const bottom = this.position[1] - (y / 2);
-            this.isOnGround = bottom <= groundLevel + 0.05;
+            this.isOnGround = bottom <= groundLevel + 0.1;
             this.groundCheckTimer = 0.0;
         }
 

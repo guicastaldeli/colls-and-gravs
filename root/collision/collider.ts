@@ -29,6 +29,7 @@ export interface ICollidable {
 export class BoxCollider implements Collider {
     public _size: vec3;
     public _offset: vec3;
+    public _orientation: quat = quat.create();
 
     constructor(_size: vec3, _offset?: vec3) {
         this._size = vec3.clone(_size);

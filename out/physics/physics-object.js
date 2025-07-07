@@ -102,7 +102,7 @@ export class PhysicsObject {
         this.groundCheckTimer += deltaTime;
         if (this.groundCheckTimer >= this.groundCheckInterval) {
             const bottom = this.position[1] - (y / 2);
-            this.isOnGround = bottom <= groundLevel + 0.05;
+            this.isOnGround = bottom <= groundLevel + 0.1;
             this.groundCheckTimer = 0.0;
         }
         if (vec3.length(this.torque) > 0.001) {
