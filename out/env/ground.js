@@ -73,7 +73,7 @@ export class Ground {
         }));
     }
     getGroundLevelY(x, z) {
-        return this.pos.y + 0.8;
+        return this.pos.y + 0.3;
     }
     async init() {
         await this.createGround();

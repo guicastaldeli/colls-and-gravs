@@ -118,7 +118,7 @@ export class Ground implements ICollidable {
     }
 
     public getGroundLevelY(x: number, z: number): number {
-        return this.pos.y + 0.8;
+        return this.pos.y + 0.3;
     }
 
     public async init(): Promise<void> {

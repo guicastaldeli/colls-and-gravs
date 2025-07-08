@@ -5,7 +5,7 @@ export class PhysicsObject {
     velocity = vec3.create();
     isStatic = false;
     mass = 1.0;
-    restitution = 0.5;
+    restitution = 0.1;
     collider;
     isSleeping = false;
     sleepTimer = 0.0;
@@ -20,6 +20,11 @@ export class PhysicsObject {
     isOnGround = false;
     groundCheckTimer = 0.0;
     groundCheckInterval = 0.1;
+    com = vec3.fromValues(0, 0.1, 0);
+    baseWidth = 1.0;
+    tiltTime = 0;
+    maxTiltTime = 1.0;
+    isStable = true;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -62,7 +67,7 @@ export class PhysicsObject {
             vec3.fromValues(0, -halfExtents[1], halfExtents[2]),
             vec3.fromValues(halfExtents[0], -halfExtents[1], halfExtents[2]),
         ];
-        const threshold = 0.01;
+        const threshold = 0.3;
         const supportedPoints = points.map(p => {
             const world = vec3.create();
             vec3.transformQuat(world, p, this.orientation);
@@ -124,6 +129,16 @@ export class PhysicsObject {
             const rotation = quat.setAxisAngle(quat.create(), axis, angle);
             quat.multiply(this.orientation, this.orientation, rotation);
             quat.normalize(this.orientation, this.orientation);
+        }
+        const up = vec3.fromValues(0, 1, 0);
+        const blockUp = vec3.transformQuat(vec3.create(), up, this.orientation);
+        const tiltAngle = Math.acos(vec3.dot(up, blockUp));
+        if (tiltAngle >= this.maxTiltTime) {
+            return;
+        }
+        else {
+            this.tiltTime = 0;
+            this.isStable = true;
         }
         if (this.collider instanceof BoxCollider)
             this.collider._orientation = this.orientation;

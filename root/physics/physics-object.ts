@@ -7,7 +7,7 @@ export class PhysicsObject implements ICollidable {
 
     public isStatic: boolean = false;
     public mass: number = 1.0;
-    public restitution: number = 0.5;
+    public restitution: number = 0.1;
     public collider: Collider;
 
     public isSleeping: boolean = false;
@@ -25,6 +25,12 @@ export class PhysicsObject implements ICollidable {
     public isOnGround: boolean = false;
     public groundCheckTimer: number = 0.0;
     public groundCheckInterval: number = 0.1;
+
+    public com: vec3 = vec3.fromValues(0, 0.1, 0);
+    public baseWidth: number = 1.0;
+    public tiltTime: number = 0;
+    public maxTiltTime: number = 1.0;
+    public isStable: boolean = true;
 
     constructor(
         position: vec3,
@@ -82,7 +88,7 @@ export class PhysicsObject implements ICollidable {
             vec3.fromValues(halfExtents[0], -halfExtents[1], halfExtents[2]),
         ];
 
-        const threshold = 0.01;
+        const threshold = 0.3;
         const supportedPoints = points.map(p => {
             const world = vec3.create();
             vec3.transformQuat(world, p, this.orientation);
@@ -167,6 +173,17 @@ export class PhysicsObject implements ICollidable {
             const rotation = quat.setAxisAngle(quat.create(), axis, angle);
             quat.multiply(this.orientation, this.orientation, rotation);
             quat.normalize(this.orientation, this.orientation);
+        }
+
+        const up = vec3.fromValues(0, 1, 0);
+        const blockUp = vec3.transformQuat(vec3.create(), up, this.orientation);
+        const tiltAngle = Math.acos(vec3.dot(up, blockUp));
+
+        if(tiltAngle >= this.maxTiltTime) {
+            return;
+        } else {
+            this.tiltTime = 0;
+            this.isStable = true;
         }
 
         if(this.collider instanceof BoxCollider) this.collider._orientation = this.orientation;

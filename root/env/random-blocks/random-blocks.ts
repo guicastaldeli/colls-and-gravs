@@ -70,15 +70,15 @@ export class RandomBlocks implements ICollidable {
         public type = 'block';
 
         private colliderScale = { 
-            w: 8, 
+            w: 15, 
             h: 10, 
-            d: 10 
+            d: 15
         }
 
         private positionAdjusted = { 
-            x: 55, 
+            x: 70, 
             y: 1.5, 
-            z: 65 
+            z: 70
         }
     //
 
@@ -195,7 +195,7 @@ export class RandomBlocks implements ICollidable {
 
             const initialOrientaton = quat.create();
             if(faceNormal) {
-                const up = vec3.fromValues(0, 0, 0);
+                const up = vec3.fromValues(0, 1, 0);
                 const rotationAxis = vec3.cross(vec3.create(), up, faceNormal);
                 const angle = Math.acos(vec3.dot(up, faceNormal));
                 quat.setAxisAngle(initialOrientaton, rotationAxis, angle);
@@ -244,7 +244,7 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
-    public updateRaycasterCollider() {
+    private updateRaycasterCollider() {
         this.raycaster.setCollider(new BoxCollider(
             [
                 this.size.w * 5,
