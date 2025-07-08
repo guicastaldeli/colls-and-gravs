@@ -214,7 +214,7 @@ export class PhysicsSystem {
                 result.newVelocity[2] *= 0.9;
 
                 if(!isStable) {
-                    result.newVelocity[1] = -obj.velocity[1] * obj.restitution * 0.1;
+                    result.newVelocity[1] = -obj.velocity[1] * obj.restitution * 0.5;
                 } else {
                     result.newVelocity[1] = 0.0;
                 }
@@ -254,6 +254,7 @@ export class PhysicsSystem {
 
     private checkStability(obj: PhysicsObject): void {
         if(obj.isStatic) return;
+        if(obj.lastUnstableTime && performance.now() - obj.lastUnstableTime < 1000) return;
 
         const objBBox = obj.getCollider().getBoundingBox(obj.position);
         const objBottom = objBBox.min[1];
@@ -490,6 +491,35 @@ export class PhysicsSystem {
             point[2] >= minZ && point[2] <= maxZ;
     }
 
+    private isBlockSupported(obj: PhysicsObject): boolean {
+        const objBBox = obj.getCollider().getBoundingBox(obj.position);
+        const objBottom = objBBox.min[1];
+        const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);
+        if (objBottom <= groundLevel + 0.1) return true;
+
+        for (const other of this.collidables) {
+            if (other === obj) continue;
+
+            const otherBBox = other.getCollider().getBoundingBox(other.getPosition());
+            const otherTop = otherBBox.max[1];
+
+            if (Math.abs(otherTop - objBottom) < 0.1) {
+                const overlapX = 
+                    Math.min(objBBox.max[0], otherBBox.max[0]) -
+                    Math.max(objBBox.min[0], otherBBox.min[0]);
+                const overlapZ = 
+                    Math.min(objBBox.max[2], otherBBox.max[2]) -
+                    Math.max(objBBox.min[2], otherBBox.min[2]);
+
+                if (overlapX > 0 && overlapZ > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private fixedUpdate(deltaTime: number): void {
         if(deltaTime < 0) return;
 
@@ -500,6 +530,13 @@ export class PhysicsSystem {
                 const index = this.physicsObjects.lastIndexOf(obj);
                 if(index > -1) this.physicsObjects.splice(this.physicsObjects.indexOf(obj), 1);
                 continue;
+            }
+
+            const isSupported = this.isBlockSupported(obj);
+            if(!isSupported) {
+                obj.isStable = false;
+                obj.isStatic = false;
+                vec3.set(obj.angularVelocity, 0, 0, 0);
             }
 
             const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);

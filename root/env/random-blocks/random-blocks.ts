@@ -1,4 +1,4 @@
-import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
 
 import { Tick } from "../../tick.js";
 import { BoxCollider, Collider, ICollidable } from "../../collision/collider.js";
@@ -313,26 +313,71 @@ export class RandomBlocks implements ICollidable {
             if(!block) return;
             
             const physicsObj = this.physicsObjects.get(block.id);
-            if(physicsObj) {
-                this.physicsSystem.removePhysicsObject(physicsObj);
-                this.physicsGrid.removeObject(physicsObj);
-                this.physicsGrid.removeObjectFromCell(
-                    this.physicsGrid.getCellKey(physicsObj.position),
-                    physicsObj
-                );
-                
-                this.physicsObjects.delete(block.id);
-            }
+            if(!physicsObj) return;
 
+            const supportedBlocks = this.getSupportingBlocks(physicsObj);
+            supportedBlocks.forEach(b => this.makeFall(b));
+            this.physicsSystem.removePhysicsObject(physicsObj);
+            this.physicsGrid.removeObject(physicsObj);
+            this.physicsGrid.removeObjectFromCell(this.physicsGrid.getCellKey(physicsObj.position), physicsObj);
+            this.physicsObjects.delete(block.id);
             this.blocks.splice(i, 1);
             this._Colliders.splice(i, 1);
-            
             this.releaseSharedResource(block.sharedResourceId);
+
             const resouce = this.sharedResources.get(block.sharedResourceId);
             if(!resouce) this.resourceManager.waitCleanup();
 
             this.updatePhysicsCollidables(playerController);
         }
+    }
+
+    private getSupportingBlocks(obj: PhysicsObject): PhysicsObject[] {
+        const supportingBlocks: PhysicsObject[] = [];
+        const objBBox = obj.getCollider().getBoundingBox(obj.position);
+        const objTop = objBBox.max[1];
+
+        for(const [_, other] of this.physicsObjects) {
+            console.log(obj.isSleeping)
+
+            const otherBBox = other.getCollider().getBoundingBox(other.position);
+            const otherBottom = otherBBox.min[1];
+
+            if(Math.abs(otherBottom - objTop) < 0.1) {
+                const overlapX = 
+                Math.min(objBBox.max[0], otherBBox.max[0]) -
+                Math.max(objBBox.min[0], otherBBox.min[0]);
+
+                const overlapZ = 
+                Math.min(objBBox.max[2], otherBBox.max[2]) -
+                Math.max(objBBox.min[2], otherBBox.min[2]);
+
+                if(overlapX > 0.01 && overlapZ > 0.01) supportingBlocks.push(other);
+            }
+        }
+
+        return supportingBlocks;
+    }
+
+    private makeFall(obj: PhysicsObject): void {
+        obj.isStatic = false;
+        obj.isStable = false;
+        obj.isSleeping = false;
+        obj.velocity[1] = -5.5;
+
+        const mass = obj.mass;
+        const size = obj.getCollider().getSize();
+        const w2 = size[0] * size[0];
+        const h2 = size[1] * size[1];
+        const d2 = size[2] * size[2];
+
+        obj.lastUnstableTime = performance.now();
+
+        mat3.set(obj.inertiaTensor,
+            mass * (h2 + d2) / 12, 0, 0,
+            0, mass * (w2 + d2) / 12, 0,
+            0, 0, mass * (w2 + h2) / 12
+        );
     }
 
     private removeBlockRaycaster(playerController: PlayerController): void {
@@ -517,7 +562,7 @@ export class RandomBlocks implements ICollidable {
         for(const block of this.blocks) {
             const physicsObj = this.physicsObjects.get(block.id);
 
-            if(physicsObj && !physicsObj.isStatic) {
+            if(physicsObj) {
                 const oldPosition = vec3.clone(physicsObj.position);
 
                 if(physicsObj.position.some(isNaN)) {

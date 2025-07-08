@@ -25,6 +25,7 @@ export class PhysicsObject {
     tiltTime = 0;
     maxTiltTime = 1.0;
     isStable = true;
+    lastUnstableTime = 0.0;
     constructor(position, velocity, angularVelocity, collider) {
         this.position = vec3.clone(position);
         this.velocity = vec3.clone(velocity);
@@ -51,6 +52,9 @@ export class PhysicsObject {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
+        }
+        else {
+            this.sleepTimer = 0.0;
         }
     }
     calculateSupportPolygon(groundLevel) {

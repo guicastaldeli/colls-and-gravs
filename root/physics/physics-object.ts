@@ -31,6 +31,7 @@ export class PhysicsObject implements ICollidable {
     public tiltTime: number = 0;
     public maxTiltTime: number = 1.0;
     public isStable: boolean = true;
+    public lastUnstableTime: number = 0.0;
 
     constructor(
         position: vec3,
@@ -69,6 +70,8 @@ export class PhysicsObject implements ICollidable {
                 vec3.set(this.velocity, 0, 0, 0);
                 vec3.set(this.angularVelocity, 0, 0, 0);
             }
+        } else {
+            this.sleepTimer = 0.0;
         }
     }
 
