@@ -24,6 +24,7 @@ const createWindow = () => {
   })
 
   win.loadFile('./root/index.html')
+  win.setMenuBarVisibility(false);
 }
 
 app.whenReady().then(() => {
