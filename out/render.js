@@ -275,8 +275,9 @@ export async function render(canvas) {
         await renderer(device);
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
-        if (!randomBlocks)
+        if (!randomBlocks) {
             randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground);
+        }
         if (deltaTime)
             randomBlocks.update(deltaTime);
         //Colliders

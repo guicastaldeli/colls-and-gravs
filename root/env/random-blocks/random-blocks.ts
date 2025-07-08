@@ -114,6 +114,7 @@ export class RandomBlocks implements ICollidable {
         this.preloadAssets();
 
         this.raycaster = new Raycaster();
+        this.updateRaycasterCollider();
         this.outline = new OutlineConfig(device, shaderLoader);
 
         this.physicsSystem = new PhysicsSystem(ground);
@@ -243,6 +244,17 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
+    public updateRaycasterCollider() {
+        this.raycaster.setCollider(new BoxCollider(
+            [
+                this.size.w * 5,
+                this.size.h * 5,
+                this.size.d * 5
+            ],
+            [0, 0, 0]
+        ));
+    }
+
     public updateTargetBlock(playerController: PlayerController): void {
         this.targetBlockIndex = -1;
         const maxDistance = 5.0;
@@ -250,30 +262,26 @@ export class RandomBlocks implements ICollidable {
         const rayDirection = playerController.getForward();
         let closestDistance = Infinity;
 
-        const halfWidth = this.size.w * 5;
-        const halfHeight = this.size.h * 5;
-        const halfDepth = this.size.d * 5
+        const width = this.size.w * 5;
+        const height = this.size.h * 5;
+        const depth = this.size.d * 5;
 
         for(let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
-            
-            const min = [
-                block.position[0] - halfWidth,
-                block.position[1] - halfHeight,
-                block.position[2] - halfDepth,
-            ];
+            const physicsObj = this.physicsObjects.get(block.id);
 
-            const max = [
-                block.position[0] + halfWidth,
-                block.position[1] + halfHeight,
-                block.position[2] + halfDepth,
-            ];
+            const halfSize = vec3.scale(vec3.create(), [
+                width,
+                height,
+                depth,
+            ], 1.0);
 
-            const intersection = this.raycaster.rayAABBIntersect(
+            const intersection = this.raycaster.getRayOBBIntersect(
                 rayOrigin,
                 rayDirection,
-                min,
-                max
+                physicsObj?.position,
+                halfSize,
+                physicsObj?.orientation
             );
 
             if(intersection.hit &&
@@ -568,6 +576,13 @@ export class RandomBlocks implements ICollidable {
                 mat4.scale(
                     block.modelMatrix,
                     block.modelMatrix,
+                    [this.size.w, this.size.h, this.size.d]
+                );
+
+                mat4.fromRotationTranslationScale(
+                    block.modelMatrix,
+                    physicsObj.orientation,
+                    physicsObj.position,
                     [this.size.w, this.size.h, this.size.d]
                 );
 

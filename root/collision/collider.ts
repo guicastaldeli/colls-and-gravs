@@ -31,20 +31,40 @@ export class BoxCollider implements Collider {
     public _offset: vec3;
     public _orientation: quat = quat.create();
 
-    constructor(_size: vec3, _offset?: vec3) {
+    constructor(_size?: vec3, _offset?: vec3) {
         this._size = vec3.clone(_size);
         this._offset = _offset ? vec3.clone(_offset) : vec3.create();
     }
 
-    public checkCollision(other: BoxCollider): boolean {
-        const a = this.getBoundingBox();
-        const b = other.getBoundingBox();
+    public checkCollision(
+        other: BoxCollider,
+        otherPosition?: vec3,
+        otherOrientation?: quat
+    ): boolean {
+        if(other instanceof BoxCollider) {
+            if(!quat.equals(this._orientation, quat.create) ||
+            (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
+                return this.checkOOBBCollision(
+                    this._offset,
+                    this._size,
+                    this._orientation,
+                    otherPosition || other._offset,
+                    other._size,
+                    otherOrientation || other._orientation
+                );
+            }
 
-        return (
-            a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
-            a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
-            a.min[2] <= b.max[2] && a.max[2] >= b.min[2]
-        );
+            const a = this.getBoundingBox();
+            const b = other.getBoundingBox(otherPosition);
+    
+            return (
+                a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
+                a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
+                a.min[2] <= b.max[2] && a.max[2] >= b.min[2]
+            );
+        }
+
+        return false;
     }
 
     public getBoundingBox(position?: vec3): { min: vec3; max: vec3; } {
@@ -142,5 +162,95 @@ export class BoxCollider implements Collider {
             faceNormal,
             point
         }
+    }
+
+    private overlapsOnAxis(
+        pos1: vec3,
+        size1: vec3,
+        rot1: quat,
+        pos2: vec3,
+        size2: vec3,
+        rot2: quat,
+        axis: vec3
+    ): boolean {
+        const proj1 = this.getProjection(pos1, size1, rot1, axis);
+        const proj2 = this.getProjection(pos2, size2, rot2, axis);
+        return proj1.min <= proj2.max && proj2.min <= proj1.max;
+    }
+
+    private getProjection(
+        pos: vec3,
+        size: vec3,
+        rot: quat,
+        axis: vec3
+    ): {
+        min: number,
+        max: number
+    } {
+        const corners = this.getCorners(pos, rot);
+        let min = Infinity;
+        let max = -Infinity;
+
+        for(const corner of corners) {
+            const proj = vec3.dot(corner, axis);
+            min = Math.min(min, proj);
+            max = Math.max(max, proj);
+        }
+
+        return { min, max };
+    }
+
+    private checkOOBBCollision(
+        pos1: vec3,
+        size1: vec3,
+        rot1: quat,
+        pos2: vec3,
+        size2: vec3,
+        rot2: quat
+    ): boolean {
+        const axes: vec3[] = [];
+        const mat1 = mat4.fromQuat(mat4.create(), rot1);
+        const mat2 = mat4.fromQuat(mat4.create(), rot2);
+
+        axes.push(vec3.fromValues(mat1[0], mat1[1], mat1[2]));
+        axes.push(vec3.fromValues(mat1[4], mat1[5], mat1[6]));
+        axes.push(vec3.fromValues(mat1[8], mat1[9], mat1[10]));
+
+        axes.push(vec3.fromValues(mat2[0], mat2[1], mat2[2]));
+        axes.push(vec3.fromValues(mat2[4], mat2[5], mat2[6]));
+        axes.push(vec3.fromValues(mat2[8], mat2[9], mat2[10]));
+
+        for(let i = 0; i < 3; i++) {
+            for(let j = 0; j < 3; j++) {
+                const axis = vec3.cross(
+                    vec3.create(),
+                    vec3.fromValues(mat1[i * 4], mat1[i * 4 + 1], mat1[i * 4 + 2]),
+                    vec3.fromValues(mat2[i * 4], mat2[i * 4 + 1], mat2[i * 4 + 2]),
+                );
+
+                if(vec3.length(axis) > 0.0001) {
+                    vec3.normalize(axis, axis);
+                    axes.push(axis);
+                }
+            }
+        }
+
+        for(const axis of axes) {
+            if(
+                !this.overlapsOnAxis(
+                    pos1,
+                    size1,
+                    rot1,
+                    pos2,
+                    size2,
+                    rot2,
+                    axis
+                )
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

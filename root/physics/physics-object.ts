@@ -1,5 +1,5 @@
 import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
-import { Collider, ICollidable } from "../collision/collider.js";
+import { BoxCollider, Collider, ICollidable } from "../collision/collider.js";
 
 export class PhysicsObject implements ICollidable {
     public position: vec3;
@@ -169,6 +169,7 @@ export class PhysicsObject implements ICollidable {
             quat.normalize(this.orientation, this.orientation);
         }
 
+        if(this.collider instanceof BoxCollider) this.collider._orientation = this.orientation;
         vec3.set(this.torque, 0, 0, 0);
     }
 }
