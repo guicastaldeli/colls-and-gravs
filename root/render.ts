@@ -305,6 +305,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!pipeline) await initShaders();
         await renderer(device);
 
+        //Colliders
+        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
+
+        //Player Controller
+        if(!playerController) playerController = new PlayerController(tick, undefined, getColliders);
+        playerController.update(deltaTime);
+
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) {
@@ -317,13 +324,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             );
         }
         if(deltaTime) randomBlocks.update(deltaTime);
-
-        //Colliders
-        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
-
-        //Player Controller
-        if(!playerController) playerController = new PlayerController(tick, undefined, getColliders);
-        playerController.update(deltaTime);
 
         //Camera
             if(!camera) {

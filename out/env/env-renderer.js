@@ -1,9 +1,11 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
 export class EnvRenderer {
     device;
     loader;
     //Items
+    walls;
     ground;
     constructor(device, loader) {
         this.device = device;
@@ -33,5 +35,7 @@ export class EnvRenderer {
     async init() {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
+        this.walls = new Walls(this.device, this.loader);
+        await this.walls.init();
     }
 }

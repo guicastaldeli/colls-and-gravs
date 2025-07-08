@@ -18,6 +18,15 @@ export class GetColliders {
                 }))
             });
         }
+        if (this.envRenderer?.walls) {
+            colliders.push({
+                type: 'wall',
+                colliders: this.envRenderer.walls.getAllColliders().map(data => ({
+                    collider: data.collider,
+                    position: data.position
+                }))
+            });
+        }
         if (this.randomBlocks) {
             colliders.push({
                 type: 'block',

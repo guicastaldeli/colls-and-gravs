@@ -32,13 +32,13 @@ interface BlockData {
 }
 
 interface SharedResource {
-    vertex: GPUBuffer,
-    color: GPUBuffer,
-    index: GPUBuffer,
-    indexCount: number,
-    texture: GPUTexture,
-    sampler: GPUSampler,
-    referenceCount: number
+    vertex: GPUBuffer;
+    color: GPUBuffer;
+    index: GPUBuffer;
+    indexCount: number;
+    texture: GPUTexture;
+    sampler: GPUSampler;
+    referenceCount: number;
 }
 
 export class RandomBlocks implements ICollidable {
@@ -137,10 +137,12 @@ export class RandomBlocks implements ICollidable {
 
     private addSharedResource(id: string): SharedResource | null {
         const resource = this.sharedResources.get(id);
+        
         if(resource) {
             resource.referenceCount++;
             return resource;
         }
+
         return null;
     }
 

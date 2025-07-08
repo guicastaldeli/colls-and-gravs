@@ -273,13 +273,6 @@ export async function render(canvas) {
         if (!pipeline)
             await initShaders();
         await renderer(device);
-        //Random Blocks
-        const format = navigator.gpu.getPreferredCanvasFormat();
-        if (!randomBlocks) {
-            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground);
-        }
-        if (deltaTime)
-            randomBlocks.update(deltaTime);
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);
@@ -287,6 +280,13 @@ export async function render(canvas) {
         if (!playerController)
             playerController = new PlayerController(tick, undefined, getColliders);
         playerController.update(deltaTime);
+        //Random Blocks
+        const format = navigator.gpu.getPreferredCanvasFormat();
+        if (!randomBlocks) {
+            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground);
+        }
+        if (deltaTime)
+            randomBlocks.update(deltaTime);
         //Camera
         if (!camera) {
             camera = new Camera(device, pipeline, loader, shaderLoader, playerController);
