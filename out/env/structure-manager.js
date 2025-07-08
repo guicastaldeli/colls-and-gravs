@@ -2,9 +2,9 @@ import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class StructureManager {
     //Props
     size = {
-        w: 0.5,
-        h: 0.5,
-        d: 0.5,
+        w: 1.0,
+        h: 1.0,
+        d: 1.0,
     };
     gap = 0.8;
     async createFromPattern(pattern, position, createBlock) {

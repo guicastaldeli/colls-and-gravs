@@ -5,9 +5,9 @@ import { EnvBufferData } from "./env-buffers.js";
 export class StructureManager {
     //Props
     private size = {
-        w: 0.5,
-        h: 0.5,
-        d: 0.5,
+        w: 1.0,
+        h: 1.0,
+        d: 1.0,
     }
 
     private gap = 0.8;

@@ -10,6 +10,11 @@ export class Walls {
     _Collider = [];
     source = new Map();
     id = 'default-wall';
+    pos = {
+        x: 0.5,
+        y: 0,
+        z: 2
+    };
     constructor(device, loader) {
         this.device = device;
         this.loader = loader;
@@ -17,8 +22,8 @@ export class Walls {
     }
     async loadAssets() {
         try {
-            const model = await this.loader.parser('./assets/env/obj/404.obj');
-            const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
+            const model = await this.loader.parser('./assets/env/obj/smile.obj');
+            const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
             this.source.set(this.id, {
                 vertex: model.vertex,
                 color: model.color,
@@ -30,33 +35,25 @@ export class Walls {
             });
         }
         catch (err) {
-            throw new Error('err');
+            throw err;
         }
     }
-    getResouce(id) {
+    getResource(id) {
         const resource = this.source.get(id);
-        if (resource) {
-            resource.referenceCount++;
-            return resource;
-        }
-        return null;
+        if (!resource)
+            throw new Error(`${id} not found`);
+        resource.referenceCount++;
+        return resource;
     }
-    async createWallBlock(position) {
-        const modelMatrix = mat4.create();
-        const blockSize = this.structureManager.getSize();
-        mat4.translate(modelMatrix, modelMatrix, position);
-        mat4.scale(modelMatrix, modelMatrix, [
-            blockSize.w,
-            blockSize.h,
-            blockSize.d
-        ]);
-        const source = this.getResouce(this.id);
+    async createWallBlock() {
+        const size = this.structureManager.getSize();
+        const gap = this.structureManager.getGap();
+        const source = this.getResource(this.id);
         if (!source)
             throw new Error('err');
         const block = {
             id: `block-${this.blockIdCounter++}`,
-            modelMatrix,
-            position: vec3.clone(position),
+            modelMatrix: mat4.create(),
             vertex: source.vertex,
             color: source.color,
             index: source.index,
@@ -65,22 +62,21 @@ export class Walls {
             sampler: source.sampler,
             resourceId: this.id
         };
+        const position = vec3.fromValues(this.pos.x * gap, this.pos.y, this.pos.z * gap);
+        mat4.identity(block.modelMatrix);
+        mat4.translate(block.modelMatrix, block.modelMatrix, position);
+        mat4.scale(block.modelMatrix, block.modelMatrix, [size.w, size.h, size.d]);
         const collider = new BoxCollider([
-            blockSize.w,
-            blockSize.h,
-            blockSize.d
+            size.w,
+            size.h,
+            size.d
         ], position);
         this.blocks.push(block);
         return { block, collider };
     }
     async createWall() {
-        await this.loadAssets();
-        const pattern = [
-            "#########",
-            "#       #",
-            "#########"
-        ];
-        const { blocks, colliders } = await this.structureManager.createFromPattern(pattern, vec3.fromValues(0, 0, 0), this.createWallBlock.bind(this));
+        const pattern = ['##########'];
+        const { blocks, colliders } = await this.structureManager.createFromPattern(pattern, vec3.create(), this.createWallBlock.bind(this));
         this.blocks = blocks;
         this._Collider = colliders;
     }
@@ -105,7 +101,11 @@ export class Walls {
             type: this.getCollisionInfo().type
         }));
     }
+    getBlocks() {
+        return this.blocks;
+    }
     async init() {
+        await this.loadAssets();
         await this.createWall();
     }
 }

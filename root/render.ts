@@ -211,7 +211,7 @@ async function setBuffers(
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
 
-    const renderBuffers = [...randomBlocks.getBlocks(), ...envRenderer.ground.getBlocks()];
+    const renderBuffers = [...randomBlocks.getBlocks(), ...envRenderer.get()];
     const uniformBuffer = device.createBuffer({
         size: 256 * (1 + renderBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST

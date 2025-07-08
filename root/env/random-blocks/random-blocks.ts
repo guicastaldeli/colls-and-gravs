@@ -355,8 +355,6 @@ export class RandomBlocks implements ICollidable {
         const objTop = objBBox.max[1];
 
         for(const [_, other] of this.physicsObjects) {
-            console.log(obj.isSleeping)
-
             const otherBBox = other.getCollider().getBoundingBox(other.position);
             const otherBottom = otherBBox.min[1];
 

@@ -251,7 +251,6 @@ export class RandomBlocks {
         const objBBox = obj.getCollider().getBoundingBox(obj.position);
         const objTop = objBBox.max[1];
         for (const [_, other] of this.physicsObjects) {
-            console.log(obj.isSleeping);
             const otherBBox = other.getCollider().getBoundingBox(other.position);
             const otherBottom = otherBBox.min[1];
             if (Math.abs(otherBottom - objTop) < 0.1) {

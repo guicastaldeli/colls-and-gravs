@@ -31,7 +31,7 @@ export class Ground implements ICollidable {
         this.blocks = [];
     }
 
-    private async createGround() {
+    private async createGround(): Promise<void> {
         const model = await this.loader.parser('./assets/env/obj/404.obj');
         const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
         const sampler = this.loader.createSampler();
@@ -66,7 +66,7 @@ export class Ground implements ICollidable {
                     block.modelMatrix,
                     block.modelMatrix,
                     [this.size.w, this.size.h, this.size.d]
-                )
+                );
 
                 const collider = new BoxCollider(
                     [this.pos.gap(), this.pos.gap(), this.pos.gap()],

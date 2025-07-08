@@ -46,6 +46,25 @@ export class EnvRenderer {
                 );
             }
         //
+
+        //Walls
+            const walls = this.walls.getBlocks();
+
+            for(let i = 0; i < walls.length; i++) {
+                const data = walls[i];
+                const num = 256;
+                const offset = num * (i + 1);
+
+                await this.drawObject(
+                    passEncoder, 
+                    data, 
+                    uniformBuffer, 
+                    viewProjectionMatrix, 
+                    bindGroup, 
+                    offset
+                );
+            }
+        //
     }
 
     private async drawObject(
@@ -65,6 +84,15 @@ export class EnvRenderer {
         passEncoder.setIndexBuffer(buffers.index, 'uint16');
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.drawIndexed(buffers.indexCount);
+    }
+
+    public get(): EnvBufferData[] {
+        const renderers = [
+            ...this.ground.getBlocks(),
+            ...this.walls.getBlocks()
+        ];
+
+        return renderers;
     }
 
     public async init(): Promise<void> {

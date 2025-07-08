@@ -5,10 +5,9 @@ import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } 
 import { StructureManager } from "./structure-manager.js";
 import { PlayerController } from "../player/player-controller.js";
 
-interface WallData {
+interface WallData extends EnvBufferData {
     id?: string,
     modelMatrix: mat4;
-    position?: vec3;
     vertex: GPUBuffer;
     color: GPUBuffer;
     index: GPUBuffer;
@@ -40,6 +39,12 @@ export class Walls implements ICollidable {
     private source: Map<string, WallResource> = new Map();
     private id: string = 'default-wall';
 
+    private pos = {
+        x: 0.5,
+        y: 0,
+        z: 2
+    }
+
     constructor(device: GPUDevice, loader: Loader) {
         this.device = device;
         this.loader = loader;
@@ -48,8 +53,8 @@ export class Walls implements ICollidable {
 
     private async loadAssets(): Promise<void> {
         try {
-            const model = await this.loader.parser('./assets/env/obj/404.obj');
-            const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
+            const model = await this.loader.parser('./assets/env/obj/smile.obj');
+            const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
     
             this.source.set(this.id, {
                 vertex: model.vertex,
@@ -61,46 +66,30 @@ export class Walls implements ICollidable {
                 referenceCount: 0
             });
         } catch(err) {
-            throw new Error('err');
+            throw err;
         }
     }
 
-    private getResouce(id: string): WallResource | null {
+    private getResource(id: string): WallResource {
         const resource = this.source.get(id);
-        
-        if(resource) {
-            resource.referenceCount++;
-            return resource;
-        }
-
-        return null;
+        if(!resource) throw new Error(`${id} not found`);
+        resource.referenceCount++;
+        return resource;
     }
 
-    private async createWallBlock(position: vec3): Promise<{ 
+    private async createWallBlock(): Promise<{ 
         block: WallData, 
         collider: BoxCollider 
     }> {
-        const modelMatrix = mat4.create();
-        const blockSize = this.structureManager.getSize();
+        const size = this.structureManager.getSize();
+        const gap = this.structureManager.getGap();
 
-        mat4.translate(modelMatrix, modelMatrix, position);
-        mat4.scale(
-            modelMatrix,
-            modelMatrix,
-            [
-                blockSize.w,
-                blockSize.h,
-                blockSize.d
-            ]
-        );
-
-        const source = this.getResouce(this.id);
+        const source = this.getResource(this.id);
         if(!source) throw new Error('err');
 
         const block: WallData = {
             id: `block-${this.blockIdCounter++}`,
-            modelMatrix,
-            position: vec3.clone(position),
+            modelMatrix: mat4.create(),
             vertex: source.vertex,
             color: source.color,
             index: source.index,
@@ -110,32 +99,48 @@ export class Walls implements ICollidable {
             resourceId: this.id
         }
 
+        const position = vec3.fromValues(
+            this.pos.x * gap,
+            this.pos.y,
+            this.pos.z * gap
+        );
+
+        mat4.identity(block.modelMatrix);
+
+        mat4.translate(
+            block.modelMatrix, 
+            block.modelMatrix,
+            position
+        );
+
+        mat4.scale(
+            block.modelMatrix,
+            block.modelMatrix,
+            [size.w, size.h, size.d]
+        );
+
         const collider = new BoxCollider(
             [
-                blockSize.w,
-                blockSize.h,
-                blockSize.d
+                size.w,
+                size.h,
+                size.d
             ],
             position
         );
 
         this.blocks.push(block);
-
         return { block, collider };
     }
 
     public async createWall(): Promise<void> {
-        await this.loadAssets();
+        const pattern = ['##########']
 
-        const pattern = [
-            "#########",
-            "#       #",
-            "#########"
-        ];
-
-        const { blocks, colliders } = await this.structureManager.createFromPattern(
+        const { 
+            blocks, 
+            colliders 
+        } = await this.structureManager.createFromPattern(
             pattern,
-            vec3.fromValues(0, 0, 0),
+            vec3.create(),
             this.createWallBlock.bind(this)
         );
 
@@ -172,7 +177,12 @@ export class Walls implements ICollidable {
         }));
     }
 
+    public getBlocks(): WallData[] {
+        return this.blocks;
+    }
+
     public async init(): Promise<void> {
+        await this.loadAssets();
         await this.createWall();
     }
 }
