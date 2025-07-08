@@ -13,6 +13,8 @@ import { OutlineConfig } from "./outline-config.js";
 import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
+import { ListData, getRandomItem } from "./list.js";
+import { ListType } from "./list-type.js";
 import { Ground } from "../ground.js";
 
 interface BlockData {
@@ -26,6 +28,7 @@ interface BlockData {
     texture?: GPUTexture;
     sampler?: GPUSampler;
     sharedResourceId: string;
+    modelDef: ListType;
 }
 
 interface SharedResource {
@@ -56,8 +59,8 @@ export class RandomBlocks implements ICollidable {
     public sharedResources: Map<string, SharedResource> = new Map();
     private defaultSharedResourceId = 'default-m';
 
-    private preloadModel: any;
-    private preloadTex!: GPUTexture;
+    //Model
+    private currentItem: ListType;
 
     private gridSize = {
         x: 1.0,
@@ -68,12 +71,6 @@ export class RandomBlocks implements ICollidable {
     //Collision
         private _Colliders: BoxCollider[] = [];
         public type = 'block';
-
-        private colliderScale = { 
-            w: 15, 
-            h: 10, 
-            d: 15
-        }
 
         private positionAdjusted = { 
             x: 70, 
@@ -90,14 +87,7 @@ export class RandomBlocks implements ICollidable {
     private physicsSystem: PhysicsSystem;
     private physicsObjects: Map<string, PhysicsObject> = new Map();
     private physicsGrid: PhysicsGrid;
-
     private ground: Ground;
-
-    size = {
-        w: 0.1,
-        h: 0.1,
-        d: 0.1
-    }
 
     constructor(
         tick: Tick,
@@ -112,6 +102,7 @@ export class RandomBlocks implements ICollidable {
         this.shaderLoader = shaderLoader;
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
+        this.currentItem = getRandomItem();
 
         this.raycaster = new Raycaster();
         this.updateRaycasterCollider();
@@ -124,18 +115,24 @@ export class RandomBlocks implements ICollidable {
     }
 
     public async preloadAssets(): Promise<void> {
-        this.preloadModel = await this.loader.parser('./assets/env/obj/smile.obj');
-        this.preloadTex = await this.loader.textureLoader('./assets/env/textures/smile.png');
-
-        this.sharedResources.set(this.defaultSharedResourceId, {
-            vertex: this.preloadModel.vertex,
-            color: this.preloadModel.color,
-            index: this.preloadModel.index,
-            indexCount: this.preloadModel.indexCount,
-            texture: this.preloadTex,
-            sampler: this.loader.createSampler(),
-            referenceCount: 1
-        });
+        for(const item of ListData) {
+            try {
+                const model = await this.loader.parser(item.modelPath);
+                const tex = await this.loader.textureLoader(item.texPath);
+        
+                this.sharedResources.set(item.id, {
+                    vertex: model.vertex,
+                    color: model.color,
+                    index: model.index,
+                    indexCount: model.indexCount,
+                    texture: tex,
+                    sampler: this.loader.createSampler(),
+                    referenceCount: 1
+                });
+            } catch(err) {
+                throw new Error('err');
+            }
+        }
     }
 
     private addSharedResource(id: string): SharedResource | null {
@@ -169,15 +166,23 @@ export class RandomBlocks implements ICollidable {
         try {
             if(this.isPositionOccupied(position)) throw new Error('err pos');
 
+            this.currentItem = getRandomItem();
+            const itemId = this.currentItem.id.toString();
+
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
             mat4.scale(
                 modelMatrix,
                 modelMatrix,
-                [this.size.w, this.size.h, this.size.d]
+                [
+                    this.currentItem.size.w, 
+                    this.currentItem.size.h, 
+                    this.currentItem.size.d
+                ]
             );
 
-            const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
+            const sharedResource = this.addSharedResource(itemId);
+            if(!this.sharedResources.has(itemId)) throw new Error(`${itemId} not loaded`);
             if(!sharedResource) throw new Error('err');
     
             const newBlock = {
@@ -190,7 +195,8 @@ export class RandomBlocks implements ICollidable {
                 indexCount: sharedResource.indexCount,
                 texture: sharedResource.texture,
                 sampler: sharedResource.sampler,
-                sharedResourceId: this.defaultSharedResourceId
+                sharedResourceId: this.defaultSharedResourceId,
+                modelDef: this.currentItem
             }
 
             const initialOrientaton = quat.create();
@@ -204,9 +210,9 @@ export class RandomBlocks implements ICollidable {
             //Collision
             const collider = new BoxCollider(
                 [
-                    this.size.w * this.colliderScale.w,
-                    this.size.h * this.colliderScale.h,
-                    this.size.d * this.colliderScale.d
+                    this.currentItem.size.w * this.currentItem.colliderScale.w,
+                    this.currentItem.size.h * this.currentItem.colliderScale.h,
+                    this.currentItem.size.d * this.currentItem.colliderScale.d
                 ],
                 [
                     position[0] / this.positionAdjusted.x,
@@ -235,7 +241,7 @@ export class RandomBlocks implements ICollidable {
             this.updatePhysicsCollidables(playerController);
 
             const groundLevel = this.ground.getGroundLevelY(position[0], position[2]);
-            if(position[1] < groundLevel + this.size.h) position[1] = groundLevel + this.size.h;
+            if(position[1] < groundLevel + this.currentItem.size.h) position[1] = groundLevel + this.currentItem.size.h;
 
             return newBlock;
         } catch(err) {
@@ -245,11 +251,13 @@ export class RandomBlocks implements ICollidable {
     }
 
     private updateRaycasterCollider() {
+        const size = this.currentItem.size;
+
         this.raycaster.setCollider(new BoxCollider(
             [
-                this.size.w * 5,
-                this.size.h * 5,
-                this.size.d * 5
+                size.w,
+                size.h,
+                size.d
             ],
             [0, 0, 0]
         ));
@@ -261,10 +269,17 @@ export class RandomBlocks implements ICollidable {
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         let closestDistance = Infinity;
+        let width, height, depth;
 
-        const width = this.size.w * 5;
-        const height = this.size.h * 5;
-        const depth = this.size.d * 5;
+        if(this.currentItem.needsUpdate) {
+            width = this.currentItem.updScale.w;
+            height = this.currentItem.updScale.h;
+            depth = this.currentItem.updScale.d;
+        } else {
+            width = this.currentItem.size.w;
+            height = this.currentItem.size.h;
+            depth = this.currentItem.size.d;
+        }
 
         for(let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
@@ -404,7 +419,7 @@ export class RandomBlocks implements ICollidable {
     
             if(this.targetBlockIndex >= 0) {
                 const targetBlock = this.blocks[this.targetBlockIndex];
-                const offset = this.size.w * 5;
+                const offset = this.currentItem.size.w * 5;
                 const faceNormal = this.getFaceNormal(this.lastHitFace);
     
                 switch(this.lastHitFace) {
@@ -575,13 +590,13 @@ export class RandomBlocks implements ICollidable {
                     physicsObj.position[2]
                 );
 
-                const sizeY = this.size.h * this.colliderScale.h;
+                const sizeY = block.modelDef.size.h * block.modelDef.colliderScale.h;
                 const halfHeight = sizeY / 20;
 
                 const halfSize = [
-                    this.size.w * this.colliderScale.w / 2,
+                    block.modelDef.size.w * block.modelDef.colliderScale.w / 2,
                     halfHeight,
-                    this.size.d * this.colliderScale.d / 2
+                    block.modelDef.size.d * block.modelDef.colliderScale.d / 2
                 ];
 
                 const corners = [
@@ -621,14 +636,22 @@ export class RandomBlocks implements ICollidable {
                 mat4.scale(
                     block.modelMatrix,
                     block.modelMatrix,
-                    [this.size.w, this.size.h, this.size.d]
+                    [
+                        block.modelDef.size.w, 
+                        block.modelDef.size.h, 
+                        block.modelDef.size.d
+                    ]
                 );
 
                 mat4.fromRotationTranslationScale(
                     block.modelMatrix,
                     physicsObj.orientation,
                     physicsObj.position,
-                    [this.size.w, this.size.h, this.size.d]
+                    [
+                        block.modelDef.size.w, 
+                        block.modelDef.size.h, 
+                        block.modelDef.size.d
+                    ]
                 );
 
                 const colliderIndex = this.blocks.indexOf(block);

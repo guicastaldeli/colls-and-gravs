@@ -1,0 +1,47 @@
+[
+    {
+        "id": "1",
+        "modelPath": "./assets/env/obj/smile.obj",
+        "texPath": "./assets/env/textures/smile.png",
+        "size": {
+            "w": 0.1,
+            "h": 0.1,
+            "d": 0.1
+        },
+        "colliderScale": {
+            "w": 15,
+            "h": 10,
+            "d": 15
+        }
+    },
+    {
+        "id": "2",
+        "modelPath": "./assets/env/obj/rex.obj",
+        "texPath": "./assets/env/textures/rex.png",
+        "size": {
+            "w": 1.0,
+            "h": 1.0,
+            "d": 1.0
+        },
+        "colliderScale": {
+            "w": 1.0,
+            "h": 1.0,
+            "d": 1.0
+        }
+    },
+    {
+        "id": "3",
+        "modelPath": "./assets/env/obj/smile.obj",
+        "texPath": "./assets/env/textures/smile.png",
+        "size": {
+            "w": 0.1,
+            "h": 0.1,
+            "d": 0.1
+        },
+        "colliderScale": {
+            "w": 1.0,
+            "h": 1.0,
+            "d": 1.0
+        }
+    }
+]

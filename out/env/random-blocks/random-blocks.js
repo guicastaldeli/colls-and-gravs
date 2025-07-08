@@ -7,6 +7,7 @@ import { OutlineConfig } from "./outline-config.js";
 import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
+import { ListData, getRandomItem } from "./list.js";
 export class RandomBlocks {
     tick;
     device;
@@ -22,8 +23,8 @@ export class RandomBlocks {
     eventListenersInitialized = false;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
-    preloadModel;
-    preloadTex;
+    //Model
+    currentItem;
     gridSize = {
         x: 1.0,
         y: 1.0,
@@ -32,11 +33,6 @@ export class RandomBlocks {
     //Collision
     _Colliders = [];
     type = 'block';
-    colliderScale = {
-        w: 15,
-        h: 10,
-        d: 15
-    };
     positionAdjusted = {
         x: 70,
         y: 1.5,
@@ -51,11 +47,6 @@ export class RandomBlocks {
     physicsObjects = new Map();
     physicsGrid;
     ground;
-    size = {
-        w: 0.1,
-        h: 0.1,
-        d: 0.1
-    };
     constructor(tick, device, loader, shaderLoader, ground) {
         this.tick = tick;
         this.device = device;
@@ -63,6 +54,7 @@ export class RandomBlocks {
         this.shaderLoader = shaderLoader;
         this.resourceManager = new ResourceManager(device);
         this.preloadAssets();
+        this.currentItem = getRandomItem();
         this.raycaster = new Raycaster();
         this.updateRaycasterCollider();
         this.outline = new OutlineConfig(device, shaderLoader);
@@ -71,17 +63,24 @@ export class RandomBlocks {
         this.ground = ground;
     }
     async preloadAssets() {
-        this.preloadModel = await this.loader.parser('./assets/env/obj/smile.obj');
-        this.preloadTex = await this.loader.textureLoader('./assets/env/textures/smile.png');
-        this.sharedResources.set(this.defaultSharedResourceId, {
-            vertex: this.preloadModel.vertex,
-            color: this.preloadModel.color,
-            index: this.preloadModel.index,
-            indexCount: this.preloadModel.indexCount,
-            texture: this.preloadTex,
-            sampler: this.loader.createSampler(),
-            referenceCount: 1
-        });
+        for (const item of ListData) {
+            try {
+                const model = await this.loader.parser(item.modelPath);
+                const tex = await this.loader.textureLoader(item.texPath);
+                this.sharedResources.set(item.id, {
+                    vertex: model.vertex,
+                    color: model.color,
+                    index: model.index,
+                    indexCount: model.indexCount,
+                    texture: tex,
+                    sampler: this.loader.createSampler(),
+                    referenceCount: 1
+                });
+            }
+            catch (err) {
+                throw new Error('err');
+            }
+        }
     }
     addSharedResource(id) {
         const resource = this.sharedResources.get(id);
@@ -109,10 +108,18 @@ export class RandomBlocks {
         try {
             if (this.isPositionOccupied(position))
                 throw new Error('err pos');
+            this.currentItem = getRandomItem();
+            const itemId = this.currentItem.id.toString();
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);
-            mat4.scale(modelMatrix, modelMatrix, [this.size.w, this.size.h, this.size.d]);
-            const sharedResource = this.addSharedResource(this.defaultSharedResourceId);
+            mat4.scale(modelMatrix, modelMatrix, [
+                this.currentItem.size.w,
+                this.currentItem.size.h,
+                this.currentItem.size.d
+            ]);
+            const sharedResource = this.addSharedResource(itemId);
+            if (!this.sharedResources.has(itemId))
+                throw new Error(`${itemId} not loaded`);
             if (!sharedResource)
                 throw new Error('err');
             const newBlock = {
@@ -125,7 +132,8 @@ export class RandomBlocks {
                 indexCount: sharedResource.indexCount,
                 texture: sharedResource.texture,
                 sampler: sharedResource.sampler,
-                sharedResourceId: this.defaultSharedResourceId
+                sharedResourceId: this.defaultSharedResourceId,
+                modelDef: this.currentItem
             };
             const initialOrientaton = quat.create();
             if (faceNormal) {
@@ -136,9 +144,9 @@ export class RandomBlocks {
             }
             //Collision
             const collider = new BoxCollider([
-                this.size.w * this.colliderScale.w,
-                this.size.h * this.colliderScale.h,
-                this.size.d * this.colliderScale.d
+                this.currentItem.size.w * this.currentItem.colliderScale.w,
+                this.currentItem.size.h * this.currentItem.colliderScale.h,
+                this.currentItem.size.d * this.currentItem.colliderScale.d
             ], [
                 position[0] / this.positionAdjusted.x,
                 position[1] - this.positionAdjusted.y,
@@ -156,8 +164,8 @@ export class RandomBlocks {
             playerController.updateCollidables();
             this.updatePhysicsCollidables(playerController);
             const groundLevel = this.ground.getGroundLevelY(position[0], position[2]);
-            if (position[1] < groundLevel + this.size.h)
-                position[1] = groundLevel + this.size.h;
+            if (position[1] < groundLevel + this.currentItem.size.h)
+                position[1] = groundLevel + this.currentItem.size.h;
             return newBlock;
         }
         catch (err) {
@@ -166,10 +174,11 @@ export class RandomBlocks {
         }
     }
     updateRaycasterCollider() {
+        const size = this.currentItem.size;
         this.raycaster.setCollider(new BoxCollider([
-            this.size.w * 5,
-            this.size.h * 5,
-            this.size.d * 5
+            size.w,
+            size.h,
+            size.d
         ], [0, 0, 0]));
     }
     updateTargetBlock(playerController) {
@@ -178,9 +187,17 @@ export class RandomBlocks {
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
         let closestDistance = Infinity;
-        const width = this.size.w * 5;
-        const height = this.size.h * 5;
-        const depth = this.size.d * 5;
+        let width, height, depth;
+        if (this.currentItem.needsUpdate) {
+            width = this.currentItem.updScale.w;
+            height = this.currentItem.updScale.h;
+            depth = this.currentItem.updScale.d;
+        }
+        else {
+            width = this.currentItem.size.w;
+            height = this.currentItem.size.h;
+            depth = this.currentItem.size.d;
+        }
         for (let i = 0; i < this.blocks.length; i++) {
             const block = this.blocks[i];
             const physicsObj = this.physicsObjects.get(block.id);
@@ -280,7 +297,7 @@ export class RandomBlocks {
             this.updateTargetBlock(playerController);
             if (this.targetBlockIndex >= 0) {
                 const targetBlock = this.blocks[this.targetBlockIndex];
-                const offset = this.size.w * 5;
+                const offset = this.currentItem.size.w * 5;
                 const faceNormal = this.getFaceNormal(this.lastHitFace);
                 switch (this.lastHitFace) {
                     case 0:
@@ -404,12 +421,12 @@ export class RandomBlocks {
                     return;
                 }
                 const groundLevel = this.ground.getGroundLevelY(physicsObj.position[0], physicsObj.position[2]);
-                const sizeY = this.size.h * this.colliderScale.h;
+                const sizeY = block.modelDef.size.h * block.modelDef.colliderScale.h;
                 const halfHeight = sizeY / 20;
                 const halfSize = [
-                    this.size.w * this.colliderScale.w / 2,
+                    block.modelDef.size.w * block.modelDef.colliderScale.w / 2,
                     halfHeight,
-                    this.size.d * this.colliderScale.d / 2
+                    block.modelDef.size.d * block.modelDef.colliderScale.d / 2
                 ];
                 const corners = [
                     vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
@@ -443,8 +460,16 @@ export class RandomBlocks {
                 mat4.identity(block.modelMatrix);
                 mat4.fromQuat(block.modelMatrix, physicsObj.orientation);
                 mat4.translate(block.modelMatrix, block.modelMatrix, block.position);
-                mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
-                mat4.fromRotationTranslationScale(block.modelMatrix, physicsObj.orientation, physicsObj.position, [this.size.w, this.size.h, this.size.d]);
+                mat4.scale(block.modelMatrix, block.modelMatrix, [
+                    block.modelDef.size.w,
+                    block.modelDef.size.h,
+                    block.modelDef.size.d
+                ]);
+                mat4.fromRotationTranslationScale(block.modelMatrix, physicsObj.orientation, physicsObj.position, [
+                    block.modelDef.size.w,
+                    block.modelDef.size.h,
+                    block.modelDef.size.d
+                ]);
                 const colliderIndex = this.blocks.indexOf(block);
                 if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [

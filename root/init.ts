@@ -1,6 +1,7 @@
 import { Tick } from "./tick.js";
 import { render } from "./render.js";
 import { Input } from "./input.js";
+import { loadListData } from "./env/random-blocks/list.js";
 
 export const canvas = <HTMLCanvasElement>(document.querySelector('#content'));
 export const context = <GPUCanvasContext>(canvas.getContext('webgpu'));
@@ -45,6 +46,7 @@ async function init(): Promise<void> {
     tick = new Tick();
     tick.getTimeScale();
 
+    await loadListData();
     await render(canvas);
 
     input = new Input();
