@@ -256,6 +256,7 @@ export class PlayerController {
     getUp() { return this._up; }
     getRight() { return this._right; }
     getVelocity() { return this._Rigidbody.velocity; }
+    getBobOffset() { return this._bobOffset; }
     update(deltaTime) {
         if (this.tick.isPaused) {
             this.clearForces();

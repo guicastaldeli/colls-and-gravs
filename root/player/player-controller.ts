@@ -315,7 +315,8 @@ export class PlayerController implements ICollidable {
     public getForward(): vec3 { return this._forward; }
     public getUp(): vec3 { return this._up; }
     public getRight(): vec3 { return this._right; }
-    public getVelocity(): vec3 { return this._Rigidbody.velocity }
+    public getVelocity(): vec3 { return this._Rigidbody.velocity; }
+    public getBobOffset(): vec3 { return this._bobOffset; }
     
     public update(deltaTime: number): void {
         if(this.tick.isPaused) {

@@ -38,11 +38,12 @@ export class Camera {
     }
     getViewMatrixWithoutProjection() {
         const cameraPos = this.playerController.getCameraPosition();
+        const bobOffset = this.playerController.getBobOffset();
+        vec3.add(cameraPos, cameraPos, bobOffset);
         const target = vec3.create();
         vec3.add(target, cameraPos, this.playerController.getForward());
-        const viewMatrix = mat4.create();
-        mat4.lookAt(viewMatrix, cameraPos, target, this.playerController.getUp());
-        return viewMatrix;
+        mat4.lookAt(this.viewMatrix, cameraPos, target, this.playerController.getUp());
+        return this.viewMatrix;
     }
     async initHud(w, h) {
         this.hud = new Hud(this.device, this.pipeline, this.loader, this.shaderLoader);

@@ -68,18 +68,20 @@ export class Camera {
 
     public getViewMatrixWithoutProjection(): mat4 {
         const cameraPos = this.playerController.getCameraPosition();
+        const bobOffset = this.playerController.getBobOffset();
+        vec3.add(cameraPos, cameraPos, bobOffset);
+
         const target = vec3.create();
         vec3.add(target, cameraPos, this.playerController.getForward());
-        const viewMatrix = mat4.create();
 
         mat4.lookAt(
-            viewMatrix,
+            this.viewMatrix,
             cameraPos,
             target,
             this.playerController.getUp()
         );
 
-        return viewMatrix;
+        return this.viewMatrix;
     }
 
     public async initHud(w: number, h: number): Promise<void> {

@@ -9,12 +9,12 @@ export class ArmController {
     //Movement
     _isMoving = true;
     _movementTimer = 0.0;
-    _bobIntensity = 0.3;
-    _bobSpeed = 0.0;
-    _swayAmount = 5.0;
+    _bobIntensity = 10.0;
+    _bobSpeed = 50.0;
+    _swayAmount = 15.0;
     _currentSway = 0.0;
     _targetSway = 0.0;
-    _smoothFactor = 8.0;
+    _smoothFactor = 20.0;
     //Size
     size = {
         w: 1.0,
@@ -74,7 +74,7 @@ export class ArmController {
         mat4.translate(modelMatrix, modelMatrix, finalPosition);
         const rotationMatrix = mat4.create();
         const cameraMatrix = mat4.create();
-        mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0.1, -0.1, -0.1, 1);
+        mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0.01, -0.1, -0.1, 1.0);
         const baseRotation = mat4.create();
         mat4.rotateX(baseRotation, baseRotation, 0 * Math.PI / 180);
         mat4.rotateY(baseRotation, baseRotation, 90 * -Math.PI / 180);
@@ -89,11 +89,12 @@ export class ArmController {
         return modelMatrix;
     }
     updateBobPosition(deltaTime) {
-        const speedFactor = deltaTime * 5.0;
         if (this._isMoving) {
-            const bobAmount = Math.sin(this._movementTimer);
-            this._position[0] = this._restPosition[0] + (Math.sin(this._movementTimer * 0.5) * this._bobIntensity * 0.5 * speedFactor);
-            this._position[1] = this._restPosition[1] + (bobAmount * this._bobIntensity * speedFactor);
+            this._movementTimer += deltaTime * this._bobSpeed;
+            const bobX = Math.sin(this._movementTimer * 0.5) * this._bobIntensity;
+            const bobY = Math.sin(this._movementTimer) * this._bobIntensity;
+            this._position[0] = bobX;
+            this._position[1] = bobY;
         }
         else {
             const time = deltaTime * 5.0;
