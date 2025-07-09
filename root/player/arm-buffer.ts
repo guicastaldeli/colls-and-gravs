@@ -29,12 +29,9 @@ export async function drawBuffers(
     uniformBuffer: GPUBuffer,
     viewProjectionMatrix: mat4,
 ): Promise<void> {
-    const main = mat4.create();
-    const buffer = new Float32Array(64);
-    buffer.set(main);
-
-    mat4.multiply(main, viewProjectionMatrix, modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, buffer);
+    const mvp = mat4.create();
+    mat4.multiply(mvp, viewProjectionMatrix, modelMatrix);
+    device.queue.writeBuffer(uniformBuffer, 0, mvp as Float32Array);
     passEncoder.setVertexBuffer(0, buffers.vertex);
     passEncoder.setVertexBuffer(1, buffers.color);
     passEncoder.setBindGroup(0, bindGroup, [0]);
@@ -64,36 +61,40 @@ async function initIndexBuffer(device: GPUDevice): Promise<{ buffer: GPUBuffer, 
 }
 
 async function initVertexBuffer(device: GPUDevice): Promise<GPUBuffer> {
+    const width = 0.25;
+    const height = 0.75;
+    const depth = 0.25;
+    
     const vertices = new Float32Array([
-        -0.5, -0.5,  0.5,
-        0.5, -0.5,  0.5,
-        0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
+        -width, -height,  depth,
+        width, -height,  depth,
+        width,  0,       depth,
+        -width,  0,       depth,
         
-        -0.5, -0.5, -0.5,
-        -0.5,  0.5, -0.5,
-        0.5,  0.5, -0.5,
-        0.5, -0.5, -0.5,
+        -width, -height, -depth,
+        -width,  0,      -depth,
+        width,  0,      -depth,
+        width, -height, -depth,
         
-        -0.5,  0.5, -0.5,
-        -0.5,  0.5,  0.5,
-        0.5,  0.5,  0.5,
-        0.5,  0.5, -0.5,
+        -width,  0,      -depth,
+        -width,  0,       depth,
+        width,  0,       depth,
+        width,  0,      -depth,
         
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, -0.5,  0.5,
-        -0.5, -0.5,  0.5,
+        -width, -height, -depth,
+        width, -height, -depth,
+        width, -height,  depth,
+        -width, -height,  depth,
         
-        0.5, -0.5, -0.5,
-        0.5,  0.5, -0.5,
-        0.5,  0.5,  0.5,
-        0.5, -0.5,  0.5,
+        width, -height, -depth,
+        width,  0,      -depth,
+        width,  0,       depth,
+        width, -height,  depth,
         
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5,  0.5, -0.5,
+        -width, -height, -depth,
+        -width, -height,  depth,
+        -width,  0,       depth,
+        -width,  0,      -depth,
     ]);
 
     const vertexBuffer = device.createBuffer({
@@ -113,31 +114,7 @@ async function initColorBuffer(device: GPUDevice): Promise<GPUBuffer> {
         1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
-        
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        
-        1.0, 1.0, 0.0,
-        1.0, 1.0, 0.0,
-        1.0, 1.0, 0.0,
-        1.0, 1.0, 0.0,
-        
-        1.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        1.0, 0.0, 1.0,
-        
-        0.0, 1.0, 1.0,
-        0.0, 1.0, 1.0,
-        0.0, 1.0, 1.0,
-        0.0, 1.0, 1.0
+    
     ]);
 
     const colorBuffer = device.createBuffer({

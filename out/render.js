@@ -39,37 +39,38 @@ async function initShaders() {
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.loader('./shaders/frag.wgsl')
         ]);
-        const bindGroupLayouts = [
-            device.createBindGroupLayout({
-                entries: [{
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: 'uniform',
-                            hasDynamicOffset: true,
-                            minBindingSize: 256
-                        }
-                    }]
-            }),
-            device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {}
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {}
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
                     }
-                ]
-            }),
-        ];
+                },
+            ]
+        });
+        const textureBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                }
+            ]
+        });
+        const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout, textureBindGroupLayout]
+        });
         pipeline = device.createRenderPipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: bindGroupLayouts
-            }),
+            layout: pipelineLayout,
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
@@ -125,9 +126,7 @@ async function initShaders() {
             }
         });
         wireframePipeline = device.createRenderPipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: bindGroupLayouts
-            }),
+            layout: pipelineLayout,
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
@@ -191,8 +190,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const renderBuffers = [...envRenderer.get(), ...randomBlocks.getBlocks()];
+    const bufferSize = 256 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: 256 * (1 + renderBuffers.length),
+        size: bufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -202,6 +202,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 binding: 0,
                 resource: {
                     buffer: uniformBuffer,
+                    offset: 0,
                     size: 256
                 }
             }]
@@ -211,8 +212,12 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         const data = renderBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjectionMatrix, renderBuffers[i].modelMatrix);
+        mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp);
+    }
+    for (let i = 0; i < renderBuffers.length; i++) {
+        const data = renderBuffers[i];
+        const offset = 256 * i;
         if (!data.sampler || !data.texture) {
             console.error('missing');
             continue;
@@ -289,8 +294,10 @@ export async function render(canvas) {
         playerController.update(deltaTime);
         //Camera
         if (!camera) {
-            camera = new Camera(device, pipeline, loader, shaderLoader, playerController);
+            camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController);
+            await camera.initArm(device, pipeline);
             await camera.initHud(canvas.width, canvas.height);
+            camera.update(deltaTime);
         }
         if (!input) {
             input = new Input(tick, camera, playerController);
@@ -330,11 +337,17 @@ export async function render(canvas) {
         const viewProjectionMatrix = mat4.create();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        //Late Renderers
+        //Render Arm
+        if (camera && pipeline) {
+            camera.renderArm(device, pipeline, passEncoder, canvas);
+        }
         //Render Hud
         camera.renderHud(passEncoder);
         //Random Blocks
         if (randomBlocks)
             randomBlocks.init(canvas, playerController, format, hud);
+        //
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

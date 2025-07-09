@@ -52,38 +52,41 @@ async function initShaders(): Promise<void> {
             shaderLoader.loader('./shaders/frag.wgsl')
         ]);
 
-        const bindGroupLayouts = [
-            device.createBindGroupLayout({
-                entries: [{
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: {
+                    buffer: { 
                         type: 'uniform',
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                }]
-            }),
-            device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {}
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {}
-                    }
-                ]
-            }),
-        ]
+                },
+            ]  
+        });
+
+        const textureBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                }
+            ]  
+        });
+
+        const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [bindGroupLayout, textureBindGroupLayout]
+        });
 
         pipeline = device.createRenderPipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: bindGroupLayouts
-            }),
+            layout: pipelineLayout,
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
@@ -140,9 +143,7 @@ async function initShaders(): Promise<void> {
         });
 
         wireframePipeline = device.createRenderPipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: bindGroupLayouts
-            }),
+            layout: pipelineLayout,
             vertex: {
                 module: vertexShader,
                 entryPoint: 'main',
@@ -212,8 +213,9 @@ async function setBuffers(
     mat4.identity(modelMatrix);
 
     const renderBuffers = [...envRenderer.get(), ...randomBlocks.getBlocks()];
+    const bufferSize = 256 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: 256 * (1 + renderBuffers.length),
+        size: bufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
@@ -224,20 +226,24 @@ async function setBuffers(
             binding: 0,
             resource: {
                 buffer: uniformBuffer,
+                offset: 0,
                 size: 256
             }
         }]
     });
-
     passEncoder.setPipeline(wireframeMode ? wireframePipeline! : pipeline);
 
     for(let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
         const offset = 256 * i;
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjectionMatrix, renderBuffers[i].modelMatrix);
-
+        mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp as Float32Array);
+    }
+
+    for(let i = 0; i < renderBuffers.length; i++) {
+        const data = renderBuffers[i];
+        const offset = 256 * i;
         
         if(!data.sampler || !data.texture) {
             console.error('missing');
@@ -328,6 +334,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Camera
             if(!camera) {
                 camera = new Camera(
+                    tick,
                     device, 
                     pipeline, 
                     loader, 
@@ -335,7 +342,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                     playerController
                 );
 
+                await camera.initArm(device, pipeline);
                 await camera.initHud(canvas.width, canvas.height);
+                camera.update(deltaTime);
             }
             if(!input) {
                 input = new Input(tick, camera, playerController);
@@ -381,11 +390,23 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
 
-        //Render Hud
-        camera.renderHud(passEncoder);
+        //Late Renderers
+            //Render Arm
+            if(camera && pipeline) {
+                camera.renderArm(
+                    device,
+                    pipeline,
+                    passEncoder,
+                    canvas
+                );
+            }
 
-        //Random Blocks
-        if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
+            //Render Hud
+            camera.renderHud(passEncoder);
+
+            //Random Blocks
+            if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
+        //
 
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
