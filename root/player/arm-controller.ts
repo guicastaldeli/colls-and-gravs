@@ -28,14 +28,14 @@ export class ArmController {
 
     //Size
     private size = {
-        w: 0.5,
-        h: 0.6,
-        d: 0.7
+        w: 1.0,
+        h: 1.0,
+        d: 1.0
     }
 
     //Pos
     private pos = {
-        x: 0.25,
+        x: 0.4,
         y: -0.5,
         z: 0.5
     }
@@ -118,7 +118,7 @@ export class ArmController {
             cameraRight[0], cameraRight[1], cameraRight[2], 0,
             cameraUp[0], cameraUp[1], cameraUp[2], 0,
             -cameraForward[0], -cameraForward[1], -cameraForward[2], 0,
-            0, 0, 0, 1
+            0, -0.1, -0.1, 1
         )
 
         const baseRotation = mat4.create();
@@ -164,45 +164,20 @@ export class ArmController {
             if(!this.armModel.texture || !this.armModel.sampler) throw new Error('Tex or sampler not loaded');
 
             this.armUniformBuffer = device.createBuffer({
-                size: 64,
+                size: 256,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-
-            const armBindGroupLayout = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {}
-                    },
-                    {
-                        binding: 2,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {}
-                    }
-                ]
             });
         
             this.armBindGroup = device.createBindGroup({
-                layout: armBindGroupLayout,
+                layout: pipeline.getBindGroupLayout(0),
                 entries: [
                     {
                         binding: 0,
-                        resource: { buffer: this.armUniformBuffer }
-                    },
-                    {
-                        binding: 1,
-                        resource: this.armModel.sampler
-                    },
-                    {
-                        binding: 2,
-                        resource: this.armModel.texture.createView()
-                    },
+                        resource: {
+                            buffer: this.armUniformBuffer,
+                            size: 256
+                        }
+                    }
                 ]
             });
         } catch(err) {
@@ -238,7 +213,7 @@ export class ArmController {
         );
     
         passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(2, this.armBindGroup);
+        passEncoder.setBindGroup(0, this.armBindGroup, [0]);
         passEncoder.setVertexBuffer(0, this.armModel.vertex);
         passEncoder.setVertexBuffer(1, this.armModel.color);
         passEncoder.setIndexBuffer(this.armModel.index, 'uint16');
