@@ -28,16 +28,16 @@ export class ArmController {
 
     //Size
     private size = {
-        w: 1.5,
-        h: 1.5,
-        d: 1.5
+        w: 0.5,
+        h: 0.6,
+        d: 0.7
     }
 
     //Pos
     private pos = {
-        x: 0,
-        y: 0.5,
-        z: 5.0
+        x: 0.25,
+        y: -0.5,
+        z: 0.5
     }
 
     //Model
@@ -88,15 +88,46 @@ export class ArmController {
         vec3.copy(this._position, this._restPosition);
     }
 
-    public getModelMatrix(): mat4 {
+    public getModelMatrix(
+        cameraPosition: vec3,
+        cameraForward: vec3,
+        cameraRight: vec3,
+        cameraUp: vec3
+    ): mat4 {
         const modelMatrix = mat4.create();
-        mat4.identity(modelMatrix);
 
-        mat4.translate(modelMatrix, modelMatrix, [
-            this._position[0],
-            this._position[1],
-            this._position[2]
-        ]);
+        const baseOffset = vec3.create();
+        vec3.scaleAndAdd(baseOffset, baseOffset, cameraForward, this.pos.z);
+
+        const rightOffset = vec3.create();
+        vec3.scale(rightOffset, cameraRight, this.pos.x);
+
+        const upOffset = vec3.create();
+        vec3.scale(upOffset, cameraUp, this.pos.y);
+
+        const finalPosition = vec3.create();
+        vec3.add(finalPosition, cameraPosition, baseOffset);
+        vec3.add(finalPosition, finalPosition, rightOffset);
+        vec3.add(finalPosition, finalPosition, upOffset);
+        mat4.translate(modelMatrix, modelMatrix, finalPosition);
+
+        const rotationMatrix = mat4.create();
+        const cameraMatrix = mat4.create();
+        mat4.set(
+            cameraMatrix,
+            cameraRight[0], cameraRight[1], cameraRight[2], 0,
+            cameraUp[0], cameraUp[1], cameraUp[2], 0,
+            -cameraForward[0], -cameraForward[1], -cameraForward[2], 0,
+            0, 0, 0, 1
+        )
+
+        const baseRotation = mat4.create();
+        mat4.rotateX(baseRotation, baseRotation, 100 * Math.PI / 180);
+        mat4.rotateY(baseRotation, baseRotation, 180 * Math.PI / 180);
+        mat4.rotateZ(baseRotation, baseRotation, 1.5);
+
+        mat4.multiply(rotationMatrix, cameraMatrix, baseRotation);
+        mat4.multiply(modelMatrix, modelMatrix, rotationMatrix);
 
         mat4.scale(
             modelMatrix,
@@ -133,19 +164,44 @@ export class ArmController {
             if(!this.armModel.texture || !this.armModel.sampler) throw new Error('Tex or sampler not loaded');
 
             this.armUniformBuffer = device.createBuffer({
-                size: 256,
+                size: 64,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
-        
-            this.armBindGroup = device.createBindGroup({
-                layout: pipeline.getBindGroupLayout(0),
+
+            const armBindGroupLayout = device.createBindGroupLayout({
                 entries: [
                     {
                         binding: 0,
-                        resource: {
-                            buffer: this.armUniformBuffer,
-                            size: 256
-                        }
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { type: 'uniform' }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {}
+                    }
+                ]
+            });
+        
+            this.armBindGroup = device.createBindGroup({
+                layout: armBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: this.armUniformBuffer }
+                    },
+                    {
+                        binding: 1,
+                        resource: this.armModel.sampler
+                    },
+                    {
+                        binding: 2,
+                        resource: this.armModel.texture.createView()
                     },
                 ]
             });
@@ -163,7 +219,11 @@ export class ArmController {
         projectionMatrix: mat4
     ): Promise<void> {
         const viewMatrix = camera.getViewMatrixWithoutProjection();
-        const armMatrix = this.getModelMatrix();
+        const cameraPosition = camera.playerController.getCameraPosition();
+        const cameraForward = camera.playerController.getForward();
+        const cameraRight = camera.playerController.getRight();
+        const cameraUp = camera.playerController.getUp();
+        const armMatrix = this.getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp);
 
         const viewProjection = mat4.create();
         mat4.multiply(viewProjection, projectionMatrix, viewMatrix);
@@ -178,7 +238,7 @@ export class ArmController {
         );
     
         passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(0, this.armBindGroup, [0]);
+        passEncoder.setBindGroup(2, this.armBindGroup);
         passEncoder.setVertexBuffer(0, this.armModel.vertex);
         passEncoder.setVertexBuffer(1, this.armModel.color);
         passEncoder.setIndexBuffer(this.armModel.index, 'uint16');

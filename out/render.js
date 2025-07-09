@@ -22,6 +22,7 @@ let envRenderer;
 let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
+let armPipeline;
 let randomBlocks;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
@@ -66,8 +67,31 @@ async function initShaders() {
                 }
             ]
         });
+        const armBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                }
+            ]
+        });
         const pipelineLayout = device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout, textureBindGroupLayout]
+            bindGroupLayouts: [
+                bindGroupLayout,
+                textureBindGroupLayout,
+                armBindGroupLayout
+            ]
         });
         pipeline = device.createRenderPipeline({
             layout: pipelineLayout,
@@ -118,6 +142,43 @@ async function initShaders() {
                 topology: 'triangle-list',
                 cullMode: 'back',
                 frontFace: 'ccw',
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus'
+            }
+        });
+        armPipeline = device.createRenderPipeline({
+            layout: pipelineLayout,
+            vertex: {
+                module: vertexShader,
+                entryPoint: 'main',
+                buffers: [
+                    {
+                        arrayStride: 8 * 4,
+                        attributes: [
+                            { shaderLocation: 0, offset: 0, format: 'float32x3' },
+                            { shaderLocation: 1, offset: 3 * 4, format: 'float32x2' },
+                            { shaderLocation: 2, offset: 5 * 4, format: 'float32x3' }
+                        ]
+                    },
+                    {
+                        arrayStride: 3 * 4,
+                        attributes: [
+                            { shaderLocation: 3, offset: 0, format: 'float32x3' }
+                        ]
+                    }
+                ]
+            },
+            fragment: {
+                module: fragShader,
+                entryPoint: 'main',
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                cullMode: 'none'
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -295,7 +356,7 @@ export async function render(canvas) {
         //Camera
         if (!camera) {
             camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController);
-            await camera.initArm(device, pipeline);
+            await camera.initArm(device, armPipeline);
             await camera.initHud(canvas.width, canvas.height);
             camera.update(deltaTime);
         }
@@ -340,7 +401,7 @@ export async function render(canvas) {
         //Late Renderers
         //Render Arm
         if (camera && pipeline) {
-            camera.renderArm(device, pipeline, passEncoder, canvas);
+            camera.renderArm(device, armPipeline, passEncoder, canvas);
         }
         //Render Hud
         camera.renderHud(passEncoder);

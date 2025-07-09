@@ -19,7 +19,7 @@ export class Camera {
     private projectionMatrix: mat4;
     private _fov: number = 110;
 
-    private playerController: PlayerController;
+    public playerController: PlayerController;
     private armController: ArmController;
     private hud!: Hud;
     
@@ -102,6 +102,7 @@ export class Camera {
         canvas: HTMLCanvasElement
     ): Promise<void> {
         const projectionMatrix = this.getProjectionMatrix(canvas.width / canvas.height);
+        passEncoder.setPipeline(pipeline);
 
         await this.armController.render(
             device, 

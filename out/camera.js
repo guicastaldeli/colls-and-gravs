@@ -52,6 +52,7 @@ export class Camera {
     //Arm
     async renderArm(device, pipeline, passEncoder, canvas) {
         const projectionMatrix = this.getProjectionMatrix(canvas.width / canvas.height);
+        passEncoder.setPipeline(pipeline);
         await this.armController.render(device, pipeline, passEncoder, this, projectionMatrix);
     }
     async initArm(device, pipeline) {
