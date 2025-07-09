@@ -19,7 +19,7 @@ export class ArmController {
     private _isMoving: boolean = true;
     private _movementTimer: number = 0.0;
     private _bobIntensity: number = 0.3;
-    private _bobSpeed: number = 40.0;
+    private _bobSpeed: number = 0.0;
     
     private _swayAmount: number = 5.0;
     private _currentSway: number = 0.0;
@@ -35,8 +35,8 @@ export class ArmController {
 
     //Pos
     private pos = {
-        x: 0.4,
-        y: -0.5,
+        x: 0.5,
+        y: -0.9,
         z: 0.5
     }
 
@@ -118,13 +118,13 @@ export class ArmController {
             cameraRight[0], cameraRight[1], cameraRight[2], 0,
             cameraUp[0], cameraUp[1], cameraUp[2], 0,
             -cameraForward[0], -cameraForward[1], -cameraForward[2], 0,
-            0, -0.1, -0.1, 1
+            0.1, -0.1, -0.1, 1
         )
 
         const baseRotation = mat4.create();
-        mat4.rotateX(baseRotation, baseRotation, 100 * Math.PI / 180);
-        mat4.rotateY(baseRotation, baseRotation, 180 * Math.PI / 180);
-        mat4.rotateZ(baseRotation, baseRotation, 1.5);
+        mat4.rotateX(baseRotation, baseRotation, 0 * Math.PI / 180);
+        mat4.rotateY(baseRotation, baseRotation, 90 * -Math.PI / 180);
+        mat4.rotateZ(baseRotation, baseRotation, 0);
 
         mat4.multiply(rotationMatrix, cameraMatrix, baseRotation);
         mat4.multiply(modelMatrix, modelMatrix, rotationMatrix);
@@ -143,12 +143,12 @@ export class ArmController {
     }
 
     private updateBobPosition(deltaTime: number): void {
+        const speedFactor = deltaTime * 5.0;
+
         if(this._isMoving) {
-            const bobX = Math.sin(this._movementTimer) * this._bobIntensity * 0.3;
-            const bobY = Math.abs(Math.sin(this._movementTimer)) * this._bobIntensity;
-            this._position[0] = this._restPosition[0] + bobX;
-            this._position[1] = this._restPosition[1] + bobY;
-            this._position[2] = this._restPosition[2];
+            const bobAmount = Math.sin(this._movementTimer);
+            this._position[0] = this._restPosition[0] + (Math.sin(this._movementTimer * 0.5) * this._bobIntensity * 0.5 * speedFactor);
+            this._position[1] = this._restPosition[1] + (bobAmount * this._bobIntensity * speedFactor);
         } else {
             const time = deltaTime * 5.0;
             vec3.lerp(this._position, this._position, this._restPosition, time);
@@ -211,17 +211,36 @@ export class ArmController {
             0,
             mvp as Float32Array
         );
+
+        const armTextureBindGroup = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(1),
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.armModel.sampler
+                },
+                {
+                    binding: 1,
+                    resource: this.armModel.texture.createView()
+                }
+            ]
+        });
     
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, this.armBindGroup, [0]);
+        passEncoder.setBindGroup(1, armTextureBindGroup)
         passEncoder.setVertexBuffer(0, this.armModel.vertex);
         passEncoder.setVertexBuffer(1, this.armModel.color);
         passEncoder.setIndexBuffer(this.armModel.index, 'uint16');
         passEncoder.drawIndexed(this.armModel.indexCount);
     }
 
-    public update(deltaTime: number, isMoving: boolean): void {
-        const timeSpeed = deltaTime * this._bobSpeed;
+    public update(
+        deltaTime: number, 
+        isMoving: boolean, 
+        velocityMagnitude: number
+    ): void {
+        const timeSpeed = deltaTime * this._bobSpeed * velocityMagnitude;
         this._isMoving = isMoving;
         if(this._isMoving) this._movementTimer += timeSpeed;
         

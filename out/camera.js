@@ -66,9 +66,10 @@ export class Camera {
         return this.hud;
     }
     update(deltaTime) {
-        const time = this.tick.getTimeScale() * deltaTime;
+        const scaledDeltaTime = this.tick.getTimeScale() * deltaTime;
         const velocity = this.playerController.getVelocity();
-        const isMoving = vec3.length(velocity) > 0.1;
-        this.armController.update(time, isMoving);
+        const velocityMagnitude = vec3.length(velocity);
+        const isMoving = velocityMagnitude > 0.1;
+        this.armController.update(scaledDeltaTime, isMoving, velocityMagnitude);
     }
 }
