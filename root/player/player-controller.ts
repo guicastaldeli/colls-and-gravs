@@ -28,6 +28,13 @@ export class PlayerController implements ICollidable {
     private _Collider: Collider;
     public _Collidables: ICollidable[] = [];
     private _GetColliders: GetColliders;
+
+    //Movement
+    private _isMoving: boolean = true;
+    private _movementTimer: number = 0.0;
+    private _bobIntensity: number = 0.3;
+    private _bobSpeed: number = 40.0;
+    private _bobOffset: vec3 = vec3.create();
         
     constructor(
         tick: Tick,
@@ -66,6 +73,7 @@ export class PlayerController implements ICollidable {
     public getCameraPosition(): vec3 {
         const cameraPos = vec3.create();
         vec3.add(cameraPos, this._position, this._cameraOffset);
+        vec3.add(cameraPos, cameraPos, this._bobOffset);
         return cameraPos;
     }
 
@@ -289,6 +297,20 @@ export class PlayerController implements ICollidable {
         if(this.pitch < -89.0) this.pitch = -89.0;
         this.updateVectors();
     }
+
+    private updateMovAnimation(deltaTime: number): void {
+        if(this._isMoving) {
+            const speedFactor = Math.min(1, vec3.length(this._Rigidbody.velocity) / this._movSpeed);
+            this._movementTimer += deltaTime * this._bobSpeed * speedFactor;
+
+            const bobAmount = Math.sin(this._movementTimer);
+            this._bobOffset[1] = bobAmount * this._bobIntensity * speedFactor;
+            this._bobOffset[0] = Math.sin(this._movementTimer * 0.5) * this._bobIntensity * 0.5 * speedFactor;
+        } else {
+            vec3.lerp(this._bobOffset, this._bobOffset, vec3.fromValues(0, 0, 0), deltaTime * 5.0);
+            this._movementTimer = 0.0;
+        }
+    }
     
     public getForward(): vec3 { return this._forward; }
     public getUp(): vec3 { return this._up; }
@@ -300,6 +322,10 @@ export class PlayerController implements ICollidable {
             this.clearForces();
             return;
         }
+
+        const velocity = vec3.length(this._Rigidbody.velocity);
+        this._isMoving = velocity > 0.1 && this._Rigidbody.isColliding;
+        this.updateMovAnimation(deltaTime);
 
         this._Rigidbody.isColliding = false;
         this.checkCollisions();

@@ -20,6 +20,12 @@ export class PlayerController {
     _Collider;
     _Collidables = [];
     _GetColliders;
+    //Movement
+    _isMoving = true;
+    _movementTimer = 0.0;
+    _bobIntensity = 0.3;
+    _bobSpeed = 40.0;
+    _bobOffset = vec3.create();
     constructor(tick, _initialPosition, collidables) {
         this.tick = tick;
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
@@ -47,6 +53,7 @@ export class PlayerController {
     getCameraPosition() {
         const cameraPos = vec3.create();
         vec3.add(cameraPos, this._position, this._cameraOffset);
+        vec3.add(cameraPos, cameraPos, this._bobOffset);
         return cameraPos;
     }
     setKeyboard(direction, deltaTime) {
@@ -232,6 +239,19 @@ export class PlayerController {
             this.pitch = -89.0;
         this.updateVectors();
     }
+    updateMovAnimation(deltaTime) {
+        if (this._isMoving) {
+            const speedFactor = Math.min(1, vec3.length(this._Rigidbody.velocity) / this._movSpeed);
+            this._movementTimer += deltaTime * this._bobSpeed * speedFactor;
+            const bobAmount = Math.sin(this._movementTimer);
+            this._bobOffset[1] = bobAmount * this._bobIntensity * speedFactor;
+            this._bobOffset[0] = Math.sin(this._movementTimer * 0.5) * this._bobIntensity * 0.5 * speedFactor;
+        }
+        else {
+            vec3.lerp(this._bobOffset, this._bobOffset, vec3.fromValues(0, 0, 0), deltaTime * 5.0);
+            this._movementTimer = 0.0;
+        }
+    }
     getForward() { return this._forward; }
     getUp() { return this._up; }
     getRight() { return this._right; }
@@ -241,6 +261,9 @@ export class PlayerController {
             this.clearForces();
             return;
         }
+        const velocity = vec3.length(this._Rigidbody.velocity);
+        this._isMoving = velocity > 0.1 && this._Rigidbody.isColliding;
+        this.updateMovAnimation(deltaTime);
         this._Rigidbody.isColliding = false;
         this.checkCollisions();
         this._Rigidbody.update(deltaTime, this._position);
