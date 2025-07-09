@@ -11,11 +11,11 @@ export class StructureManager {
         const blocks = [];
         const colliders = [];
         for (let y = 0; y < pattern.length; y++) {
-            const row = pattern[y];
+            const row = pattern[y].trimEnd();
             for (let x = 0; x < row.length; x++) {
                 const char = row[x];
-                const isBlock = row[x] === '#';
-                if (char === ' ' || char !== '#')
+                const isBlock = char === '#';
+                if (!isBlock)
                     continue;
                 const pos = vec3.fromValues(position[0] + x * this.gap, position[1] + (pattern.length - y) * this.gap, position[2]);
                 const { block, collider } = await createBlock(pos, isBlock);

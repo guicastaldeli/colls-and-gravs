@@ -131,8 +131,8 @@ export class Walls implements ICollidable {
         this._Collider = [];
 
         const pattern = [
-            '###################',
-            '####              #',
+            '   ################',
+            '   #              #',
             '   #              #',
             '   #              #',
             '   #              #',
@@ -148,10 +148,6 @@ export class Walls implements ICollidable {
             vec3.fromValues(this.pos.x, this.pos.y, this.pos.z),
             this.createWallBlock.bind(this),
         );
-
-        console.log('Total blocks created:', blocks.length);
-    console.log('Total colliders created:', colliders.length);
-    console.log('Pattern should create:', pattern.join('').split('#').length - 1, 'colliders');
 
         this.blocks = blocks.filter(b => b !== null) as WallData[];
         this._Collider = colliders.filter(c => c !== null) as BoxCollider[];
