@@ -11,9 +11,14 @@ export class Walls {
     source = new Map();
     id = 'default-wall';
     pos = {
-        x: 0.5,
-        y: 0,
-        z: 2
+        x: 0.0,
+        y: 0.0,
+        z: 5.0
+    };
+    collisionScale = {
+        w: 40.0,
+        h: 40.0,
+        d: 40.0
     };
     constructor(device, loader) {
         this.device = device;
@@ -22,7 +27,7 @@ export class Walls {
     }
     async loadAssets() {
         try {
-            const model = await this.loader.parser('./assets/env/obj/smile.obj');
+            const model = await this.loader.parser('./assets/env/obj/404.obj');
             const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
             this.source.set(this.id, {
                 vertex: model.vertex,
@@ -45,9 +50,10 @@ export class Walls {
         resource.referenceCount++;
         return resource;
     }
-    async createWallBlock() {
+    async createWallBlock(position, isBlock) {
+        if (!isBlock)
+            return { block: null, collider: null };
         const size = this.structureManager.getSize();
-        const gap = this.structureManager.getGap();
         const source = this.getResource(this.id);
         if (!source)
             throw new Error('err');
@@ -62,23 +68,36 @@ export class Walls {
             sampler: source.sampler,
             resourceId: this.id
         };
-        const position = vec3.fromValues(this.pos.x * gap, this.pos.y, this.pos.z * gap);
         mat4.identity(block.modelMatrix);
         mat4.translate(block.modelMatrix, block.modelMatrix, position);
         mat4.scale(block.modelMatrix, block.modelMatrix, [size.w, size.h, size.d]);
-        const collider = new BoxCollider([
-            size.w,
-            size.h,
-            size.d
-        ], position);
+        const collider = isBlock ?
+            new BoxCollider([
+                size.w * this.collisionScale.w,
+                size.h * this.collisionScale.h,
+                size.d * this.collisionScale.d
+            ], position) : null;
         this.blocks.push(block);
         return { block, collider };
     }
     async createWall() {
-        const pattern = ['##########'];
-        const { blocks, colliders } = await this.structureManager.createFromPattern(pattern, vec3.create(), this.createWallBlock.bind(this));
-        this.blocks = blocks;
-        this._Collider = colliders;
+        this.blocks = [];
+        this._Collider = [];
+        const pattern = [
+            '###################',
+            '####              #',
+            '   #              #',
+            '   #              #',
+            '   #              #',
+            '   #              #',
+            '   ################',
+        ];
+        const { blocks, colliders } = await this.structureManager.createFromPattern(pattern, vec3.fromValues(this.pos.x, this.pos.y, this.pos.z), this.createWallBlock.bind(this));
+        console.log('Total blocks created:', blocks.length);
+        console.log('Total colliders created:', colliders.length);
+        console.log('Pattern should create:', pattern.join('').split('#').length - 1, 'colliders');
+        this.blocks = blocks.filter(b => b !== null);
+        this._Collider = colliders.filter(c => c !== null);
     }
     getPosition() {
         return vec3.fromValues(0, 0, 0);

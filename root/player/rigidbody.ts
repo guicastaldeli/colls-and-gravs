@@ -36,7 +36,5 @@ export class Rigidbody {
     public set acceleration(value: vec3) { this._acceleration = value };
     
     public get isColliding(): boolean { return this._timer > 0 };
-    public set isColliding(value: boolean) {
-        if(value) this._timer = this._tolerance;
-    }
+    public set isColliding(value: boolean) { if(value) this._timer = this._tolerance; }
 }

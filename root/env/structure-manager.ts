@@ -5,9 +5,9 @@ import { EnvBufferData } from "./env-buffers.js";
 export class StructureManager {
     //Props
     private size = {
-        w: 1.0,
-        h: 1.0,
-        d: 1.0,
+        w: 0.05,
+        h: 0.05,
+        d: 0.05,
     }
 
     private gap = 0.8;
@@ -15,10 +15,13 @@ export class StructureManager {
     public async createFromPattern(
         pattern: string[],
         position: vec3,
-        createBlock: (pos: vec3) => Promise<{
-            block: EnvBufferData,
-            collider: BoxCollider
-        }>
+        createBlock: (
+            pos: vec3,
+            isBlock: boolean
+        ) => Promise<{
+            block: EnvBufferData | null,
+            collider: BoxCollider | null
+        }>,
     ): Promise<{
         blocks: EnvBufferData[];
         colliders: BoxCollider[];
@@ -30,17 +33,19 @@ export class StructureManager {
             const row = pattern[y];
 
             for(let x = 0; x < row.length; x++) {
-                if(row[x] === '#') {
-                    const pos = vec3.fromValues(
-                        position[0] + x * this.gap,
-                        position[1] + (pattern.length - y - 1) * this.gap,
-                        position[2]
-                    );
+                const char = row[x];
+                const isBlock = row[x] === '#';
+                if(char === ' ' || char !== '#') continue;
+                    
+                const pos = vec3.fromValues(
+                    position[0] + x * this.gap,
+                    position[1] + (pattern.length - y) * this.gap,
+                    position[2]
+                );
 
-                    const { block, collider } = await createBlock(pos);
-                    blocks.push(block);
-                    colliders.push(collider);
-                }
+                const { block, collider } = await createBlock(pos, isBlock);
+                if(block) blocks.push(block);
+                if(collider) colliders.push(collider);
             }
         }
 

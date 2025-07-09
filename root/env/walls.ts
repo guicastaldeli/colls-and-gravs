@@ -40,9 +40,15 @@ export class Walls implements ICollidable {
     private id: string = 'default-wall';
 
     private pos = {
-        x: 0.5,
-        y: 0,
-        z: 2
+        x: 0.0,
+        y: 0.0,
+        z: 5.0
+    }
+
+    private collisionScale = {
+        w: 40.0,
+        h: 40.0,
+        d: 40.0
     }
 
     constructor(device: GPUDevice, loader: Loader) {
@@ -53,7 +59,7 @@ export class Walls implements ICollidable {
 
     private async loadAssets(): Promise<void> {
         try {
-            const model = await this.loader.parser('./assets/env/obj/smile.obj');
+            const model = await this.loader.parser('./assets/env/obj/404.obj');
             const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
     
             this.source.set(this.id, {
@@ -77,13 +83,16 @@ export class Walls implements ICollidable {
         return resource;
     }
 
-    private async createWallBlock(): Promise<{ 
-        block: WallData, 
-        collider: BoxCollider 
+    private async createWallBlock(
+        position: vec3,
+        isBlock: boolean
+    ): Promise<{ 
+        block: WallData | null, 
+        collider: BoxCollider | null
     }> {
-        const size = this.structureManager.getSize();
-        const gap = this.structureManager.getGap();
+        if(!isBlock) return { block: null, collider: null }
 
+        const size = this.structureManager.getSize();
         const source = this.getResource(this.id);
         if(!source) throw new Error('err');
 
@@ -99,53 +108,53 @@ export class Walls implements ICollidable {
             resourceId: this.id
         }
 
-        const position = vec3.fromValues(
-            this.pos.x * gap,
-            this.pos.y,
-            this.pos.z * gap
-        );
-
         mat4.identity(block.modelMatrix);
+        mat4.translate(block.modelMatrix, block.modelMatrix, position);
+        mat4.scale(block.modelMatrix, block.modelMatrix, [size.w, size.h, size.d]);
 
-        mat4.translate(
-            block.modelMatrix, 
-            block.modelMatrix,
-            position
-        );
-
-        mat4.scale(
-            block.modelMatrix,
-            block.modelMatrix,
-            [size.w, size.h, size.d]
-        );
-
-        const collider = new BoxCollider(
+        const collider = isBlock ? 
+        new BoxCollider(
             [
-                size.w,
-                size.h,
-                size.d
+                size.w * this.collisionScale.w,
+                size.h * this.collisionScale.h,
+                size.d * this.collisionScale.d
             ],
             position
-        );
+        ) : null;
 
         this.blocks.push(block);
         return { block, collider };
     }
 
     public async createWall(): Promise<void> {
-        const pattern = ['##########']
+        this.blocks = [];
+        this._Collider = [];
+
+        const pattern = [
+            '###################',
+            '####              #',
+            '   #              #',
+            '   #              #',
+            '   #              #',
+            '   #              #',
+            '   ################',
+        ];
 
         const { 
             blocks, 
             colliders 
         } = await this.structureManager.createFromPattern(
             pattern,
-            vec3.create(),
-            this.createWallBlock.bind(this)
+            vec3.fromValues(this.pos.x, this.pos.y, this.pos.z),
+            this.createWallBlock.bind(this),
         );
 
-        this.blocks = blocks;
-        this._Collider = colliders;
+        console.log('Total blocks created:', blocks.length);
+    console.log('Total colliders created:', colliders.length);
+    console.log('Pattern should create:', pattern.join('').split('#').length - 1, 'colliders');
+
+        this.blocks = blocks.filter(b => b !== null) as WallData[];
+        this._Collider = colliders.filter(c => c !== null) as BoxCollider[];
     }
 
     public getPosition(): vec3 {

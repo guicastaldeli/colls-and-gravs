@@ -2,9 +2,9 @@ import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class StructureManager {
     //Props
     size = {
-        w: 1.0,
-        h: 1.0,
-        d: 1.0,
+        w: 0.05,
+        h: 0.05,
+        d: 0.05,
     };
     gap = 0.8;
     async createFromPattern(pattern, position, createBlock) {
@@ -13,12 +13,16 @@ export class StructureManager {
         for (let y = 0; y < pattern.length; y++) {
             const row = pattern[y];
             for (let x = 0; x < row.length; x++) {
-                if (row[x] === '#') {
-                    const pos = vec3.fromValues(position[0] + x * this.gap, position[1] + (pattern.length - y - 1) * this.gap, position[2]);
-                    const { block, collider } = await createBlock(pos);
+                const char = row[x];
+                const isBlock = row[x] === '#';
+                if (char === ' ' || char !== '#')
+                    continue;
+                const pos = vec3.fromValues(position[0] + x * this.gap, position[1] + (pattern.length - y) * this.gap, position[2]);
+                const { block, collider } = await createBlock(pos, isBlock);
+                if (block)
                     blocks.push(block);
+                if (collider)
                     colliders.push(collider);
-                }
             }
         }
         return { blocks, colliders };

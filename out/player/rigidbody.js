@@ -34,8 +34,6 @@ export class Rigidbody {
     ;
     get isColliding() { return this._timer > 0; }
     ;
-    set isColliding(value) {
-        if (value)
-            this._timer = this._tolerance;
-    }
+    set isColliding(value) { if (value)
+        this._timer = this._tolerance; }
 }

@@ -211,7 +211,7 @@ async function setBuffers(
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
 
-    const renderBuffers = [...randomBlocks.getBlocks(), ...envRenderer.get()];
+    const renderBuffers = [...envRenderer.get(), ...randomBlocks.getBlocks()];
     const uniformBuffer = device.createBuffer({
         size: 256 * (1 + renderBuffers.length),
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -305,13 +305,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!pipeline) await initShaders();
         await renderer(device);
 
-        //Colliders
-        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
-
-        //Player Controller
-        if(!playerController) playerController = new PlayerController(tick, undefined, getColliders);
-        playerController.update(deltaTime);
-
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) {
@@ -324,6 +317,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             );
         }
         if(deltaTime) randomBlocks.update(deltaTime);
+
+        //Colliders
+        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
+
+        //Player Controller
+        if(!playerController) playerController = new PlayerController(tick, undefined, getColliders);
+        playerController.update(deltaTime);
 
         //Camera
             if(!camera) {
