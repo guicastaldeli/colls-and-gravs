@@ -176,7 +176,6 @@ export class ArmController {
             this._targetRotationX = 0.0;
         }
         //
-        console.log(isJumping);
         this._currentRotationX += (this._targetRotationX - this._currentRotationX) * scaledDeltaTime * this._rotationSmoothFactor;
         this._movementTimer += deltaTime * this._bobSpeed;
         const moveTime = this._movementTimer * 2.0;

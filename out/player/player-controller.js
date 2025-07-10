@@ -131,7 +131,6 @@ export class PlayerController {
     }
     jump() {
         if (this._Rigidbody.isColliding) {
-            this._isJumping = true;
             const force = vec3.fromValues(0, this._jumpForce, 0);
             this._Rigidbody.addForce(force);
         }
@@ -224,8 +223,12 @@ export class PlayerController {
         const direction = vec3.create();
         vec3.sub(direction, playerCenter, otherCenter);
         if (minAxis === 1) {
-            if (direction[1] > 0)
+            if (direction[1] > 0) {
+                const wasGrounded = this._Rigidbody.isColliding;
                 this._Rigidbody.isColliding = true;
+                if (!wasGrounded)
+                    this._isJumping = false;
+            }
             this._position[1] += correction[1];
             if (direction[1] > 0 && this._Rigidbody.velocity[1] < 0)
                 this._Rigidbody.velocity[1] = 0;
@@ -279,7 +282,10 @@ export class PlayerController {
         const horizVelocity = vec3.fromValues(this._Rigidbody.velocity[0], 0, this._Rigidbody.velocity[2]);
         const velocity = vec3.length(horizVelocity);
         const isGrounded = this._Rigidbody.isColliding && Math.abs(this._Rigidbody.velocity[1]) < 0.1;
+        const wasGrounded = this._Rigidbody.isColliding;
         const activeMove = velocity > 0.1;
+        if (!wasGrounded && isGrounded)
+            this._isJumping = false;
         if (activeMove && isGrounded) {
             if (!this._lastMovingState) {
                 this._movmentStateChangeTime += deltaTime;
@@ -298,7 +304,6 @@ export class PlayerController {
                 this._movmentStateChangeTime += deltaTime;
                 if (this._movmentStateChangeTime >= this._movementStateDelay) {
                     this._isMoving = false;
-                    this._isJumping = false;
                     this._lastMovingState = false;
                     this._movmentStateChangeTime = 0.0;
                 }
