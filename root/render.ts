@@ -10,6 +10,7 @@ import { Input } from "./input.js";
 import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
 import { PlayerController } from "./player/player-controller.js";
+import { ArmController } from "./player/arm-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { ICollidable } from "./collision/collider.js";
@@ -344,8 +345,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
                 await camera.initArm(device, pipeline);
                 await camera.initHud(canvas.width, canvas.height);
-                camera.update(deltaTime);
             }
+            if(camera) camera.update(deltaTime);
             if(!input) {
                 input = new Input(tick, camera, playerController);
                 input.setupInputControls(canvas);

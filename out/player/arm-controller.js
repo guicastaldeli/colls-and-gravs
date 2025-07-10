@@ -15,6 +15,10 @@ export class ArmController {
     _currentSway = 0.0;
     _targetSway = 0.0;
     _smoothFactor = 20.0;
+    //Rotation
+    _currentRotationX = 0.0;
+    _targetRotationX = 0.0;
+    _rotationSmoothFactor = 5.0;
     //Size
     size = {
         w: 1.0,
@@ -76,7 +80,7 @@ export class ArmController {
         const cameraMatrix = mat4.create();
         mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0.01, -0.1, -0.1, 1.0);
         const baseRotation = mat4.create();
-        mat4.rotateX(baseRotation, baseRotation, 0 * Math.PI / 180);
+        mat4.rotateX(baseRotation, baseRotation, this._currentRotationX * Math.PI / 180);
         mat4.rotateY(baseRotation, baseRotation, 90 * -Math.PI / 180);
         mat4.rotateZ(baseRotation, baseRotation, 0);
         mat4.multiply(rotationMatrix, cameraMatrix, baseRotation);
@@ -162,13 +166,20 @@ export class ArmController {
         passEncoder.drawIndexed(this.armModel.indexCount);
     }
     update(deltaTime, isMoving, velocityMagnitude) {
-        const timeSpeed = deltaTime * this._bobSpeed * velocityMagnitude;
+        const scaledDeltaTime = deltaTime;
         this._isMoving = isMoving;
-        if (this._isMoving)
-            this._movementTimer += timeSpeed;
+        //Rotation
+        if (this._isMoving) {
+            this._targetRotationX = -20.0;
+        }
+        else {
+            this._targetRotationX = 0.0;
+        }
+        this._currentRotationX += (this._targetRotationX - this._currentRotationX) * scaledDeltaTime * this._rotationSmoothFactor;
+        //
+        this._movementTimer += deltaTime * this._bobSpeed;
         const moveTime = this._movementTimer * 2.0;
-        this._targetSway = this._isMoving ?
-            Math.sin(moveTime) * this._swayAmount : 0;
+        this._targetSway = this._isMoving ? Math.sin(moveTime) * this._swayAmount : 0;
         this._currentSway += (this._targetSway - this._currentSway) * deltaTime * this._smoothFactor;
         this.updateBobPosition(deltaTime);
     }

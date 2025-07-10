@@ -297,8 +297,9 @@ export async function render(canvas) {
             camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController);
             await camera.initArm(device, pipeline);
             await camera.initHud(canvas.width, canvas.height);
-            camera.update(deltaTime);
         }
+        if (camera)
+            camera.update(deltaTime);
         if (!input) {
             input = new Input(tick, camera, playerController);
             input.setupInputControls(canvas);
