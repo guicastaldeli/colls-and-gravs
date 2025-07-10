@@ -4,10 +4,11 @@ import { ShaderLoader } from "../shader-loader.js";
 export class Stars {
     private device: GPUDevice;
     public pipeline!: GPURenderPipeline;
+    private pipelineLayout!: GPUPipelineLayout;
     public vertexBuffer!: GPUBuffer;
     public uniformBuffers: GPUBuffer[] = [];
     public currentBufferIndex: number = 0;
-    public bindGroup!: GPUBindGroup;
+    public bindGroups: GPUBindGroup[] = [];
     public colorBuffer!: GPUBuffer;
     public scaleBuffer!: GPUBuffer;
     public phaseBuffer!: GPUBuffer;
@@ -66,8 +67,20 @@ export class Stars {
     
             this.createUniformBuffers();
 
+            this.pipelineLayout = this.device.createPipelineLayout({
+                bindGroupLayouts: [
+                    this.device.createBindGroupLayout({
+                        entries: [{
+                            binding: 0,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            buffer: { type: 'uniform' }
+                        }]
+                    })
+                ]
+            });
+
             this.pipeline = this.device.createRenderPipeline({
-                layout: 'auto',
+                layout: this.pipelineLayout,
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
@@ -131,14 +144,14 @@ export class Stars {
                 }
             });
 
-            this.bindGroup = this.device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(0),
-                entries: [{
-                    binding: 0,
-                    resource: {
-                        buffer: this.uniformBuffers[0]
-                    }
-                }]
+            this.bindGroups = this.uniformBuffers.map(buffer => {
+                return this.device.createBindGroup({
+                    layout: this.pipeline.getBindGroupLayout(0),
+                    entries: [{
+                        binding: 0,
+                        resource: { buffer }
+                    }]
+                })
             });
         } catch(err) {
             console.log(err);
@@ -149,7 +162,7 @@ export class Stars {
     private createUniformBuffers(): void {
         for(let i = 0; i < 2; i++) {
             this.uniformBuffers.push(this.device.createBuffer({
-                size: 16 * 4 + 16,
+                size: 80,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             }));
         }

@@ -20,6 +20,9 @@ import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
+let depthTexture: GPUTexture | null = null;
+let depthTextureWidth = 0;
+let depthTextureHeight = 0;
 
 let tick: Tick;
 let camera: Camera;
@@ -304,6 +307,9 @@ async function renderer(device: GPUDevice): Promise<void> {
 
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
+        device.pushErrorScope('validation');
+        await device.queue.onSubmittedWorkDone();
+
         const currentTime = performance.now();
         if(!tick) tick = new Tick();
         const deltaTime = tick.update(currentTime);
@@ -357,12 +363,25 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             hud.update(canvas.width, canvas.height);
             camera.getProjectionMatrix(canvas.width / canvas.height);
         //
-            
-        const depthTexture = device.createTexture({
-            size: [canvas.width, canvas.height],
-            format: 'depth24plus',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        });
+
+        if(depthTexture &&
+        (depthTextureWidth !== canvas.width ||
+            depthTextureHeight !== canvas.height)
+        ) {
+            await device.queue.onSubmittedWorkDone();
+            depthTexture.destroy();
+            depthTexture = null;
+        }
+        
+        if(!depthTexture ) {
+            depthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            depthTextureWidth = canvas.width;
+            depthTextureHeight = canvas.height
+        }
         
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
@@ -399,7 +418,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 skybox = new Skybox(device, shaderLoader);
                 await skybox.init();
             }
-            skybox.render(passEncoder, viewProjectionMatrix, currentTime);
+            await skybox.render(passEncoder, viewProjectionMatrix, currentTime);
 
             //Render Arm
             if(camera && pipeline) {

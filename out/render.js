@@ -13,6 +13,9 @@ import { Skybox } from "./skybox/skybox.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
+let depthTexture = null;
+let depthTextureWidth = 0;
+let depthTextureHeight = 0;
 let tick;
 let camera;
 let input;
@@ -268,6 +271,8 @@ async function renderer(device) {
 }
 export async function render(canvas) {
     try {
+        device.pushErrorScope('validation');
+        await device.queue.onSubmittedWorkDone();
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();
@@ -310,11 +315,22 @@ export async function render(canvas) {
         hud.update(canvas.width, canvas.height);
         camera.getProjectionMatrix(canvas.width / canvas.height);
         //
-        const depthTexture = device.createTexture({
-            size: [canvas.width, canvas.height],
-            format: 'depth24plus',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        });
+        if (depthTexture &&
+            (depthTextureWidth !== canvas.width ||
+                depthTextureHeight !== canvas.height)) {
+            await device.queue.onSubmittedWorkDone();
+            depthTexture.destroy();
+            depthTexture = null;
+        }
+        if (!depthTexture) {
+            depthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            depthTextureWidth = canvas.width;
+            depthTextureHeight = canvas.height;
+        }
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
         const renderPassDescriptor = {
@@ -346,7 +362,7 @@ export async function render(canvas) {
             skybox = new Skybox(device, shaderLoader);
             await skybox.init();
         }
-        skybox.render(passEncoder, viewProjectionMatrix, currentTime);
+        await skybox.render(passEncoder, viewProjectionMatrix, currentTime);
         //Render Arm
         if (camera && pipeline) {
             camera.renderArm(device, pipeline, passEncoder, canvas);

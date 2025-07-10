@@ -27,7 +27,7 @@ export class Skybox {
                 this.shaderLoader.loader('./skybox/shaders/skybox/frag.wgsl')
             ]);
 
-            const size = 110;
+            const size = 1100;
             const vertices = new Float32Array([
                 -size, -size, size, size, -size, size, size, size, size, -size, size, size,
                 -size, -size, -size, -size, size, -size, size, size, -size, size, -size, -size,
@@ -111,45 +111,37 @@ export class Skybox {
         }
     }
 
-    public render(
+    public async render(
         passEncoder: GPURenderPassEncoder,
         viewProjectionMatrix: mat4,
         time: number
-    ) {
+    ): Promise<void> {
         //Skybox
+        this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix as Float32Array);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.setVertexBuffer(0, this.vertexBuffer);
         passEncoder.setIndexBuffer(this.indexBuffer, 'uint16');
-
-        this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix as Float32Array);
         passEncoder.drawIndexed(36);
 
         //Stars
+        const lastBufferIndex = this.stars.currentBufferIndex;
+        this.stars.currentBufferIndex = (lastBufferIndex % 1) % this.stars.uniformBuffers.length;
+
+        const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
+        const uniformData = new Float32Array(20);
+        uniformData.set(viewProjectionMatrix as Float32Array, 0);
+        uniformData[16] = time;
+        this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
+        
         passEncoder.setPipeline(this.stars.pipeline);
-        passEncoder.setBindGroup(0, this.stars.bindGroup);
+        passEncoder.setBindGroup(0, this.stars.bindGroups[this.stars.currentBufferIndex]);
         passEncoder.setVertexBuffer(0, this.stars.vertexBuffer);
         passEncoder.setVertexBuffer(1, this.stars.colorBuffer);
         passEncoder.setVertexBuffer(2, this.stars.scaleBuffer);
         passEncoder.setVertexBuffer(3, this.stars.phaseBuffer);
         passEncoder.setVertexBuffer(4, this.stars.uvBuffer);
-
-        this.stars.currentBufferIndex = (this.stars.currentBufferIndex + 1) % this.stars.uniformBuffers.length;
-        const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
-        
-        const uniformData = new Float32Array(16 + 4);
-        uniformData.set(viewProjectionMatrix as Float32Array, 0);
-        uniformData[16] = time;
-        this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         passEncoder.draw(this.stars.numStars);
-
-        passEncoder.setBindGroup(0, this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [{
-                binding: 0,
-                resource: { buffer: currentBuffer }
-            }]
-        }));
     }
 
     public async init(): Promise<void> {
