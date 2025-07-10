@@ -23,7 +23,7 @@ fn main(
 ) -> VertexOutput {
     var output: VertexOutput;
 
-    let finalSize = 300.0 * scale;
+    let finalSize = 200.0 * scale;
     let center = uniforms.mvp * vec4<f32>(position, 1.0);
     var offset = (uv - vec2<f32>(0.5)) * finalSize * 0.01;
     let aspect = 1920.0 / 1080.0;

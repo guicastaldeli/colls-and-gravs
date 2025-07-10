@@ -196,7 +196,7 @@ export class Stars {
             const p = Math.acos(2 * Math.random() - 1);
 
             const x = radius * Math.sin(p) * Math.cos(t) * 8;
-            const y = radius * Math.sin(p) * Math.sin(t) * 5;
+            const y = radius * Math.sin(p) * Math.sin(t) * 10;
             const z = radius * Math.cos(p) * 10;
 
             const starScale = 0.1 + Math.random() * 0.4;
