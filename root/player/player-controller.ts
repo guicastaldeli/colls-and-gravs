@@ -77,71 +77,82 @@ export class PlayerController implements ICollidable {
         return cameraPos;
     }
 
-    public setKeyboard(direction: string, deltaTime: number): void {
+    public setKeyboard(
+        direction: string, 
+        deltaTime: number,
+        moveDirection: vec3
+    ): void {
         if(this.tick.isPaused) {
             this.clearForces();
             return;
         }
         
         const velocity = this._movSpeed * deltaTime;
-        const force = vec3.create();
     
         if(direction === 'FORWARD') {
             const forwardXZ = vec3.fromValues(this._forward[0], 0, this._forward[2]);
             vec3.normalize(forwardXZ, forwardXZ);
-            vec3.scaleAndAdd(force, force, forwardXZ, velocity * 10);
+            vec3.scaleAndAdd(moveDirection, moveDirection, forwardXZ, velocity * 10);
         }
         if(direction === 'BACKWARD') {
-            const forwardXZ = vec3.fromValues(this._forward[0], 0, this._forward[2]);
-            vec3.normalize(forwardXZ, forwardXZ);
-            vec3.scaleAndAdd(force, force, forwardXZ, -velocity * 10);
+            const backwardXZ = vec3.fromValues(this._forward[0], 0, this._forward[2]);
+            vec3.normalize(backwardXZ, backwardXZ);
+            vec3.scaleAndAdd(moveDirection, moveDirection, backwardXZ, -velocity * 10);
         }
         if(direction === 'LEFT') {
-            const rightXZ = vec3.fromValues(this._right[0], 0, this._right[2]);
-            vec3.normalize(rightXZ, rightXZ);
-            vec3.scaleAndAdd(force, force, rightXZ, -velocity * 10);
+            const leftXZ = vec3.fromValues(this._right[0], 0, this._right[2]);
+            vec3.normalize(leftXZ, leftXZ);
+            vec3.scaleAndAdd(moveDirection, moveDirection, leftXZ, -velocity * 10);
         }
         if(direction === 'RIGHT') {
             const rightXZ = vec3.fromValues(this._right[0], 0, this._right[2]);
             vec3.normalize(rightXZ, rightXZ);
-            vec3.scaleAndAdd(force, force, rightXZ, velocity * 10);
+            vec3.scaleAndAdd(moveDirection, moveDirection, rightXZ, velocity * 10);
         }
         if(direction === 'UP') this.jump();
         if(direction === 'DOWN') vec3.scaleAndAdd(this._position, this._position, this._worldUp, -velocity);
-
-        this._Rigidbody.addForce(force);
     }
 
     public updateInput(
         keys: Record<string, boolean>,
         deltaTime: number,
     ): void {
+        const moveDirection = vec3.create();
+        const velocity = this._movSpeed * deltaTime;
+        
         for(const key in keys) {
             if(key === ' ') continue;
 
             if(keys[key]) {
                 switch(key.toLowerCase()) {
                     case 'w':
-                    this.setKeyboard('FORWARD', deltaTime);
+                    this.setKeyboard('FORWARD', deltaTime, moveDirection);
                     break;
                 case 's':
-                    this.setKeyboard('BACKWARD', deltaTime);
+                    this.setKeyboard('BACKWARD', deltaTime, moveDirection);
                     break;
                 case 'a':
-                    this.setKeyboard('LEFT', deltaTime);
+                    this.setKeyboard('LEFT', deltaTime, moveDirection);
                     break;
                 case 'd':
-                    this.setKeyboard('RIGHT', deltaTime);
+                    this.setKeyboard('RIGHT', deltaTime, moveDirection);
                     break;
                 case ' ':
-                    this.setKeyboard('UP', deltaTime);
+                    this.setKeyboard('UP', deltaTime, moveDirection);
                     break;
                 case 'shift':
-                    this.setKeyboard('DOWN', deltaTime);
+                    this.setKeyboard('DOWN', deltaTime, moveDirection);
                     break;
                 }
             }
         };
+
+        const moveLength = vec3.length(moveDirection);
+        if(moveLength > 0.0) {
+            vec3.normalize(moveDirection, moveDirection);
+            vec3.scale(moveDirection, moveDirection, moveLength > velocity * 10 ? velocity * 10 : moveLength);
+            this._Rigidbody.addForce(moveDirection);
+        }
     }
 
     private jump(): void {
