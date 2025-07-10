@@ -244,21 +244,23 @@ export class ArmController {
     public update(
         deltaTime: number, 
         isMoving: boolean, 
-        velocityMagnitude: number
+        velocityMagnitude: number,
+        isJumping: boolean,
+        camera: Camera,
     ): void {
         const scaledDeltaTime = deltaTime;
         this._isMoving = isMoving;
 
         //Rotation
-            if(this._isMoving) {
+            if(this._isMoving || isJumping) {
                 this._targetRotationX = -20.0;
             } else {
                 this._targetRotationX = 0.0;
             }
-
-            this._currentRotationX += (this._targetRotationX - this._currentRotationX) * scaledDeltaTime * this._rotationSmoothFactor;
         //
-        
+        console.log(isJumping)
+            
+        this._currentRotationX += (this._targetRotationX - this._currentRotationX) * scaledDeltaTime * this._rotationSmoothFactor;
         this._movementTimer += deltaTime * this._bobSpeed;
         const moveTime = this._movementTimer * 2.0;
         this._targetSway = this._isMoving ? Math.sin(moveTime) * this._swayAmount : 0;

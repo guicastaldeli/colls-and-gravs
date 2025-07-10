@@ -13,7 +13,6 @@ export class PlayerController implements ICollidable {
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;
-    private _jumpForce: number = 20.0;
     
     private _worldUp: vec3 = vec3.fromValues(0, 1, 0);
     private _cameraOffset: vec3 = vec3.fromValues(0, 0, 0);
@@ -24,17 +23,24 @@ export class PlayerController implements ICollidable {
     private _movSpeed: number = 5.0;
     private _mouseSensv: number = 0.3;
 
-    private _Rigidbody: Rigidbody;
+    public _Rigidbody: Rigidbody;
     private _Collider: Collider;
     public _Collidables: ICollidable[] = [];
     private _GetColliders: GetColliders;
 
     //Movement
-    private _isMoving: boolean = true;
+    public _isMoving: boolean = true;
     private _movementTimer: number = 0.0;
     private _bobIntensity: number = 0.3;
     private _bobSpeed: number = 40.0;
     private _bobOffset: vec3 = vec3.create();
+    private _lastMovingState: boolean = false;
+    private _movmentStateChangeTime: number = 0.0;
+    private _movementStateDelay: number = 0.1;
+
+    //Jump
+    private _jumpForce: number = 35.0;
+    private _isJumping: boolean = false;
         
     constructor(
         tick: Tick,
@@ -157,6 +163,7 @@ export class PlayerController implements ICollidable {
 
     private jump(): void {
         if(this._Rigidbody.isColliding) {
+            this._isJumping = true;
             const force = vec3.fromValues(0, this._jumpForce, 0);
             this._Rigidbody.addForce(force);
         }
@@ -165,6 +172,7 @@ export class PlayerController implements ICollidable {
     private initJump(): void {
         document.addEventListener('keydown', (e) => {
             if(e.code === 'Space' && !e.repeat) {
+                this._isJumping = true;
                 this.jump();
             }
         });
@@ -328,6 +336,7 @@ export class PlayerController implements ICollidable {
     public getRight(): vec3 { return this._right; }
     public getVelocity(): vec3 { return this._Rigidbody.velocity; }
     public getBobOffset(): vec3 { return this._bobOffset; }
+    public isJumping(): boolean { return this._isJumping; }
     
     public update(deltaTime: number): void {
         if(this.tick.isPaused) {
@@ -335,10 +344,41 @@ export class PlayerController implements ICollidable {
             return;
         }
 
-        const velocity = vec3.length(this._Rigidbody.velocity);
-        this._isMoving = velocity > 0.1 && this._Rigidbody.isColliding;
-        this.updateMovAnimation(deltaTime);
+        const horizVelocity = vec3.fromValues(
+            this._Rigidbody.velocity[0],
+            0,
+            this._Rigidbody.velocity[2]
+        );
+        const velocity = vec3.length(horizVelocity);
+        const isGrounded = this._Rigidbody.isColliding && Math.abs(this._Rigidbody.velocity[1]) < 0.1;
+        const activeMove = velocity > 0.1;
 
+        if(activeMove && isGrounded) {
+            if(!this._lastMovingState) {
+                this._movmentStateChangeTime += deltaTime;
+                if(this._movmentStateChangeTime >= this._movementStateDelay) {
+                    this._isMoving = true;
+                    this._lastMovingState = true;
+                    this._movmentStateChangeTime = 0.0;
+                }
+            } else {
+                this._isMoving = true;
+            }
+        } else {
+            if(this._lastMovingState) {
+                this._movmentStateChangeTime += deltaTime;
+                if(this._movmentStateChangeTime >= this._movementStateDelay) {
+                    this._isMoving = false;
+                    this._isJumping = false;
+                    this._lastMovingState = false;
+                    this._movmentStateChangeTime = 0.0;
+                }
+            } else {
+                this._isMoving = false;
+            }
+        }
+
+        this.updateMovAnimation(deltaTime);
         this._Rigidbody.isColliding = false;
         this.checkCollisions();
         this._Rigidbody.update(deltaTime, this._position);

@@ -9,7 +9,6 @@ export class PlayerController {
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;
-    _jumpForce = 20.0;
     _worldUp = vec3.fromValues(0, 1, 0);
     _cameraOffset = vec3.fromValues(0, 0, 0);
     yaw = 0;
@@ -26,6 +25,12 @@ export class PlayerController {
     _bobIntensity = 0.3;
     _bobSpeed = 40.0;
     _bobOffset = vec3.create();
+    _lastMovingState = false;
+    _movmentStateChangeTime = 0.0;
+    _movementStateDelay = 0.1;
+    //Jump
+    _jumpForce = 35.0;
+    _isJumping = false;
     constructor(tick, _initialPosition, collidables) {
         this.tick = tick;
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
@@ -126,6 +131,7 @@ export class PlayerController {
     }
     jump() {
         if (this._Rigidbody.isColliding) {
+            this._isJumping = true;
             const force = vec3.fromValues(0, this._jumpForce, 0);
             this._Rigidbody.addForce(force);
         }
@@ -133,6 +139,7 @@ export class PlayerController {
     initJump() {
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && !e.repeat) {
+                this._isJumping = true;
                 this.jump();
             }
         });
@@ -263,13 +270,43 @@ export class PlayerController {
     getRight() { return this._right; }
     getVelocity() { return this._Rigidbody.velocity; }
     getBobOffset() { return this._bobOffset; }
+    isJumping() { return this._isJumping; }
     update(deltaTime) {
         if (this.tick.isPaused) {
             this.clearForces();
             return;
         }
-        const velocity = vec3.length(this._Rigidbody.velocity);
-        this._isMoving = velocity > 0.1 && this._Rigidbody.isColliding;
+        const horizVelocity = vec3.fromValues(this._Rigidbody.velocity[0], 0, this._Rigidbody.velocity[2]);
+        const velocity = vec3.length(horizVelocity);
+        const isGrounded = this._Rigidbody.isColliding && Math.abs(this._Rigidbody.velocity[1]) < 0.1;
+        const activeMove = velocity > 0.1;
+        if (activeMove && isGrounded) {
+            if (!this._lastMovingState) {
+                this._movmentStateChangeTime += deltaTime;
+                if (this._movmentStateChangeTime >= this._movementStateDelay) {
+                    this._isMoving = true;
+                    this._lastMovingState = true;
+                    this._movmentStateChangeTime = 0.0;
+                }
+            }
+            else {
+                this._isMoving = true;
+            }
+        }
+        else {
+            if (this._lastMovingState) {
+                this._movmentStateChangeTime += deltaTime;
+                if (this._movmentStateChangeTime >= this._movementStateDelay) {
+                    this._isMoving = false;
+                    this._isJumping = false;
+                    this._lastMovingState = false;
+                    this._movmentStateChangeTime = 0.0;
+                }
+            }
+            else {
+                this._isMoving = false;
+            }
+        }
         this.updateMovAnimation(deltaTime);
         this._Rigidbody.isColliding = false;
         this.checkCollisions();

@@ -132,7 +132,8 @@ export class Camera {
         const scaledDeltaTime = this.tick.getTimeScale() * deltaTime;
         const velocity = this.playerController.getVelocity();
         const velocityMagnitude = vec3.length(velocity);
-        const isMoving = velocityMagnitude > 0.1;
-        this.armController.update(scaledDeltaTime, isMoving, velocityMagnitude);
+        const isMoving = this.playerController._isMoving;
+        const isJumping = this.playerController.isJumping();
+        this.armController.update(scaledDeltaTime, isMoving, velocityMagnitude, isJumping, this);
     }
 }
