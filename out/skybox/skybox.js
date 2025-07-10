@@ -20,7 +20,7 @@ export class Skybox {
                 this.shaderLoader.loader('./skybox/shaders/skybox/vertex.wgsl'),
                 this.shaderLoader.loader('./skybox/shaders/skybox/frag.wgsl')
             ]);
-            const size = 1100;
+            const size = 100;
             const vertices = new Float32Array([
                 -size, -size, size, size, -size, size, size, size, size, -size, size, size,
                 -size, -size, -size, -size, size, -size, size, size, -size, size, -size, -size,
@@ -74,12 +74,11 @@ export class Skybox {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'back',
-                    frontFace: 'ccw'
+                    cullMode: 'none',
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthCompare: 'less-equal',
                     format: 'depth24plus'
                 }
             });
