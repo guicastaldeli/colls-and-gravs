@@ -114,11 +114,20 @@ export class Skybox {
         passEncoder.setVertexBuffer(2, this.stars.scaleBuffer);
         passEncoder.setVertexBuffer(3, this.stars.phaseBuffer);
         passEncoder.setVertexBuffer(4, this.stars.uvBuffer);
+        this.stars.currentBufferIndex = (this.stars.currentBufferIndex + 1) % this.stars.uniformBuffers.length;
+        const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
         const uniformData = new Float32Array(16 + 4);
         uniformData.set(viewProjectionMatrix, 0);
         uniformData[16] = time;
-        this.device.queue.writeBuffer(this.stars.uniformBuffer, 0, uniformData);
+        this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         passEncoder.draw(this.stars.numStars);
+        passEncoder.setBindGroup(0, this.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [{
+                    binding: 0,
+                    resource: { buffer: currentBuffer }
+                }]
+        }));
     }
     async init() {
         await this.createSkyBox();

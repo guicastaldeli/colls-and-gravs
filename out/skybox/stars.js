@@ -2,7 +2,8 @@ export class Stars {
     device;
     pipeline;
     vertexBuffer;
-    uniformBuffer;
+    uniformBuffers = [];
+    currentBufferIndex = 0;
     bindGroup;
     colorBuffer;
     scaleBuffer;
@@ -45,10 +46,7 @@ export class Stars {
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
             this.device.queue.writeBuffer(this.uvBuffer, 0, uv);
-            this.uniformBuffer = this.device.createBuffer({
-                size: 16 * 4 + 16,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
+            this.createUniformBuffers();
             this.pipeline = this.device.createRenderPipeline({
                 layout: 'auto',
                 vertex: {
@@ -118,7 +116,7 @@ export class Stars {
                 entries: [{
                         binding: 0,
                         resource: {
-                            buffer: this.uniformBuffer
+                            buffer: this.uniformBuffers[0]
                         }
                     }]
             });
@@ -126,6 +124,14 @@ export class Stars {
         catch (err) {
             console.log(err);
             throw err;
+        }
+    }
+    createUniformBuffers() {
+        for (let i = 0; i < 2; i++) {
+            this.uniformBuffers.push(this.device.createBuffer({
+                size: 16 * 4 + 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }));
         }
     }
     setStars(count) {
