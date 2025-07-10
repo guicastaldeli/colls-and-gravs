@@ -15,6 +15,7 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { ICollidable } from "./collision/collider.js";
 
+import { Skybox } from "./skybox/skybox.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 
 let pipeline: GPURenderPipeline;
@@ -32,6 +33,7 @@ let getColliders: GetColliders;
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
 
+let skybox: Skybox;
 let randomBlocks: RandomBlocks;
 
 async function toggleWireframe(): Promise<void> {
@@ -392,6 +394,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
 
         //Late Renderers
+            //Skybox
+            if(!skybox) {
+                skybox = new Skybox(device, shaderLoader);
+                await skybox.init();
+            }
+            skybox.render(passEncoder, viewProjectionMatrix, currentTime);
+
             //Render Arm
             if(camera && pipeline) {
                 camera.renderArm(

@@ -9,6 +9,7 @@ import { ShaderLoader } from "./shader-loader.js";
 import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
+import { Skybox } from "./skybox/skybox.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
@@ -22,6 +23,7 @@ let envRenderer;
 let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
+let skybox;
 let randomBlocks;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
@@ -339,6 +341,12 @@ export async function render(canvas) {
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         //Late Renderers
+        //Skybox
+        if (!skybox) {
+            skybox = new Skybox(device, shaderLoader);
+            await skybox.init();
+        }
+        skybox.render(passEncoder, viewProjectionMatrix, currentTime);
         //Render Arm
         if (camera && pipeline) {
             camera.renderArm(device, pipeline, passEncoder, canvas);

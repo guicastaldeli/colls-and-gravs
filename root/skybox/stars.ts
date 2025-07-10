@@ -10,6 +10,7 @@ export class Stars {
     public colorBuffer!: GPUBuffer;
     public scaleBuffer!: GPUBuffer;
     public phaseBuffer!: GPUBuffer;
+    public uvBuffer!: GPUBuffer;
     public numStars: number = 300;
     private shaderLoader: ShaderLoader;
 
@@ -29,7 +30,8 @@ export class Stars {
                 pos,
                 color,
                 scale,
-                phase
+                phase,
+                uv
             } = this.setStars(this.numStars);
 
             this.vertexBuffer = this.device.createBuffer({
@@ -46,7 +48,7 @@ export class Stars {
 
             this.scaleBuffer = this.device.createBuffer({
                 size: scale.byteLength,
-                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
             this.device.queue.writeBuffer(this.scaleBuffer, 0, scale);
 
@@ -54,10 +56,16 @@ export class Stars {
                 size: phase.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
+            
+            this.uvBuffer = this.device.createBuffer({
+                size: uv.byteLength,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+            });
+            this.device.queue.writeBuffer(this.uvBuffer, 0, uv);
     
             this.uniformBuffer = this.device.createBuffer({
-                size: 16 * 4 + 4,
-                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+                size: 16 * 4 + 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
 
             this.pipeline = this.device.createRenderPipeline({
@@ -96,6 +104,14 @@ export class Stars {
                                 shaderLocation: 3,
                                 offset: 0,
                                 format: 'float32'
+                            }]
+                        },
+                        {
+                            arrayStride: 2 * 4,
+                            attributes: [{
+                                shaderLocation: 4,
+                                offset: 0,
+                                format: 'float32x2'
                             }]
                         }
                     ]
@@ -137,6 +153,7 @@ export class Stars {
         const color = new Float32Array(count * 3);
         const scale = new Float32Array(count);
         const phase = new Float32Array(count);
+        const uv = new Float32Array(count * 2);
 
         for(let i = 0; i < count; i++) {
             const radius = 50;
@@ -146,6 +163,9 @@ export class Stars {
             pos[i * 3] = radius * Math.sin(p) * Math.cos(t);
             pos[i * 3 + 1] = radius * Math.sin(p) * Math.sin(t);
             pos[i * 3 + 2] = radius * Math.cos(p);
+
+            uv[i * 2] = (i % 2) * 2 - 1;
+            uv[i * 2 + 1] = Math.floor(i / 2) % 2 * 2 - 1;
 
             if(Math.random() > 0.2) {
                 color[i * 3] = 1.0;
@@ -165,7 +185,8 @@ export class Stars {
             pos,
             color,
             scale,
-            phase
+            phase,
+            uv
         }
     }
 }

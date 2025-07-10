@@ -49,7 +49,7 @@ export class Skybox {
             this.device.queue.writeBuffer(this.indexBuffer, 0, indices);
             this.uniformBuffer = this.device.createBuffer({
                 size: 16 * 4,
-                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
             this.pipeline = this.device.createRenderPipeline({
                 layout: 'auto',
@@ -113,7 +113,8 @@ export class Skybox {
         passEncoder.setVertexBuffer(1, this.stars.colorBuffer);
         passEncoder.setVertexBuffer(2, this.stars.scaleBuffer);
         passEncoder.setVertexBuffer(3, this.stars.phaseBuffer);
-        const uniformData = new Float32Array(16 + 1);
+        passEncoder.setVertexBuffer(4, this.stars.uvBuffer);
+        const uniformData = new Float32Array(16 + 4);
         uniformData.set(viewProjectionMatrix, 0);
         uniformData[16] = time;
         this.device.queue.writeBuffer(this.stars.uniformBuffer, 0, uniformData);
