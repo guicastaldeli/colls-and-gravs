@@ -29,7 +29,13 @@ export class ArmController {
     //Rotation
     private _currentRotationX: number = 0.0;
     private _targetRotationX: number = 0.0;
-    private _rotationSmoothFactor: number = 5.0;
+    private _rotationSmoothFactor: number = 3.0;
+
+    //Delay
+    private _delayedForward: vec3 = vec3.create();
+    private _delayedRight: vec3 = vec3.create();
+    private _delayedUp: vec3 = vec3.create();
+    private _delayFactor: number = 0.1;
 
     //Size
     private size = {
@@ -99,16 +105,20 @@ export class ArmController {
         cameraRight: vec3,
         cameraUp: vec3
     ): mat4 {
+        vec3.lerp(this._delayedForward, this._delayedForward, cameraForward, this._delayFactor);
+        vec3.lerp(this._delayedRight, this._delayedRight, cameraRight, this._delayFactor);
+        vec3.lerp(this._delayedUp, this._delayedUp, cameraUp, this._delayFactor);
+
         const modelMatrix = mat4.create();
 
         const baseOffset = vec3.create();
-        vec3.scaleAndAdd(baseOffset, baseOffset, cameraForward, this.pos.z);
+        vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, this.pos.z);
 
         const rightOffset = vec3.create();
-        vec3.scale(rightOffset, cameraRight, this.pos.x);
+        vec3.scale(rightOffset, this._delayedRight, this.pos.x);
 
         const upOffset = vec3.create();
-        vec3.scale(upOffset, cameraUp, this.pos.y);
+        vec3.scale(upOffset, this._delayedUp, this.pos.y);
 
         const finalPosition = vec3.create();
         vec3.add(finalPosition, cameraPosition, baseOffset);
@@ -248,20 +258,24 @@ export class ArmController {
         isJumping: boolean,
         camera: Camera,
     ): void {
-        const scaledDeltaTime = deltaTime;
+        const scaledDeltaTime = deltaTime * this.tick.getTimeScale();
         this._isMoving = isMoving;
+        let targetPosition = vec3.clone(this._restPosition);
 
         //Rotation
             if(this._isMoving || isJumping) {
                 this._targetRotationX = -20.0;
+                targetPosition[0] += Math.sin(this._movementTimer * 0.5) * this._bobIntensity;
+                targetPosition[1] += Math.sin(this._movementTimer) * this._bobIntensity;
             } else {
                 this._targetRotationX = 0.0;
             }
         //
-            
+        
         this._currentRotationX += (this._targetRotationX - this._currentRotationX) * scaledDeltaTime * this._rotationSmoothFactor;
         this._movementTimer += deltaTime * this._bobSpeed;
         const moveTime = this._movementTimer * 2.0;
+        
         this._targetSway = this._isMoving ? Math.sin(moveTime) * this._swayAmount : 0;
         this._currentSway += (this._targetSway - this._currentSway) * deltaTime * this._smoothFactor;
         this.updateBobPosition(deltaTime);

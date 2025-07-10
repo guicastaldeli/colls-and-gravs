@@ -18,7 +18,12 @@ export class ArmController {
     //Rotation
     _currentRotationX = 0.0;
     _targetRotationX = 0.0;
-    _rotationSmoothFactor = 5.0;
+    _rotationSmoothFactor = 3.0;
+    //Delay
+    _delayedForward = vec3.create();
+    _delayedRight = vec3.create();
+    _delayedUp = vec3.create();
+    _delayFactor = 0.1;
     //Size
     size = {
         w: 1.0,
@@ -64,13 +69,16 @@ export class ArmController {
         vec3.copy(this._position, this._restPosition);
     }
     getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp) {
+        vec3.lerp(this._delayedForward, this._delayedForward, cameraForward, this._delayFactor);
+        vec3.lerp(this._delayedRight, this._delayedRight, cameraRight, this._delayFactor);
+        vec3.lerp(this._delayedUp, this._delayedUp, cameraUp, this._delayFactor);
         const modelMatrix = mat4.create();
         const baseOffset = vec3.create();
-        vec3.scaleAndAdd(baseOffset, baseOffset, cameraForward, this.pos.z);
+        vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, this.pos.z);
         const rightOffset = vec3.create();
-        vec3.scale(rightOffset, cameraRight, this.pos.x);
+        vec3.scale(rightOffset, this._delayedRight, this.pos.x);
         const upOffset = vec3.create();
-        vec3.scale(upOffset, cameraUp, this.pos.y);
+        vec3.scale(upOffset, this._delayedUp, this.pos.y);
         const finalPosition = vec3.create();
         vec3.add(finalPosition, cameraPosition, baseOffset);
         vec3.add(finalPosition, finalPosition, rightOffset);
@@ -166,11 +174,14 @@ export class ArmController {
         passEncoder.drawIndexed(this.armModel.indexCount);
     }
     update(deltaTime, isMoving, velocityMagnitude, isJumping, camera) {
-        const scaledDeltaTime = deltaTime;
+        const scaledDeltaTime = deltaTime * this.tick.getTimeScale();
         this._isMoving = isMoving;
+        let targetPosition = vec3.clone(this._restPosition);
         //Rotation
         if (this._isMoving || isJumping) {
             this._targetRotationX = -20.0;
+            targetPosition[0] += Math.sin(this._movementTimer * 0.5) * this._bobIntensity;
+            targetPosition[1] += Math.sin(this._movementTimer) * this._bobIntensity;
         }
         else {
             this._targetRotationX = 0.0;
