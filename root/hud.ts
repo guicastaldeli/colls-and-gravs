@@ -110,8 +110,8 @@ export class Hud {
     private async initShaders(): Promise<void> {
         try {
             const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./shaders/hud-vertex.wgsl'),
-                this.shaderLoader.loader('./shaders/hud-frag.wgsl')
+                this.shaderLoader.loader('./shaders/hud/vertex.wgsl'),
+                this.shaderLoader.loader('./shaders/hud/frag.wgsl')
             ]);
 
             this.pipeline = this.device.createRenderPipeline({
