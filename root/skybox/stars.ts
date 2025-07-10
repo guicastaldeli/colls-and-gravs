@@ -13,7 +13,7 @@ export class Stars {
     public scaleBuffer!: GPUBuffer;
     public phaseBuffer!: GPUBuffer;
     public uvBuffer!: GPUBuffer;
-    public numStars: number = 300;
+    public numStars: number = 5000;
     private shaderLoader: ShaderLoader;
 
     constructor(device: GPUDevice, shaderLoader: ShaderLoader) {
@@ -58,6 +58,7 @@ export class Stars {
                 size: phase.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
+            this.device.queue.writeBuffer(this.phaseBuffer, 0, phase);
             
             this.uvBuffer = this.device.createBuffer({
                 size: uv.byteLength,
@@ -131,15 +132,28 @@ export class Stars {
                     module: fragShader,
                     entryPoint: 'main',
                     targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat()
+                        format: navigator.gpu.getPreferredCanvasFormat(),
+                        blend: {
+                            color: {
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha',
+                                operation: 'add'
+                            },
+                            alpha: {
+                                srcFactor: 'one',
+                                dstFactor: 'one-minus-src-alpha',
+                                operation: 'add'
+                            }
+                        },
+                        writeMask: GPUColorWrite.ALL
                     }]
                 },
                 primitive: {
-                    topology: 'point-list'
+                    topology: 'triangle-list',
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthCompare: 'less-equal',
                     format: 'depth24plus'
                 }
             });
@@ -169,6 +183,7 @@ export class Stars {
     }
 
     private setStars(count: number) {
+        const verticesPerStar = 6;
         const pos = new Float32Array(count * 3);
         const color = new Float32Array(count * 3);
         const scale = new Float32Array(count);
@@ -176,29 +191,44 @@ export class Stars {
         const uv = new Float32Array(count * 2);
 
         for(let i = 0; i < count; i++) {
-            const radius = 50;
+            const radius = 20;
             const t = Math.random() * Math.PI * 2;
             const p = Math.acos(2 * Math.random() - 1);
 
-            pos[i * 3] = radius * Math.sin(p) * Math.cos(t);
-            pos[i * 3 + 1] = radius * Math.sin(p) * Math.sin(t);
-            pos[i * 3 + 2] = radius * Math.cos(p);
+            const x = radius * Math.sin(p) * Math.cos(t) * 8;
+            const y = radius * Math.sin(p) * Math.sin(t) * 5;
+            const z = radius * Math.cos(p) * 10;
 
-            uv[i * 2] = (i % 2) * 2 - 1;
-            uv[i * 2 + 1] = Math.floor(i / 2) % 2 * 2 - 1;
+            const starScale = 0.1 + Math.random() * 0.4;
+            const starPhase = Math.random() * Math.PI * 2;
+            let starColor = Math.random() * 0.7 ?
+            [1.0, 1.0, 1.0] :
+            [0.3, 0.3, 0.3];
 
-            if(Math.random() > 0.2) {
-                color[i * 3] = 1.0;
-                color[i * 3 + 1] = 1.0;
-                color[i * 3 + 2] = 1.0;
-            } else {
-                color[i * 3] = 1.0 + Math.random() * 0.3;
-                color[i * 3 + 1] = 0.7 + Math.random() * 0.3;
-                color[i * 3 + 2] = 0.6 + Math.random() * 0.3
+            const baseIndex = i * verticesPerStar;
+            
+            for(let v = 0; v < verticesPerStar; v++) {
+                const vertexIndex = i * verticesPerStar + v;
+
+                pos[vertexIndex * 3] = x;
+                pos[vertexIndex * 3 + 1] = y;
+                pos[vertexIndex * 3 + 2] = z;
+
+                color[vertexIndex * 3] = starColor[0];
+                color[vertexIndex * 3 + 1] = starColor[1];
+                color[vertexIndex * 3 + 2] = starColor[2];
+
+                scale[vertexIndex] = starScale;
+                phase[vertexIndex] = starPhase;
             }
 
-            scale[i] = 0.1 + Math.random() * 4;
-            phase[i] = Math.random() * Math.PI * 2;
+            uv[(baseIndex + 0) * 2] = 0.0; uv[(baseIndex + 0) * 2 + 1] = 0.0;
+            uv[(baseIndex + 1) * 2] = 1.0; uv[(baseIndex + 1) * 2 + 1] = 0.0;
+            uv[(baseIndex + 2) * 2] = 0.0; uv[(baseIndex + 2) * 2 + 1] = 1.0;
+            
+            uv[(baseIndex + 3) * 2] = 1.0; uv[(baseIndex + 3) * 2 + 1] = 0.0;
+            uv[(baseIndex + 4) * 2] = 1.0; uv[(baseIndex + 4) * 2 + 1] = 1.0;
+            uv[(baseIndex + 5) * 2] = 0.0; uv[(baseIndex + 5) * 2 + 1] = 1.0;
         }
 
         return {

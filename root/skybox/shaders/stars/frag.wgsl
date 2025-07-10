@@ -15,14 +15,15 @@ struct VertexOutput {
 
 @fragment
 fn main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let coord = input.uv - vec2<f32>(0.5);
+    let coord = input.uv * 2.0 - 1.0;
     let dist = length(coord);
-    let threshold = 0.5 * (1.0 - smoothstep(0.0, 1.0, input.size / 10.0));
+
+    let threshold = 0.8;
     if(dist > threshold) {
         discard;
     }
 
-    let twinkle = sin(uniforms.time * 2.0 + input.phase * 30.0) * 0.2 + 0.8;
+    let twinkle = sin(uniforms.time * 2.0 + input.phase * 30.0) * 0.9 + 1.0;
     let starColor = input.color * twinkle;
 
     let alpha = 1.0 - smoothstep(threshold * 0.8, threshold, dist);

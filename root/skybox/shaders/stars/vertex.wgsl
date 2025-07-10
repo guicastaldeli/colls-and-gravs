@@ -1,6 +1,6 @@
 struct Uniforms {
     mvp: mat4x4<f32>,
-    time: f32
+    time: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -23,12 +23,15 @@ fn main(
 ) -> VertexOutput {
     var output: VertexOutput;
 
-    output.position = uniforms.mvp * vec4<f32>(position, 1.0);
+    let finalSize = 300.0 * scale;
+    let center = uniforms.mvp * vec4<f32>(position, 1.0);
+    var offset = (uv - vec2<f32>(0.5)) * finalSize * 0.01;
+    let aspect = 1920.0 / 1080.0;
+    offset.x *= 1.0 / aspect;
 
-    let twinkle = sin(uniforms.time * 2.0 + phase * 30.0) * 0.5 + 1.5;
-    let finalSize = 0.3 * scale * twinkle;
-
-    output.size = finalSize * (300.0 / -output.position.z);
+    output.position = center + vec4<f32>(offset, 0.0, 0.0);
+    output.position.z = output.position.w * 0.999;
+    output.size = finalSize;
     output.color = color;
     output.phase = phase;
     output.uv = uv;

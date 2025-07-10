@@ -359,7 +359,7 @@ export async function render(canvas) {
         //Late Renderers
         //Skybox
         if (!skybox) {
-            skybox = new Skybox(device, shaderLoader);
+            skybox = new Skybox(tick, device, shaderLoader);
             await skybox.init();
         }
         await skybox.render(passEncoder, viewProjectionMatrix, currentTime);

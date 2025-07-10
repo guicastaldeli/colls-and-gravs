@@ -1,5 +1,6 @@
 import { Stars } from "./stars.js";
 export class Skybox {
+    tick;
     device;
     vertexBuffer;
     indexBuffer;
@@ -9,7 +10,8 @@ export class Skybox {
     shaderLoader;
     //Stars
     stars;
-    constructor(device, shaderLoader) {
+    constructor(tick, device, shaderLoader) {
+        this.tick = tick;
         this.device = device;
         this.shaderLoader = shaderLoader;
         this.stars = new Stars(this.device, this.shaderLoader);
@@ -20,7 +22,7 @@ export class Skybox {
                 this.shaderLoader.loader('./skybox/shaders/skybox/vertex.wgsl'),
                 this.shaderLoader.loader('./skybox/shaders/skybox/frag.wgsl')
             ]);
-            const size = 100;
+            const size = 300;
             const vertices = new Float32Array([
                 -size, -size, size, size, -size, size, size, size, size, -size, size, size,
                 -size, -size, -size, -size, size, -size, size, size, -size, size, -size, -size,
@@ -98,6 +100,7 @@ export class Skybox {
         }
     }
     async render(passEncoder, viewProjectionMatrix, time) {
+        const scaledTime = time * this.tick.getTimeScale();
         //Skybox
         this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix);
         passEncoder.setPipeline(this.pipeline);
@@ -111,7 +114,7 @@ export class Skybox {
         const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
         const uniformData = new Float32Array(20);
         uniformData.set(viewProjectionMatrix, 0);
-        uniformData[16] = time;
+        uniformData[16] = scaledTime / 800;
         this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         passEncoder.setPipeline(this.stars.pipeline);
         passEncoder.setBindGroup(0, this.stars.bindGroups[this.stars.currentBufferIndex]);

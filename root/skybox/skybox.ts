@@ -1,8 +1,11 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+
+import { Tick } from "../tick.js";
 import { ShaderLoader } from "../shader-loader.js";
 import { Stars } from "./stars.js";
 
 export class Skybox {
+    private tick: Tick;
     private device: GPUDevice;
     private vertexBuffer!: GPUBuffer;
     private indexBuffer!: GPUBuffer;
@@ -14,7 +17,12 @@ export class Skybox {
     //Stars
     private stars: Stars;
 
-    constructor(device: GPUDevice, shaderLoader: ShaderLoader) {
+    constructor(
+        tick: Tick,
+        device: GPUDevice, 
+        shaderLoader: ShaderLoader
+    ) {
+        this.tick = tick;
         this.device = device;
         this.shaderLoader = shaderLoader;
         this.stars = new Stars(this.device, this.shaderLoader);
@@ -27,7 +35,7 @@ export class Skybox {
                 this.shaderLoader.loader('./skybox/shaders/skybox/frag.wgsl')
             ]);
 
-            const size = 100;
+            const size = 300;
             const vertices = new Float32Array([
                 -size, -size,  size, size, -size,  size, size,  size,  size, -size,  size,  size,
                 -size, -size, -size, -size,  size, -size, size,  size, -size, size, -size, -size,
@@ -115,6 +123,8 @@ export class Skybox {
         viewProjectionMatrix: mat4,
         time: number
     ): Promise<void> {
+        const scaledTime = time * this.tick.getTimeScale();
+
         //Skybox
         this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix as Float32Array);
         passEncoder.setPipeline(this.pipeline);
@@ -130,7 +140,7 @@ export class Skybox {
         const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
         const uniformData = new Float32Array(20);
         uniformData.set(viewProjectionMatrix as Float32Array, 0);
-        uniformData[16] = time;
+        uniformData[16] = scaledTime / 800;
         this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         
         passEncoder.setPipeline(this.stars.pipeline);
