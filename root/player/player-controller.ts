@@ -39,7 +39,7 @@ export class PlayerController implements ICollidable {
     private _movementStateDelay: number = 0.1;
 
     //Jump
-    private _jumpForce: number = 35.0;
+    private _jumpForce: number = 25.0;
     private _isJumping: boolean = false;
         
     constructor(

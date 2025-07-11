@@ -318,7 +318,7 @@ async function ambientLight() {
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);
     const light = new AmbientLight(colorArray, 1.0);
-    lightningManager.addLight('ambient', light);
+    lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }
 //Render

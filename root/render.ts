@@ -367,7 +367,7 @@ async function ambientLight(): Promise<void> {
     const colorArray = parseColor(color);
 
     const light = new AmbientLight(colorArray, 1.0);
-    lightningManager.addLight('ambient', light);
+    lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }
 

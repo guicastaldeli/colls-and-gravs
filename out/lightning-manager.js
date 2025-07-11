@@ -5,52 +5,75 @@ export class LightningManager {
     uniformBuffer = null;
     constructor(device) {
         this.device = device;
-        this.initBaseBuffer();
+        this.initBuffer();
     }
-    initBaseBuffer() {
+    initBuffer() {
         this.uniformBuffer = this.device.createBuffer({
             size: 256,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
-    getLightBuffer(id) {
-        return this.lightBuffers.get(id) ?? null;
-    }
-    addLight(id, ambientLight) {
-        this.lights.set(id, ambientLight);
+    addLight(id, type, light) {
+        this.lights.set(id, { type, light });
         if (!this.lightBuffers.has(id)) {
+            const bufferSize = {
+                'ambient': 16,
+                'directional': 32
+            };
             this.lightBuffers.set(id, this.device.createBuffer({
-                size: 16,
+                size: bufferSize[type],
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             }));
         }
         this.updateLightBuffer(id);
     }
+    getLightBuffer(id) {
+        return this.lightBuffers.get(id) ?? null;
+    }
     getLight(id) {
-        return this.lights.get(id) || null;
-    }
-    removeLight(id) {
-        const buffer = this.lightBuffers.get(id);
-        if (buffer)
-            buffer.destroy();
-        this.lights.delete(id);
-        this.lightBuffers.delete(id);
-    }
-    cleanup() {
-        this.lightBuffers.forEach(buffer => buffer.destroy());
-        this.lights.clear();
-        this.lightBuffers.clear();
-        if (this.uniformBuffer)
-            this.uniformBuffer.destroy();
+        return this.lights.get(id)?.light || null;
     }
     updateLightBuffer(id) {
-        const light = this.lights.get(id);
+        const lightData = this.lights.get(id);
         const buffer = this.lightBuffers.get(id);
-        if (light && buffer) {
-            const data = new Float32Array(4);
-            data.set(light.getColorWithIntensity(), 0);
-            data[3] = light.intensity;
-            this.device.queue.writeBuffer(buffer, 0, data);
+        if (!lightData || !buffer)
+            return;
+        const { type, light } = lightData;
+        let data = null;
+        if (type === 'ambient') {
+            const ambientLight = light;
+            data = new Float32Array(4);
+            data.set(ambientLight.getColorWithIntensity(), 0);
+            data[3] = ambientLight.intensity;
         }
+        if (type === 'directional') {
+            const directionalLight = light;
+            data = new Float32Array(8);
+            data.set(directionalLight._direction, 0);
+            data.set(directionalLight._color, 3);
+            data[6] = directionalLight._intensity;
+        }
+        if (data)
+            this.device.queue.writeBuffer(buffer, 0, data);
+    }
+    updateAllLightBuffers() {
+        this.lights.forEach((_, id) => this.updateLightBuffer(id));
+    }
+    //Ambient Light
+    addAmbientLight(id, light) {
+        this.addLight(id, 'ambient', light);
+    }
+    getAmbientLight(id) {
+        const light = this.lights.get(id);
+        return light?.type === 'ambient' ? light.light : null;
+    }
+    //
+    //Directional Light
+    addDirectionalLight(id, light) {
+        this.addLight(id, 'directional', light);
+    }
+    getDirectionalLight(id) {
+        const light = this.lights.get(id);
+        return light?.type === 'directional' ? light.light : null;
     }
 }

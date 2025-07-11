@@ -29,7 +29,7 @@ export class PlayerController {
     _movmentStateChangeTime = 0.0;
     _movementStateDelay = 0.1;
     //Jump
-    _jumpForce = 35.0;
+    _jumpForce = 25.0;
     _isJumping = false;
     constructor(tick, _initialPosition, collidables) {
         this.tick = tick;
