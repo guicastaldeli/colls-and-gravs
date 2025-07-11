@@ -16,6 +16,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { ICollidable } from "./collision/collider.js";
 
 import { Skybox } from "./skybox/skybox.js";
+import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 
 let pipeline: GPURenderPipeline;
@@ -37,6 +38,7 @@ let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
 
 let skybox: Skybox;
+let lightningManager: LightningManager;
 let randomBlocks: RandomBlocks;
 
 async function toggleWireframe(): Promise<void> {
@@ -225,6 +227,12 @@ async function setBuffers(
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
+    //Lightning
+        const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
+        if(!ambientLightBuffer) console.error('Ambient light error');
+        lightningManager.updateLightBuffer('ambient');
+    //
+
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
@@ -235,6 +243,14 @@ async function setBuffers(
                     buffer: uniformBuffer,
                     offset: 0,
                     size: 256
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: ambientLightBuffer!,
+                    offset: 0,
+                    size: 16
                 }
             }
         ]
@@ -322,6 +338,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!pipeline) await initShaders();
         await renderer(device);
 
+        //Lightning
+        if(!lightningManager) lightningManager = new LightningManager(device);
+
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!randomBlocks) {
@@ -330,7 +349,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 device, 
                 loader, 
                 shaderLoader, 
-                envRenderer.ground
+                envRenderer.ground,
+                lightningManager
             );
         }
         if(deltaTime) randomBlocks.update(deltaTime);
@@ -375,7 +395,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             depthTexture = null;
         }
         
-        if(!depthTexture ) {
+        if(!depthTexture) {
             depthTexture = device.createTexture({
                 size: [canvas.width, canvas.height],
                 format: 'depth24plus',

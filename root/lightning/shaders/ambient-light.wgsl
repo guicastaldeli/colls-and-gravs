@@ -17,12 +17,8 @@ struct AmbientLight {
 @fragment
 fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(texMap, texSampler, input.texCoord);
-    let finalColor = mix(texColor.rgb, input.color, 0.1);
-
-    let lightDir = normalize(vec3f(1.0, 1.0, 1.0));
-    let lightIntensity = max(dot(input.normal, lightDir), 0.3);
+    let color = mix(texColor.rgb, input.color, 0.1);
     let ambient = ambientLight.color * ambientLight.intensity;
-    let litColor = finalColor * (lightIntensity + ambient);
 
-    return vec4f(litColor, texColor.a);
+    return vec4f(color * ambient, texColor.a);
 }

@@ -10,6 +10,7 @@ import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { Skybox } from "./skybox/skybox.js";
+import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
@@ -27,6 +28,7 @@ let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
 let skybox;
+let lightningManager;
 let randomBlocks;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
@@ -200,6 +202,12 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         size: bufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
+    //Lightning
+    const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
+    if (!ambientLightBuffer)
+        console.error('Ambient light error');
+    lightningManager.updateLightBuffer('ambient');
+    //
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
@@ -210,6 +218,14 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                     buffer: uniformBuffer,
                     offset: 0,
                     size: 256
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: ambientLightBuffer,
+                    offset: 0,
+                    size: 16
                 }
             }
         ]
@@ -287,10 +303,13 @@ export async function render(canvas) {
         if (!pipeline)
             await initShaders();
         await renderer(device);
+        //Lightning
+        if (!lightningManager)
+            lightningManager = new LightningManager(device);
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks) {
-            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground);
+            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground, lightningManager);
         }
         if (deltaTime)
             randomBlocks.update(deltaTime);

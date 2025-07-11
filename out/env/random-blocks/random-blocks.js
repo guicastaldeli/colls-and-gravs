@@ -49,8 +49,8 @@ export class RandomBlocks {
     physicsGrid;
     ground;
     //Lightning
-    ambientLight;
-    constructor(tick, device, loader, shaderLoader, ground) {
+    lightningManager;
+    constructor(tick, device, loader, shaderLoader, ground, lightningManager) {
         this.tick = tick;
         this.device = device;
         this.loader = loader;
@@ -64,7 +64,8 @@ export class RandomBlocks {
         this.physicsSystem = new PhysicsSystem(ground);
         this.physicsGrid = new PhysicsGrid(2.0);
         this.ground = ground;
-        this.ambientLight = new AmbientLight([1, 1, 1], 0.1);
+        this.lightningManager = lightningManager;
+        this.lightningManager.addLight('ambient', new AmbientLight([1, 1, 1], 0.1));
     }
     async preloadAssets() {
         for (const item of ListData) {
