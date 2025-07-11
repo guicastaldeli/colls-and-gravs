@@ -16,6 +16,7 @@ import { PhysicsGrid } from "../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
 import { ListType } from "./list-type.js";
 import { Ground } from "../ground.js";
+import { AmbientLight } from "../../lightning/ambient-light.js";
 
 interface BlockData {
     id: string,
@@ -89,6 +90,9 @@ export class RandomBlocks implements ICollidable {
     private physicsGrid: PhysicsGrid;
     private ground: Ground;
 
+    //Lightning
+    public ambientLight: AmbientLight;
+
     constructor(
         tick: Tick,
         device: GPUDevice, 
@@ -112,6 +116,8 @@ export class RandomBlocks implements ICollidable {
         this.physicsGrid = new PhysicsGrid(2.0);
 
         this.ground = ground;
+
+        this.ambientLight = new AmbientLight([1, 1, 1], 0.1);
     }
 
     public async preloadAssets(): Promise<void> {

@@ -203,14 +203,16 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
-        entries: [{
+        entries: [
+            {
                 binding: 0,
                 resource: {
                     buffer: uniformBuffer,
                     offset: 0,
                     size: 256
                 }
-            }]
+            }
+        ]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
     for (let i = 0; i < renderBuffers.length; i++) {

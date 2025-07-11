@@ -228,14 +228,16 @@ async function setBuffers(
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
-        entries: [{
-            binding: 0,
-            resource: {
-                buffer: uniformBuffer,
-                offset: 0,
-                size: 256
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 0,
+                    size: 256
+                }
             }
-        }]
+        ]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline! : pipeline);
 
@@ -436,7 +438,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             //Random Blocks
             if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
         //
-
+        
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
         requestAnimationFrame(() => render(canvas));
