@@ -8,7 +8,6 @@ import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
-import { AmbientLight } from "../../lightning/ambient-light.js";
 export class RandomBlocks {
     tick;
     device;
@@ -48,8 +47,6 @@ export class RandomBlocks {
     physicsObjects = new Map();
     physicsGrid;
     ground;
-    //Lightning
-    lightningManager;
     constructor(tick, device, loader, shaderLoader, ground, lightningManager) {
         this.tick = tick;
         this.device = device;
@@ -64,8 +61,6 @@ export class RandomBlocks {
         this.physicsSystem = new PhysicsSystem(ground);
         this.physicsGrid = new PhysicsGrid(2.0);
         this.ground = ground;
-        this.lightningManager = lightningManager;
-        this.lightningManager.addLight('ambient', new AmbientLight([1, 1, 1], 0.1));
     }
     async preloadAssets() {
         for (const item of ListData) {

@@ -91,9 +91,6 @@ export class RandomBlocks implements ICollidable {
     private physicsGrid: PhysicsGrid;
     private ground: Ground;
 
-    //Lightning
-    private lightningManager: LightningManager;
-
     constructor(
         tick: Tick,
         device: GPUDevice, 
@@ -118,9 +115,6 @@ export class RandomBlocks implements ICollidable {
         this.physicsGrid = new PhysicsGrid(2.0);
 
         this.ground = ground;
-
-        this.lightningManager = lightningManager;
-        this.lightningManager.addLight('ambient', new AmbientLight([1, 1, 1], 0.1));
     }
 
     public async preloadAssets(): Promise<void> {

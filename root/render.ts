@@ -9,6 +9,7 @@ import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
+import { ShaderComposer } from "./shader-composer.js";
 import { PlayerController } from "./player/player-controller.js";
 import { ArmController } from "./player/arm-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
@@ -18,6 +19,7 @@ import { ICollidable } from "./collision/collider.js";
 import { Skybox } from "./skybox/skybox.js";
 import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
+import { AmbientLight } from "./lightning/ambient-light.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -30,6 +32,7 @@ let camera: Camera;
 let input: Input;
 let loader: Loader;
 let shaderLoader: ShaderLoader;
+let shaderComposer: ShaderComposer;
 let playerController: PlayerController;
 let envRenderer: EnvRenderer;
 let getColliders: GetColliders;
@@ -55,10 +58,22 @@ toggleWireframe();
 
 async function initShaders(): Promise<void> {
     try {
-        const [vertexShader, fragShader] = await Promise.all([
+        const [
+            vertexShader, 
+            fragSrc,
+            ambientLightSrc
+        ] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
-            shaderLoader.loader('./shaders/frag.wgsl')
+            shaderLoader.sourceLoader('./shaders/frag.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl')
         ]);
+
+        const combinedFragCode = await shaderComposer.combineShader(
+            fragSrc,
+            ambientLightSrc
+        );
+
+        const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -334,6 +349,29 @@ async function setBuffers(
     }
 }
 
+//Color Parser
+function parseColor(rgb: string): [number, number, number] {
+    const matches = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+    if(!matches) throw new Error('Invalid RGB string or format!');
+
+    return [
+        parseInt(matches[1]) / 255,
+        parseInt(matches[2]) / 255,
+        parseInt(matches[3]) / 255
+    ];
+}
+
+//Lightning
+async function ambientLight(): Promise<void> {
+    const color = 'rgb(255, 255, 255)';
+    const colorArray = parseColor(color);
+
+    const light = new AmbientLight(colorArray, 1.0);
+    lightningManager.addLight('ambient', light);
+    lightningManager.updateLightBuffer('ambient');
+}
+
+//Render
 async function renderer(device: GPUDevice): Promise<void> {
     if(!envRenderer) {
         envRenderer = new EnvRenderer(device, loader);
@@ -353,11 +391,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Render Related
         if(!loader) loader = new Loader(device);
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
+        if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initShaders();
         await renderer(device);
 
         //Lightning
         if(!lightningManager) lightningManager = new LightningManager(device);
+        ambientLight();
 
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();

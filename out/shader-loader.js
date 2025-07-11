@@ -8,4 +8,8 @@ export class ShaderLoader {
         const code = await res.text();
         return this.device.createShaderModule({ code });
     }
+    async sourceLoader(url) {
+        const res = await fetch(url);
+        return await res.text();
+    }
 }

@@ -1,23 +1,10 @@
-@group(1) @binding(0) var texSampler: sampler;
-@group(1) @binding(1) var texMap: texture_2d<f32>;
-@group(1) @binding(2) var<uniform> ambientLight: AmbientLight;
-
-struct FragmentInput {
-    @location(0) texCoord: vec2f,
-    @location(1) color: vec3f,
-    @location(2) normal: vec3f
-}
+@group(2) @binding(0) var <uniform> ambientLight: AmbientLight;
 
 struct AmbientLight {
     color: vec3f,
     intensity: f32
 }
 
-@fragment
-fn main(input: FragmentInput) -> @location(0) vec4f {
-    var texColor = textureSample(texMap, texSampler, input.texCoord);
-    let color = mix(texColor.rgb, input.color, 0.1);
-    let ambient = ambientLight.color * ambientLight.intensity;
-
-    return vec4f(color, texColor.a);
+fn applyAmbientLight(baseColor: vec3f) -> vec3f {
+    return baseColor * ambientLight.color * ambientLight.intensity;
 }

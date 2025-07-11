@@ -10,4 +10,9 @@ export class ShaderLoader {
         const code = await res.text();
         return this.device.createShaderModule({ code });
     }
+
+    public async sourceLoader(url: string): Promise<string> {
+        const res = await fetch(url);
+        return await res.text();
+    }
 }
