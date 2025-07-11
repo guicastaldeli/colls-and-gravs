@@ -16,6 +16,10 @@ export class Stars {
     public numStars: number = 5000;
     private shaderLoader: ShaderLoader;
 
+    public twinkleTime: number = 0.0;
+    public rotationAngle: number = 0.0;
+    public rotationSpeed: number = 0.0001;
+
     constructor(device: GPUDevice, shaderLoader: ShaderLoader) {
         this.device = device;
         this.shaderLoader = shaderLoader;
@@ -176,7 +180,7 @@ export class Stars {
     private createUniformBuffers(): void {
         for(let i = 0; i < 2; i++) {
             this.uniformBuffers.push(this.device.createBuffer({
-                size: 80,
+                size: 80 + 64,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             }));
         }
@@ -238,5 +242,9 @@ export class Stars {
             phase,
             uv
         }
+    }
+
+    public update(deltaTime: number): void {
+        this.twinkleTime += deltaTime * 0.1;
     }
 }

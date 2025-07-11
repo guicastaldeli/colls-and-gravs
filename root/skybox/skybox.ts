@@ -121,9 +121,9 @@ export class Skybox {
     public async render(
         passEncoder: GPURenderPassEncoder,
         viewProjectionMatrix: mat4,
-        time: number
+        deltaTime: number
     ): Promise<void> {
-        const scaledTime = time * this.tick.getTimeScale();
+        this.stars.update(deltaTime);
 
         //Skybox
         this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix as Float32Array);
@@ -134,13 +134,19 @@ export class Skybox {
         passEncoder.drawIndexed(36);
 
         //Stars
+        this.stars.rotationAngle += this.stars.rotationSpeed * deltaTime;
+        const rotationMatrix = mat4.create();
+        mat4.rotateY(rotationMatrix, rotationMatrix, this.stars.rotationAngle);
+
         const lastBufferIndex = this.stars.currentBufferIndex;
         this.stars.currentBufferIndex = (lastBufferIndex % 1) % this.stars.uniformBuffers.length;
 
         const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
-        const uniformData = new Float32Array(20);
+        const uniformData = new Float32Array(36);
+
         uniformData.set(viewProjectionMatrix as Float32Array, 0);
-        uniformData[16] = scaledTime / 800;
+        uniformData.set(rotationMatrix as Float32Array, 16);
+        uniformData[32] = this.stars.twinkleTime;
         this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         
         passEncoder.setPipeline(this.stars.pipeline);

@@ -1,3 +1,4 @@
+import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Stars } from "./stars.js";
 export class Skybox {
     tick;
@@ -99,8 +100,8 @@ export class Skybox {
             throw err;
         }
     }
-    async render(passEncoder, viewProjectionMatrix, time) {
-        const scaledTime = time * this.tick.getTimeScale();
+    async render(passEncoder, viewProjectionMatrix, deltaTime) {
+        this.stars.update(deltaTime);
         //Skybox
         this.device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix);
         passEncoder.setPipeline(this.pipeline);
@@ -109,12 +110,16 @@ export class Skybox {
         passEncoder.setIndexBuffer(this.indexBuffer, 'uint16');
         passEncoder.drawIndexed(36);
         //Stars
+        this.stars.rotationAngle += this.stars.rotationSpeed * deltaTime;
+        const rotationMatrix = mat4.create();
+        mat4.rotateY(rotationMatrix, rotationMatrix, this.stars.rotationAngle);
         const lastBufferIndex = this.stars.currentBufferIndex;
         this.stars.currentBufferIndex = (lastBufferIndex % 1) % this.stars.uniformBuffers.length;
         const currentBuffer = this.stars.uniformBuffers[this.stars.currentBufferIndex];
-        const uniformData = new Float32Array(20);
+        const uniformData = new Float32Array(36);
         uniformData.set(viewProjectionMatrix, 0);
-        uniformData[16] = scaledTime / 800;
+        uniformData.set(rotationMatrix, 16);
+        uniformData[32] = this.stars.twinkleTime;
         this.device.queue.writeBuffer(currentBuffer, 0, uniformData);
         passEncoder.setPipeline(this.stars.pipeline);
         passEncoder.setBindGroup(0, this.stars.bindGroups[this.stars.currentBufferIndex]);

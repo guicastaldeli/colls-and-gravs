@@ -440,7 +440,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 skybox = new Skybox(tick, device, shaderLoader);
                 await skybox.init();
             }
-            await skybox.render(passEncoder, viewProjectionMatrix, currentTime);
+            await skybox.render(passEncoder, viewProjectionMatrix, deltaTime);
 
             //Render Arm
             if(camera && pipeline) {

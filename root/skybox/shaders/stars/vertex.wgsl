@@ -1,5 +1,6 @@
 struct Uniforms {
     mvp: mat4x4<f32>,
+    rotation: mat4x4<f32>,
     time: f32,
 }
 
@@ -22,9 +23,10 @@ fn main(
     @location(4) uv: vec2<f32>
 ) -> VertexOutput {
     var output: VertexOutput;
+    let rotation_position = uniforms.rotation * vec4<f32>(position, 1.0);
+    let center = uniforms.mvp * rotation_position;
 
-    let finalSize = 200.0 * scale;
-    let center = uniforms.mvp * vec4<f32>(position, 1.0);
+    let finalSize = 250.0 * scale;
     var offset = (uv - vec2<f32>(0.5)) * finalSize * 0.01;
     let aspect = 1920.0 / 1080.0;
     offset.x *= 1.0 / aspect;

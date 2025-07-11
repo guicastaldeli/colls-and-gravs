@@ -1,5 +1,6 @@
 struct Uniforms {
     mvp: mat4x4<f32>,
+    rotation: mat4x4<f32>,
     time: f32
 }
 
@@ -23,7 +24,7 @@ fn main(input: VertexOutput) -> @location(0) vec4<f32> {
         discard;
     }
 
-    let twinkle = sin(uniforms.time * 2.0 + input.phase * 30.0) * 0.9 + 1.0;
+    let twinkle = sin(uniforms.time + input.phase * 30.0) * 0.95 + 1.0;
     let starColor = input.color * twinkle;
 
     let alpha = 1.0 - smoothstep(threshold * 0.8, threshold, dist);
