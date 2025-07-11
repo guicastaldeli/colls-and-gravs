@@ -1,15 +1,15 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
 export class AmbientLight {
-    private _color: vec3 = [1, 1, 1];
-    private _intensity: number = 0.2;
+    private _color: vec3;
+    private _intensity: number;
 
     constructor(
         color: vec3 = [1, 1, 1],
-        intensity: number = 0.2
+        intensity: number = 0.05
     ) {
         this._color = vec3.clone(color);
-        this.intensity = intensity;
+        this._intensity = intensity;
     }
 
     get color(): vec3 {

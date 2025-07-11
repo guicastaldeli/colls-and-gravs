@@ -11,7 +11,7 @@ struct VertexOutput {
     @builtin(position) Position: vec4f,
     @location(0) texCoord: vec2f,
     @location(1) color: vec3f,
-    @location(2) normal: vec3f
+    @location(2) normal: vec3f,
 }
 
 @vertex

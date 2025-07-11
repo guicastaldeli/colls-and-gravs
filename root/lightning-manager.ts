@@ -19,6 +19,10 @@ export class LightningManager {
         });
     }
 
+    public getLightBuffer(id: string): GPUBuffer | null {
+        return this.lightBuffers.get(id) ?? null;
+    }
+
     public addLight(
         id: string,
         ambientLight: AmbientLight
@@ -36,10 +40,6 @@ export class LightningManager {
         }
 
         this.updateLightBuffer(id);
-    }
-
-    public getLightBuffer(id: string): GPUBuffer | null {
-        return this.lightBuffers.get(id) || null;
     }
 
     public getLight(id: string): AmbientLight | null {

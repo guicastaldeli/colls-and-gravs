@@ -56,9 +56,13 @@ async function initShaders() {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                },
+                }
             ]
         });
+        const compilationInfo = await fragShader.getCompilationInfo();
+        console.error('Fragment shader compilation errors:', compilationInfo.messages);
+        const compilationInfo2 = await vertexShader.getCompilationInfo();
+        console.error('Vertex shader compilation errors:', compilationInfo2.messages);
         const textureBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -70,7 +74,7 @@ async function initShaders() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {}
-                }
+                },
             ]
         });
         const pipelineLayout = device.createPipelineLayout({
@@ -205,7 +209,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     //Lightning
     const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
     if (!ambientLightBuffer)
-        console.error('Ambient light error');
+        throw new Error('Ambient light err');
     lightningManager.updateLightBuffer('ambient');
     //
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -220,14 +224,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                     size: 256
                 }
             },
-            {
-                binding: 1,
-                resource: {
-                    buffer: ambientLightBuffer,
-                    offset: 0,
-                    size: 16
-                }
-            }
         ]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);

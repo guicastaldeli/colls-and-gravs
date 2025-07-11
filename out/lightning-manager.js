@@ -13,6 +13,9 @@ export class LightningManager {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
     }
+    getLightBuffer(id) {
+        return this.lightBuffers.get(id) ?? null;
+    }
     addLight(id, ambientLight) {
         this.lights.set(id, ambientLight);
         if (!this.lightBuffers.has(id)) {
@@ -22,9 +25,6 @@ export class LightningManager {
             }));
         }
         this.updateLightBuffer(id);
-    }
-    getLightBuffer(id) {
-        return this.lightBuffers.get(id) || null;
     }
     getLight(id) {
         return this.lights.get(id) || null;

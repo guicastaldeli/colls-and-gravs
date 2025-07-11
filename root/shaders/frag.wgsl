@@ -11,8 +11,6 @@ struct FragmentInput {
 fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
     let finalColor = mix(texColor.rgb, input.color, 0.1);
-    let lightDir = normalize(vec3f(1.0, 1.0, 1.0));
-    let lightIntensity = max(dot(input.normal, lightDir), 0.3);
     
-    return vec4f(finalColor * lightIntensity, texColor.a);
+    return vec4f(finalColor, texColor.a);
 }
