@@ -74,14 +74,6 @@ async function initShaders(): Promise<void> {
             ]  
         });
 
-        const compilationInfo = await fragShader.getCompilationInfo();
-    console.error('Fragment shader compilation errors:', compilationInfo.messages);
-
-const compilationInfo2 = await vertexShader.getCompilationInfo();
-    console.error('Vertex shader compilation errors:', compilationInfo2.messages);
-
-
-
         const textureBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -97,8 +89,25 @@ const compilationInfo2 = await vertexShader.getCompilationInfo();
             ]  
         });
 
+        const lightningBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 16
+                    }
+                }
+            ]
+        });
+
         const pipelineLayout = device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout, textureBindGroupLayout]
+            bindGroupLayouts: [
+                bindGroupLayout, 
+                textureBindGroupLayout,
+                lightningBindGroupLayout
+            ]
         });
 
         pipeline = device.createRenderPipeline({
@@ -235,12 +244,6 @@ async function setBuffers(
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
-    //Lightning
-        const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
-        if(!ambientLightBuffer) throw new Error('Ambient light err');
-        lightningManager.updateLightBuffer('ambient');
-    //
-
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
@@ -252,10 +255,24 @@ async function setBuffers(
                     offset: 0,
                     size: 256
                 }
-            },        
+            }    
         ]
     });
+
     passEncoder.setPipeline(wireframeMode ? wireframePipeline! : pipeline);
+
+    //Lightning
+        const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
+        if(!ambientLightBuffer) throw new Error('Ambient light err');
+        
+        const lightningBindGroup = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(2),
+            entries: [{
+                binding: 0,
+                resource: { buffer: ambientLightBuffer }
+            }]
+        });
+    //
 
     for(let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
@@ -293,6 +310,7 @@ async function setBuffers(
         passEncoder.setIndexBuffer(data.index, 'uint16');
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
+        passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     

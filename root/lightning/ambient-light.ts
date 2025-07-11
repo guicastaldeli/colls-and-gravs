@@ -6,7 +6,7 @@ export class AmbientLight {
 
     constructor(
         color: vec3 = [1, 1, 1],
-        intensity: number = 0.05
+        intensity: number = 0.5
     ) {
         this._color = vec3.clone(color);
         this._intensity = intensity;
