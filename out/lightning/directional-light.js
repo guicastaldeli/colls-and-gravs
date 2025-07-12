@@ -5,7 +5,7 @@ export class DirectionalLight {
     _direction;
     _color;
     _intensity;
-    constructor(device, direction, color, intensity) {
+    constructor(device, direction = [1, 1, 1], color = [1, 1, 1], intensity = 0.5) {
         this.device = device;
         this.buffer = device.createBuffer({
             size: 32,

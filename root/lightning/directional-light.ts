@@ -10,9 +10,9 @@ export class DirectionalLight {
 
     constructor(
         device: GPUDevice,
-        direction: vec3,
-        color: vec3,
-        intensity: number
+        direction: vec3 = [1, 1, 1],
+        color: vec3 = [1, 1, 1],
+        intensity: number = 0.5
     ) {
         this.device = device;
 

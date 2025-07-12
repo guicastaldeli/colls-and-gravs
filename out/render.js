@@ -1,4 +1,4 @@
-import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
 import { initBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
@@ -14,6 +14,7 @@ import { Skybox } from "./skybox/skybox.js";
 import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
+import { DirectionalLight } from "./lightning/directional-light.js";
 let pipeline;
 let buffers;
 let depthTexture = null;
@@ -45,12 +46,13 @@ async function toggleWireframe() {
 toggleWireframe();
 async function initShaders() {
     try {
-        const [vertexShader, fragSrc, ambientLightSrc] = await Promise.all([
+        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
-            shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl')
+            shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl')
         ]);
-        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc);
+        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -87,6 +89,14 @@ async function initShaders() {
                     buffer: {
                         type: 'uniform',
                         minBindingSize: 16
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 32
                     }
                 }
             ]
@@ -243,12 +253,21 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
     if (!ambientLightBuffer)
         throw new Error('Ambient light err');
+    const directionalLightBuffer = lightningManager.getLightBuffer('directional');
+    if (!directionalLightBuffer)
+        throw new Error('Directional light err');
     const lightningBindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(2),
-        entries: [{
+        entries: [
+            {
                 binding: 0,
                 resource: { buffer: ambientLightBuffer }
-            }]
+            },
+            {
+                binding: 1,
+                resource: { buffer: directionalLightBuffer }
+            }
+        ]
     });
     //
     for (let i = 0; i < renderBuffers.length; i++) {
@@ -314,13 +333,24 @@ function parseColor(rgb) {
     ];
 }
 //Lightning
+//Ambient
 async function ambientLight() {
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);
-    const light = new AmbientLight(colorArray, 1.0);
+    const light = new AmbientLight(colorArray, 0.5);
     lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }
+//Directional
+async function directionalLight() {
+    const color = 'rgb(255, 0, 0)';
+    const colorArray = parseColor(color);
+    const direction = vec3.fromValues(5.0, 1.0, 1.0);
+    const light = new DirectionalLight(device, direction, colorArray, 1.0);
+    lightningManager.addDirectionalLight('directional', light);
+    lightningManager.updateLightBuffer('directional');
+}
+//
 //Render
 async function renderer(device) {
     if (!envRenderer) {
@@ -349,7 +379,8 @@ export async function render(canvas) {
         //Lightning
         if (!lightningManager)
             lightningManager = new LightningManager(device);
-        ambientLight();
+        await ambientLight();
+        await directionalLight();
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks) {
