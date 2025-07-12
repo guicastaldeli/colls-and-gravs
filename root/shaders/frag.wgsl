@@ -11,11 +11,11 @@ struct FragmentInput {
 fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
     let baseColor = mix(texColor.rgb, input.color, 0.1);
-
     let normal = normalize(input.normal);
+
     let ambientColor = applyAmbientLight(baseColor);
-    let directionalColor = applyDirectionalLight(ambientColor, normal);
-    
-    let finalColor = directionalColor;
+    let directionalColor = applyDirectionalLight(vec3(1.0), normal);
+    let finalColor = ambientColor + directionalColor;
+
     return vec4f(finalColor, texColor.a);
 }

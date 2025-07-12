@@ -10,25 +10,28 @@ export class DirectionalLight {
 
     constructor(
         device: GPUDevice,
-        direction: vec3 = [1, 1, 1],
+        direction: vec3 = [0, -1, 0],
         color: vec3 = [1, 1, 1],
-        intensity: number = 0.5
+        intensity: number = 1.0
     ) {
         this.device = device;
 
         this.buffer = device.createBuffer({
             size: 32,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: true
+            mappedAtCreation: false
         });
 
         this._direction = direction;
+        vec3.normalize(this._direction, direction);
+
         this._color = color;
         this._intensity = intensity;
+        this.updateBuffer();
     }
 
     public updateBuffer() {
-        const data = new Float32Array(0);
+        const data = new Float32Array(8);
         data.set(this._direction, 0);
         data.set(this._color, 3);
         data[6] = this._intensity;
@@ -39,7 +42,19 @@ export class DirectionalLight {
         return this.buffer;
     }
 
+    public getColor(color: vec3): void {
+        this._color = vec3.clone(color);
+        this.updateBuffer();
+    }
+
+    public setIntensity(intensity: vec3): void {
+        this._intensity = intensity;
+        this.updateBuffer();
+    }
+
     public setDirection(direction: vec3) {
-        vec3.normalize(this._direction, direction);
+        this._direction = vec3.clone(direction);
+        vec3.normalize(this._direction, this._direction);
+        this.updateBuffer();
     }
 }
