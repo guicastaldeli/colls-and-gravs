@@ -1,10 +1,15 @@
-@group(0) @binding(0) var<uniform> mvpMatrix: mat4x4<f32>;
+struct Uniforms {
+    mvpMatrix: mat4x4<f32>,
+    modelMatrix: mat4x4<f32>
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
 struct VertexInput {
     @location(0) position: vec3f,
     @location(1) texCoord: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec3f,
+    @location(3) color: vec3f
 }
 
 struct VertexOutput {
@@ -12,22 +17,17 @@ struct VertexOutput {
     @location(0) texCoord: vec2f,
     @location(1) color: vec3f,
     @location(2) normal: vec3f,
-    @location(3) fragPos: vec3f
+    @location(3) worldPos: vec3f
 }
 
 @vertex
 fn main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    output.Position = mvpMatrix * vec4f(input.position, 1.0);
+    output.Position = uniforms.mvpMatrix * vec4f(input.position, 1.0);
+    output.normal = (uniforms.modelMatrix * vec4f(input.normal, 0.0)).xyz;
+    output.worldPos = (uniforms.modelMatrix * vec4f(input.position, 1.0)).xyz;
+
     output.color = input.color;
-
-    let normalMatrix = mat3x3f(
-        mvpMatrix[0].xyz,
-        mvpMatrix[1].xyz,
-        mvpMatrix[2].xyz
-    );
-    output.normal = normalize(normalMatrix * input.normal);
-
     output.texCoord = input.texCoord;
     return output;
 }

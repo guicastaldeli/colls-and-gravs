@@ -53,7 +53,6 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl')
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc);
-        console.log(combinedFragCode.toString());
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -230,7 +229,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const renderBuffers = [...envRenderer.get(), ...randomBlocks.getBlocks()];
-    const bufferSize = 256 * renderBuffers.length;
+    const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
         size: bufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -273,14 +272,14 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     //
     for (let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
-        const offset = 256 * i;
+        const offset = 512 * i;
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
         device.queue.writeBuffer(uniformBuffer, offset, mvp);
     }
     for (let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
-        const offset = 256 * i;
+        const offset = 512 * i;
         if (!data.sampler || !data.texture) {
             console.error('missing');
             continue;
@@ -344,9 +343,9 @@ async function ambientLight() {
 }
 //Directional
 async function directionalLight() {
-    const color = 'rgb(0, 21, 255)';
+    const color = 'rgb(255, 0, 0)';
     const colorArray = parseColor(color);
-    const direction = vec3.fromValues(1.0, 3.0, 0.0);
+    const direction = vec3.fromValues(5.0, 1.0, 1.0);
     const light = new DirectionalLight(device, direction, colorArray, 1.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
@@ -378,11 +377,10 @@ export async function render(canvas) {
             await initShaders();
         await renderer(device);
         //Lightning
-        if (!lightningManager) {
+        if (!lightningManager)
             lightningManager = new LightningManager(device);
-            await ambientLight();
-            await directionalLight();
-        }
+        await ambientLight();
+        await directionalLight();
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks) {
