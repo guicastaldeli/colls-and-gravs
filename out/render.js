@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat4 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
 import { initBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
@@ -53,6 +53,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl')
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc);
+        //console.log(combinedFragCode.toString())
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -88,7 +89,6 @@ async function initShaders() {
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
-                        minBindingSize: 16
                     }
                 },
                 {
@@ -96,7 +96,6 @@ async function initShaders() {
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
-                        minBindingSize: 32
                     }
                 }
             ]
@@ -345,8 +344,16 @@ async function ambientLight() {
 async function directionalLight() {
     const color = 'rgb(255, 0, 0)';
     const colorArray = parseColor(color);
-    const direction = vec3.fromValues(5.0, 1.0, 1.0);
-    const light = new DirectionalLight(device, direction, colorArray, 1.0);
+    const light = new DirectionalLight(device, lightningManager, {
+        position: [5.0, 10.0, 5.0],
+        target: [0.0, 0.0, 0.0],
+        color: colorArray,
+        intensity: 1.0,
+        width: 30.0,
+        height: 30.0,
+        near: 0.1,
+        far: 100.0
+    });
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
 }

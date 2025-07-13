@@ -9,6 +9,7 @@ export class LightningManager {
     private device: GPUDevice;
     private lights: Map<string, { type: LightType, light: Light }> = new Map();
     private lightBuffers: Map<string, GPUBuffer> = new Map();
+    public matrixBuffers: Map<string, GPUBuffer> = new Map();
     private uniformBuffer: GPUBuffer | null = null;
 
     constructor(device: GPUDevice) {
@@ -43,9 +44,21 @@ export class LightningManager {
                     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
                 })
             );
+
+            this.matrixBuffers.set(
+                id,
+                this.device.createBuffer({
+                    size: 64,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                })
+            );
         }
 
         this.updateLightBuffer(id);
+    }
+
+    public getMatrixBuffer(id: string): GPUBuffer | null {
+        return this.lightBuffers.get(id) ?? null;
     }
 
     public getLightBuffer(id: string): GPUBuffer | null {
@@ -69,16 +82,29 @@ export class LightningManager {
             data = new Float32Array(4);
             data.set(ambientLight.getColorWithIntensity(), 0);
             data[3] = ambientLight.intensity;
+            if(data) this.device.queue.writeBuffer(buffer, 0, data);
         } 
         if(type === 'directional') {
             const directionalLight = light as DirectionalLight;
-            data = new Float32Array(8);
-            data.set(directionalLight._direction, 0);
-            data.set(directionalLight._color, 3);
-            data[6] = directionalLight._intensity;
-        }
+            const propBuffer = this.lightBuffers.get(id);
+            const matrixBuffer = this.matrixBuffers.get(id);
+            if(!propBuffer || !matrixBuffer) return;
 
-        if(data) this.device.queue.writeBuffer(buffer, 0, data);
+            const direction = vec3.create();
+            vec3.subtract(direction, directionalLight._target, directionalLight._position);
+            vec3.normalize(direction, direction);
+
+            const propData = new Float32Array(8);
+            propData.set(direction, 0);
+            propData.set(directionalLight._color, 3);
+            propData[6] = directionalLight._intensity;
+            propBuffer[7] = 0;
+            this.device.queue.writeBuffer(propBuffer, 0, propData);
+
+            const matrixData = new Float32Array(16);
+            for(let i = 0; i < 16; i++) matrixData[i] = directionalLight.viewProjectionMatrix[i];
+            if(data) this.device.queue.writeBuffer(matrixBuffer, 0, matrixData);
+        }
     }
 
     public updateAllLightBuffers(): void {
@@ -98,7 +124,28 @@ export class LightningManager {
 
     //Directional Light
         public addDirectionalLight(id: string, light: DirectionalLight): void {
-            this.addLight(id, 'directional', light);
+            if(this.lightBuffers.has(id) && this.matrixBuffers.has(id)) {
+                this.addLight(id, 'directional', light);
+            } else {
+                this.lightBuffers.set(
+                    id,
+                    this.device.createBuffer({
+                        size: 32,
+                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                    })
+                );
+
+                this.matrixBuffers.set(
+                    id,
+                    this.device.createBuffer({
+                        size: 64,
+                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                    })
+                );
+
+                this.lights.set(id, { type: 'directional', light });
+                this.updateLightBuffer(id);
+            }
         }
 
         public getDirectionalLight(id: string): DirectionalLight | null {
