@@ -14,8 +14,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     let normal = normalize(input.normal);
     let ambientColor = applyAmbientLight(baseColor);
-    let directionalColor = applyDirectionalLight(ambientColor, normal);
     
-    let finalColor = ambientColor + directionalColor;
+    let finalColor = ambientColor;
     return vec4f(finalColor, texColor.a);
 }

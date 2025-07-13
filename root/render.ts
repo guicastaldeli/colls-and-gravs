@@ -117,14 +117,6 @@ async function initShaders(): Promise<void> {
                         type: 'uniform',
                         minBindingSize: 16
                     }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: {
-                        type: 'uniform',
-                        minBindingSize: 32
-                    }
                 }
             ]
         });
@@ -291,9 +283,6 @@ async function setBuffers(
     //Lightning
         const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
         if(!ambientLightBuffer) throw new Error('Ambient light err');
-
-        const directionalLightBuffer = lightningManager.getLightBuffer('directional');
-        if(!directionalLightBuffer) throw new Error('Directional light err');
         
         const lightningBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(2),
@@ -301,10 +290,6 @@ async function setBuffers(
                 {
                     binding: 0,
                     resource: { buffer: ambientLightBuffer }
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: directionalLightBuffer }
                 }
             ]
         });
@@ -395,14 +380,7 @@ function parseColor(rgb: string): [number, number, number] {
 
     //Directional
     async function directionalLight(): Promise<void> {
-        const color = 'rgb(255, 0, 0)';
-        const colorArray = parseColor(color);
-
-        const direction = vec3.fromValues(5.0, 1.0, 1.0);
-        const light = new DirectionalLight(device, direction, colorArray, 1.0);
-
-        lightningManager.addDirectionalLight('directional', light);
-        lightningManager.updateLightBuffer('directional');
+        
     }
 //
 
