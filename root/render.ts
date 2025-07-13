@@ -77,8 +77,6 @@ async function initShaders(): Promise<void> {
             directionalLightSrc
         );
 
-        //console.log(combinedFragCode.toString())
-
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 
         const bindGroupLayout = device.createBindGroupLayout({
@@ -117,6 +115,7 @@ async function initShaders(): Promise<void> {
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
+                        minBindingSize: 16
                     }
                 },
                 {
@@ -124,6 +123,7 @@ async function initShaders(): Promise<void> {
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
+                        minBindingSize: 32
                     }
                 }
             ]
@@ -398,20 +398,8 @@ function parseColor(rgb: string): [number, number, number] {
         const color = 'rgb(255, 0, 0)';
         const colorArray = parseColor(color);
 
-        const light = new DirectionalLight(
-            device,
-            lightningManager,
-            {
-                position: [5.0, 10.0, 5.0],
-                target: [0.0, 0.0, 0.0],
-                color: colorArray,
-                intensity: 1.0,
-                width: 30.0,
-                height: 30.0,
-                near: 0.1,
-                far: 100.0
-            }
-        );
+        const direction = vec3.fromValues(5.0, 1.0, 1.0);
+        const light = new DirectionalLight(device, direction, colorArray, 1.0);
 
         lightningManager.addDirectionalLight('directional', light);
         lightningManager.updateLightBuffer('directional');
