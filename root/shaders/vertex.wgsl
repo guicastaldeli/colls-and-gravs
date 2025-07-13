@@ -1,6 +1,8 @@
 struct Uniforms {
     mvpMatrix: mat4x4<f32>,
-    modelMatrix: mat4x4<f32>
+    modelMatrix: mat4x4<f32>,
+    normalMatrix: mat3x3f,
+    padding: f32
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -23,8 +25,9 @@ struct VertexOutput {
 @vertex
 fn main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
+
     output.Position = uniforms.mvpMatrix * vec4f(input.position, 1.0);
-    output.normal = (uniforms.modelMatrix * vec4f(input.normal, 0.0)).xyz;
+    output.normal = normalize(uniforms.normalMatrix * input.normal);
     output.worldPos = (uniforms.modelMatrix * vec4f(input.position, 1.0)).xyz;
 
     output.color = input.color;

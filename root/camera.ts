@@ -6,6 +6,7 @@ import { ArmController } from "./player/arm-controller.js";
 import { Hud } from "./hud.js";
 import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
+import { LightningManager } from "./lightning-manager.js";
 
 export class Camera {
     private tick: Tick;
@@ -13,7 +14,8 @@ export class Camera {
     private pipeline: GPURenderPipeline;
 
     private loader: Loader;
-    private shaderLoader: ShaderLoader
+    private shaderLoader: ShaderLoader;
+    private lightningManager: LightningManager;
 
     private viewMatrix: mat4;
     private projectionMatrix: mat4;
@@ -29,7 +31,8 @@ export class Camera {
         pipeline: GPURenderPipeline,
         loader: Loader,
         shaderLoader: ShaderLoader,
-        playerController: PlayerController
+        playerController: PlayerController,
+        lightningManager: LightningManager
     ) {
         this.tick = tick;
         this.device = device;
@@ -37,11 +40,12 @@ export class Camera {
 
         this.loader = loader;
         this.shaderLoader = shaderLoader;
+        this.lightningManager = lightningManager;
 
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
         this.playerController = playerController;
-        this.armController = new ArmController(tick, loader);
+        this.armController = new ArmController(tick, loader, lightningManager);
     }
 
     public getViewMatrix(): mat4 {

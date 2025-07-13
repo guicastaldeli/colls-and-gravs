@@ -1,12 +1,14 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Tick } from "../tick.js";
 import { BufferData } from "./arm-buffer.js";
 import { Loader } from "../loader.js";
 import { drawBuffers, initBuffers } from "./arm-buffer.js";
 import { Camera } from "../camera.js";
+import { LightningManager } from "../lightning-manager.js";
 
 export class ArmController {
     private tick: Tick;
+    private lightningManager: LightningManager;
 
     private _position: vec3 = vec3.create();
     private _restPosition: vec3 = vec3.create();
@@ -63,9 +65,14 @@ export class ArmController {
         sampler: GPUSampler
     }
 
-    constructor(tick: Tick, loader: Loader) {
+    constructor(
+        tick: Tick,
+        loader: Loader,
+        lightningManager: LightningManager
+    ) {
         this.tick = tick;
         this.loader = loader;
+        this.lightningManager = lightningManager;
         this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
     }
 
@@ -222,10 +229,18 @@ export class ArmController {
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjection, armMatrix);
 
+        const normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, armMatrix);
+
+        const uniformData = new Float32Array(16 + 16 + 12);
+        uniformData.set(mvp, 0);
+        uniformData.set(armMatrix, 16);
+        uniformData.set(normalMatrix, 32);
+
         device.queue.writeBuffer(
             this.armUniformBuffer,
             0,
-            mvp as Float32Array
+            uniformData
         );
 
         const armTextureBindGroup = device.createBindGroup({
@@ -241,10 +256,33 @@ export class ArmController {
                 }
             ]
         });
+
+        //Lightning
+            const ambientLightBuffer = this.lightningManager.getLightBuffer('ambient');
+            if(!ambientLightBuffer) throw new Error('Ambient light err');
+        
+            const directionalLightBuffer = this.lightningManager.getLightBuffer('directional');
+            if(!directionalLightBuffer) throw new Error('Directional light err');
+                
+            const lightningBindGroup = device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(2),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: ambientLightBuffer }
+                    },
+                    {
+                        binding: 1,
+                        resource: { buffer: directionalLightBuffer }
+                    }
+                ]
+            });
+        //
     
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, this.armBindGroup, [0]);
-        passEncoder.setBindGroup(1, armTextureBindGroup)
+        passEncoder.setBindGroup(1, armTextureBindGroup);
+        passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setVertexBuffer(0, this.armModel.vertex);
         passEncoder.setVertexBuffer(1, this.armModel.color);
         passEncoder.setIndexBuffer(this.armModel.index, 'uint16');

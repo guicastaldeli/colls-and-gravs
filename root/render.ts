@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 
 import { context, device } from "./init.js";
 import { initBuffers, drawBuffers } from "./buffers.js";
@@ -21,6 +21,7 @@ import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
+import { DirectionalLightHelper } from "./deepseek_typescript_20250713_81cbc1.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -78,6 +79,7 @@ async function initShaders(): Promise<void> {
         );
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        console.log(combinedFragCode.toString())
 
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -116,6 +118,14 @@ async function initShaders(): Promise<void> {
                     buffer: {
                         type: 'uniform',
                         minBindingSize: 16
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 32
                     }
                 }
             ]
@@ -283,6 +293,9 @@ async function setBuffers(
     //Lightning
         const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
         if(!ambientLightBuffer) throw new Error('Ambient light err');
+
+        const directionalLightBuffer = lightningManager.getLightBuffer('directional');
+        if(!directionalLightBuffer) throw new Error('Directional light err');
         
         const lightningBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(2),
@@ -290,6 +303,10 @@ async function setBuffers(
                 {
                     binding: 0,
                     resource: { buffer: ambientLightBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: directionalLightBuffer }
                 }
             ]
         });
@@ -298,9 +315,18 @@ async function setBuffers(
     for(let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
         const offset = 512 * i;
+        
+        const normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, data.modelMatrix);
+
+        const uniformData = new Float32Array(16 + 16 + 12);
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
-        device.queue.writeBuffer(uniformBuffer, offset, mvp as Float32Array);
+
+        uniformData.set(mvp, 0);
+        uniformData.set(data.modelMatrix, 16);
+        uniformData.set(normalMatrix, 32);
+        device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
 
     for(let i = 0; i < renderBuffers.length; i++) {
@@ -380,7 +406,21 @@ function parseColor(rgb: string): [number, number, number] {
 
     //Directional
     async function directionalLight(): Promise<void> {
+        const pos = {
+            x: -10,
+            y: 5,
+            z: -15
+        }
         
+        const color = 'rgb(255, 255, 255)';
+        const colorArray = parseColor(color);
+
+        const direction = vec3.fromValues(pos.x, pos.y, pos.z);
+        vec3.normalize(direction, direction);
+
+        const light = new DirectionalLight(colorArray, direction, 0.8);
+        lightningManager.addDirectionalLight('directional', light);
+        lightningManager.updateLightBuffer('directional');
     }
 //
 
@@ -442,7 +482,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                     pipeline, 
                     loader, 
                     shaderLoader, 
-                    playerController
+                    playerController,
+                    lightningManager
                 );
 
                 await camera.initArm(device, pipeline);

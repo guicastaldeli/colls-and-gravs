@@ -18,6 +18,7 @@ export class LightningManager {
         if (!this.lightBuffers.has(id)) {
             const bufferSize = {
                 'ambient': 16,
+                'directional': 32
             };
             this.lightBuffers.set(id, this.device.createBuffer({
                 size: bufferSize[type],
@@ -44,9 +45,12 @@ export class LightningManager {
             data = new Float32Array(4);
             data.set(ambientLight.getColorWithIntensity(), 0);
             data[3] = ambientLight.intensity;
-        }
-        if (data)
             this.device.queue.writeBuffer(buffer, 0, data);
+        }
+        if (type === 'directional') {
+            const directionalLight = light;
+            this.device.queue.writeBuffer(buffer, 0, directionalLight.getShaderData());
+        }
     }
     updateAllLightBuffers() {
         this.lights.forEach((_, id) => this.updateLightBuffer(id));
@@ -55,15 +59,8 @@ export class LightningManager {
     addAmbientLight(id, light) {
         this.addLight(id, 'ambient', light);
     }
-    getAmbientLight(id) {
-        const light = this.lights.get(id);
-        return light?.type === 'ambient' ? light.light : null;
-    }
-    //
     //Directional Light
     addDirectionalLight(id, light) {
         this.addLight(id, 'directional', light);
-    }
-    getDirectionalLight(id) {
     }
 }
