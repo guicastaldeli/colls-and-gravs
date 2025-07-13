@@ -13,10 +13,11 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
     let baseColor = mix(texColor.rgb, input.color, 0.1);
     let normal = normalize(input.normal);
+    let worldPos = input.worldPos;
 
-    let ambientColor = applyAmbientLight(baseColor);
-    let directionalColor = applyDirectionalLight(baseColor, normal);
-    
-    let finalColor = ambientColor + directionalColor;
+    var finalColor = applyAmbientLight(baseColor);
+    finalColor += applyDirectionalLight(baseColor, normal);
+
+    finalColor = max(finalColor, vec3f(0.0));
     return vec4f(finalColor, texColor.a);
 }

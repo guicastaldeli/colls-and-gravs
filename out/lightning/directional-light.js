@@ -42,7 +42,7 @@ export class DirectionalLight {
         data.set(this.getColorWithIntensity(), 0);
         data[3] = this._intensity;
         data.set(this.getDirectionArray(), 4);
-        data[7] = 0;
+        data[7] = 0.0;
         return data;
     }
 }

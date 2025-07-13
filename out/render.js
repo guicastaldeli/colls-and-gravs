@@ -46,14 +46,23 @@ async function toggleWireframe() {
 toggleWireframe();
 async function initShaders() {
     try {
-        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc] = await Promise.all([
+        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
-            shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl')
+            shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl')
         ]);
-        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc);
+        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        const compilationInfo = await fragShader.getCompilationInfo();
+        if (compilationInfo.messages.length > 0) {
+            console.error("Fragment shader compilation errors:");
+            compilationInfo.messages.forEach(msg => {
+                console.error(`${msg.lineNum}:${msg.linePos} - ${msg.message}`);
+            });
+            throw new Error("Fragment shader compilation failed");
+        }
         console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -102,11 +111,26 @@ async function initShaders() {
                 }
             ]
         });
+        const pointLightBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        });
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
                 bindGroupLayout,
                 textureBindGroupLayout,
-                lightningBindGroupLayout
+                lightningBindGroupLayout,
+                pointLightBindGroupLayout
             ]
         });
         pipeline = device.createRenderPipeline({
@@ -257,6 +281,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     const directionalLightBuffer = lightningManager.getLightBuffer('directional');
     if (!directionalLightBuffer)
         throw new Error('Directional light err');
+    const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
+    if (!pointLightBindGroup)
+        throw new Error('Point light err');
     const lightningBindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(2),
         entries: [
@@ -310,6 +337,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
+        passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     if (randomBlocks.targetBlockIndex >= 0) {
@@ -359,10 +387,11 @@ async function directionalLight() {
     const colorArray = parseColor(color);
     const direction = vec3.fromValues(pos.x, pos.y, pos.z);
     vec3.normalize(direction, direction);
-    const light = new DirectionalLight(colorArray, direction, 0.8);
+    const light = new DirectionalLight(colorArray, direction, 0.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
 }
+//Point
 //
 //Render
 async function renderer(device) {

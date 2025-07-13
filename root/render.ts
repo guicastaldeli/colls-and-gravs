@@ -21,7 +21,7 @@ import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
-import { DirectionalLightHelper } from "./deepseek_typescript_20250713_81cbc1.js";
+import { PointLight } from "./lightning/point-light.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -64,21 +64,32 @@ async function initShaders(): Promise<void> {
             vertexShader, 
             fragSrc,
             ambientLightSrc,
-            directionalLightSrc
+            directionalLightSrc,
+            pointLightSrc
         ] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
-            shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl')
+            shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl')
         ]);
 
         const combinedFragCode = await shaderComposer.combineShader(
             fragSrc,
             ambientLightSrc,
-            directionalLightSrc
+            directionalLightSrc,
+            pointLightSrc
         );
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        const compilationInfo = await fragShader.getCompilationInfo();
+        if (compilationInfo.messages.length > 0) {
+            console.error("Fragment shader compilation errors:");
+            compilationInfo.messages.forEach(msg => {
+                console.error(`${msg.lineNum}:${msg.linePos} - ${msg.message}`);
+            });
+            throw new Error("Fragment shader compilation failed");
+        }
         console.log(combinedFragCode.toString())
 
         const bindGroupLayout = device.createBindGroupLayout({
@@ -131,11 +142,27 @@ async function initShaders(): Promise<void> {
             ]
         });
 
+        const pointLightBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        })
+
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
                 bindGroupLayout, 
                 textureBindGroupLayout,
-                lightningBindGroupLayout
+                lightningBindGroupLayout,
+                pointLightBindGroupLayout
             ]
         });
 
@@ -296,6 +323,9 @@ async function setBuffers(
 
         const directionalLightBuffer = lightningManager.getLightBuffer('directional');
         if(!directionalLightBuffer) throw new Error('Directional light err');
+
+        const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
+        if(!pointLightBindGroup) throw new Error('Point light err');
         
         const lightningBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(2),
@@ -358,6 +388,7 @@ async function setBuffers(
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
+        passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     
@@ -418,10 +449,12 @@ function parseColor(rgb: string): [number, number, number] {
         const direction = vec3.fromValues(pos.x, pos.y, pos.z);
         vec3.normalize(direction, direction);
 
-        const light = new DirectionalLight(colorArray, direction, 0.8);
+        const light = new DirectionalLight(colorArray, direction, 0.0);
         lightningManager.addDirectionalLight('directional', light);
         lightningManager.updateLightBuffer('directional');
     }
+
+    //Point
 //
 
 //Render

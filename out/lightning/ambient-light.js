@@ -2,7 +2,7 @@ import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class AmbientLight {
     _color;
     _intensity;
-    constructor(color = [1, 1, 1], intensity = 0.5) {
+    constructor(color = [1.0, 1.0, 1.0], intensity = 0.5) {
         this._color = vec3.clone(color);
         this._intensity = intensity;
     }

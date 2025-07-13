@@ -2,10 +2,13 @@ export class LightningManager {
     device;
     lights = new Map();
     lightBuffers = new Map();
+    pointCountBuffer = null;
+    pointStorageBuffer = null;
     uniformBuffer = null;
     constructor(device) {
         this.device = device;
         this.initBuffer();
+        this.initPointLightBuffers();
     }
     initBuffer() {
         this.uniformBuffer = this.device.createBuffer({
@@ -15,10 +18,12 @@ export class LightningManager {
     }
     addLight(id, type, light) {
         this.lights.set(id, { type, light });
+        const size = 48 * this.lights.size;
         if (!this.lightBuffers.has(id)) {
             const bufferSize = {
                 'ambient': 16,
-                'directional': 32
+                'directional': 32,
+                'point': 48
             };
             this.lightBuffers.set(id, this.device.createBuffer({
                 size: bufferSize[type],
@@ -40,16 +45,25 @@ export class LightningManager {
             return;
         const { type, light } = lightData;
         let data = null;
-        if (type === 'ambient') {
-            const ambientLight = light;
-            data = new Float32Array(4);
-            data.set(ambientLight.getColorWithIntensity(), 0);
-            data[3] = ambientLight.intensity;
-            this.device.queue.writeBuffer(buffer, 0, data);
-        }
-        if (type === 'directional') {
-            const directionalLight = light;
-            this.device.queue.writeBuffer(buffer, 0, directionalLight.getShaderData());
+        switch (type) {
+            case 'ambient':
+                const ambientLight = light;
+                data = new Float32Array(4);
+                data.set(ambientLight.getColorWithIntensity(), 0);
+                data[3] = ambientLight.intensity;
+                this.device.queue.writeBuffer(buffer, 0, data);
+                break;
+            case 'directional':
+                const directionalLight = light;
+                this.device.queue.writeBuffer(buffer, 0, directionalLight.getShaderData());
+                break;
+            case 'point':
+                const pointLight = light;
+                data = pointLight.getBufferData();
+                this.device.queue.writeBuffer(buffer, 0, data);
+                break;
+            default:
+                return;
         }
     }
     updateAllLightBuffers() {
@@ -62,5 +76,78 @@ export class LightningManager {
     //Directional Light
     addDirectionalLight(id, light) {
         this.addLight(id, 'directional', light);
+    }
+    //Point Light
+    resizePointLightBuffer(capacity) {
+        this.pointStorageBuffer?.destroy();
+        this.pointStorageBuffer = this.device.createBuffer({
+            size: 48 * capacity,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        });
+    }
+    initPointLightBuffers() {
+        this.resizePointLightBuffer(4);
+        this.pointCountBuffer = this.device.createBuffer({
+            size: 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            label: 'PointLightCount'
+        });
+    }
+    updatePointLightBuffer() {
+        const pointLights = this.getPointLights();
+        const count = pointLights.length;
+        if (count === 0) {
+            console.error('err');
+            return;
+        }
+        if (!this.pointStorageBuffer || !this.pointCountBuffer) {
+            console.error('Point light buffers err');
+            return;
+        }
+        const currentCapacity = this.pointStorageBuffer.size / 48 || 0;
+        if (count > currentCapacity) {
+            const newCapacity = Math.max(4, Math.ceil(count * 2));
+            this.resizePointLightBuffer(newCapacity);
+        }
+        const lightData = new Float32Array(12 * count);
+        pointLights.forEach((light, i) => {
+            lightData.set(light.getBufferData(), i * 12);
+        });
+        if (this.pointStorageBuffer) {
+            this.device.queue.writeBuffer(this.pointStorageBuffer, 0, lightData);
+        }
+        if (this.pointCountBuffer) {
+            this.device.queue.writeBuffer(this.pointCountBuffer, 0, new Uint32Array([count]));
+        }
+    }
+    getPointLightBindGroup(pipeline) {
+        if (!this.pointStorageBuffer || !this.pointCountBuffer)
+            return null;
+        const layout = pipeline.getBindGroupLayout(3);
+        return this.device.createBindGroup({
+            layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.pointCountBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.pointStorageBuffer }
+                }
+            ]
+        });
+    }
+    getPointLights() {
+        const pointLights = [];
+        this.lights.forEach((value) => {
+            if (value.type === 'point') {
+                pointLights.push(value.light);
+            }
+        });
+        return pointLights;
+    }
+    addPointLight(id, light) {
+        this.addLight(id, 'point', light);
     }
 }
