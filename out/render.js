@@ -15,6 +15,7 @@ import { LightningManager } from "./lightning-manager.js";
 import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
+import { PointLight } from "./lightning/point-light.js";
 let pipeline;
 let buffers;
 let depthTexture = null;
@@ -34,6 +35,7 @@ let wireframePipeline = null;
 let skybox;
 let lightningManager;
 let randomBlocks;
+let pointLightel;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
         if (e.key.toLowerCase() === 't') {
@@ -55,15 +57,6 @@ async function initShaders() {
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        const compilationInfo = await fragShader.getCompilationInfo();
-        if (compilationInfo.messages.length > 0) {
-            console.error("Fragment shader compilation errors:");
-            compilationInfo.messages.forEach(msg => {
-                console.error(`${msg.lineNum}:${msg.linePos} - ${msg.message}`);
-            });
-            throw new Error("Fragment shader compilation failed");
-        }
-        console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -121,7 +114,7 @@ async function initShaders() {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'storage' }
+                    buffer: { type: 'read-only-storage' }
                 }
             ]
         });
@@ -392,6 +385,10 @@ async function directionalLight() {
     lightningManager.updateLightBuffer('directional');
 }
 //Point
+async function pointLight() {
+    if (!pointLightel)
+        pointLightel = new PointLight();
+}
 //
 //Render
 async function renderer(device) {
@@ -423,6 +420,7 @@ export async function render(canvas) {
             lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
+        await pointLight();
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks) {

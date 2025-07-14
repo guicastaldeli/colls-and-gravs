@@ -18,7 +18,6 @@ export class LightningManager {
     }
     addLight(id, type, light) {
         this.lights.set(id, { type, light });
-        const size = 48 * this.lights.size;
         if (!this.lightBuffers.has(id)) {
             const bufferSize = {
                 'ambient': 16,
@@ -104,9 +103,10 @@ export class LightningManager {
             console.error('Point light buffers err');
             return;
         }
-        const currentCapacity = this.pointStorageBuffer.size / 48 || 0;
-        if (count > currentCapacity) {
-            const newCapacity = Math.max(4, Math.ceil(count * 2));
+        const reqSize = 48 * count;
+        const currentCapacity = this.pointStorageBuffer.size;
+        if (reqSize > currentCapacity) {
+            const newCapacity = Math.max(4, Math.ceil(count * 1.5));
             this.resizePointLightBuffer(newCapacity);
         }
         const lightData = new Float32Array(12 * count);

@@ -22,6 +22,9 @@ export class PointLight {
         this._constant = 1.0;
         this._linear = 0.09;
         this._quadratic = 0.04;
+
+        console.log("Light data size:", this.getBufferData().length * 4, "bytes");
+console.log("Light data:", this.getBufferData());
     }
 
     //Position
@@ -63,13 +66,14 @@ export class PointLight {
     public getBufferData(): Float32Array {
         const data = new Float32Array(12);
         data.set(this._position, 0);
-        data.set(this._color, 3);
-        data[6] = this._intensity;
-        data[7] = this._range;
-        data[8] = this._constant;
-        data[9] = this._linear;
-        data[10] = this._quadratic;
-        data[11] = 0.0;
+        data[3] = 0.0;
+        data.set(this._color, 4);
+        data[7] = 0.0;
+        data[8] = this._intensity;
+        data[9] = this._range;
+        data[10] = this._constant;
+        data[11] = this._linear;
+        data[12] = this._quadratic;
         return data;
     }
 }

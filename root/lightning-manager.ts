@@ -33,7 +33,6 @@ export class LightningManager {
         light: Light
     ): void {
         this.lights.set(id, { type, light });
-        const size = 48 * this.lights.size;
 
         if(!this.lightBuffers.has(id)) {
             const bufferSize = {
@@ -138,9 +137,10 @@ export class LightningManager {
                 return;
             }
 
-            const currentCapacity = this.pointStorageBuffer.size / 48 || 0;
-            if(count > currentCapacity) {
-                const newCapacity = Math.max(4, Math.ceil(count * 2));
+            const reqSize = 48 * count;
+            const currentCapacity = this.pointStorageBuffer.size;
+            if(reqSize > currentCapacity) {
+                const newCapacity = Math.max(4, Math.ceil(count * 1.5));
                 this.resizePointLightBuffer(newCapacity);
             }
 
@@ -168,7 +168,6 @@ export class LightningManager {
 
         public getPointLightBindGroup(pipeline: GPURenderPipeline): GPUBindGroup | null {
             if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
-
             const layout = pipeline.getBindGroupLayout(3);
 
             return this.device.createBindGroup({

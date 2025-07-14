@@ -46,6 +46,8 @@ let skybox: Skybox;
 let lightningManager: LightningManager;
 let randomBlocks: RandomBlocks;
 
+let pointLightel: PointLight;
+
 async function toggleWireframe(): Promise<void> {
     document.addEventListener('keydown', async (e) => {
         if(e.key.toLowerCase() === 't') {
@@ -82,15 +84,6 @@ async function initShaders(): Promise<void> {
         );
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        const compilationInfo = await fragShader.getCompilationInfo();
-        if (compilationInfo.messages.length > 0) {
-            console.error("Fragment shader compilation errors:");
-            compilationInfo.messages.forEach(msg => {
-                console.error(`${msg.lineNum}:${msg.linePos} - ${msg.message}`);
-            });
-            throw new Error("Fragment shader compilation failed");
-        }
-        console.log(combinedFragCode.toString())
 
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -152,7 +145,7 @@ async function initShaders(): Promise<void> {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'storage' }
+                    buffer: { type: 'read-only-storage' }
                 }
             ]
         })
@@ -455,6 +448,9 @@ function parseColor(rgb: string): [number, number, number] {
     }
 
     //Point
+    async function pointLight(): Promise<void> {
+        if(!pointLightel) pointLightel = new PointLight();
+    }
 //
 
 //Render
@@ -485,6 +481,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!lightningManager) lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
+        await pointLight();
 
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();

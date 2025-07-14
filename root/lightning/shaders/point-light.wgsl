@@ -1,6 +1,6 @@
 struct PointLight {
-    position: vec3f,
-    color: vec3f,
+    position: vec4f,
+    color: vec4f,
     intensity: f32,
     range: f32,
     constant: f32,
@@ -9,8 +9,8 @@ struct PointLight {
     padding: f32
 }
 
-@group(3) @binding(0) var<storage, read> pointLights: array<PointLight>;
-@group(3) @binding(1) var<uniform> pointLightCount: u32;
+@group(3) @binding(0) var<uniform> pointLightCount: u32;
+@group(3) @binding(1) var<storage, read> pointLights: array<PointLight>;
 
 fn calculateAttenuation(
     distance: f32,
@@ -31,8 +31,9 @@ fn applyPointLight(
     worldPos: vec3f,
     light: PointLight
 ) -> vec3f {
-    let lightVec = light.position - worldPos;
-    let distance = length(lightVec);
+    let worldPos4 = vec4f(worldPos, 0.0);
+    let lightVec = light.position - worldPos4;
+    let distance = length(lightVec.xyz);
     if(distance > light.range) {
         return vec3f(0.0);
     }
@@ -45,8 +46,8 @@ fn applyPointLight(
         light.quadratic
     );
 
-    let diff = max(dot(normal, lightDir), 0.0);
-    let diffuse = light.color * light.intensity * diff * attenuation;
+    let diff = max(dot(normal, lightDir.xyz), 0.0);
+    let diffuse = light.color.xyz * light.intensity * diff * attenuation;
     let rangeFactor = 1.0 - smoothstep(
         light.range * 0.75,
         light.range,
