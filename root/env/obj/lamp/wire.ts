@@ -8,6 +8,10 @@ interface Shaders {
 }
 
 export class Wire {
+    private pipeline?: GPURenderPipeline;
+    private uniformBuffer?: GPUBuffer;
+    private vertexBuffer?: GPUBuffer;
+
     private windManager: WindManager;
     private segments: vec3[];
     private segmentLength: number;
@@ -29,20 +33,25 @@ export class Wire {
         }
     }
 
-    private async drawWire(
+    private async createPipeline(
         device: GPUDevice,
-        passEncoder: GPURenderPassEncoder,
         shaderLoader: ShaderLoader
     ): Promise<void> {
         try {
             const { vertexShader, fragShader } = await this.initShaders(shaderLoader);
 
-            const pipelineLayout = device.createPipelineLayout({
-                bindGroupLayouts: []
+            const bindGroupLayout = device.createBindGroupLayout({
+                entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                }]
             });
             
             const pipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [bindGroupLayout]
+                }),
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
@@ -66,28 +75,58 @@ export class Wire {
                     topology: 'line-strip'
                 },
                 depthStencil: {
-                    depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthWriteEnabled: false,
+                    depthCompare: 'always',
                     format: 'depth24plus'
                 }
             });
-
-            const vertices = new Float32Array(this.segments.flat());
-            const vertexBuffer = device.createBuffer({
-                size: vertices.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: true
-            });
-            new Float32Array(vertexBuffer.getMappedRange()).set(vertices);
-            vertexBuffer.unmap();
-
-            passEncoder.setPipeline(pipeline);
-            passEncoder.setVertexBuffer(0, vertexBuffer);
-            passEncoder.draw(this.segments.length);
         } catch(err) {
             console.log(err);
             throw err;
         }
+    }
+
+    private updateVertexBuffer(device: GPUDevice): void {
+        const vertices = new Float32Array(this.segments.flat());
+
+        if(!this.vertexBuffer || this.vertexBuffer.size !== vertices.byteLength) {
+            this.vertexBuffer?.destroy();
+            this.vertexBuffer = device.createBuffer({
+                size: vertices.byteLength,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: true
+            });
+        }
+
+        new Float32Array(this.vertexBuffer.getMappedRange()).set(vertices);
+        this.vertexBuffer.unmap();
+    }
+
+    public draw(
+        device: GPUDevice,
+        passEncoder: GPURenderPassEncoder,
+        viewProjectionMatrix: mat4
+    ): void {
+        if(!this.pipeline || !this.vertexBuffer || !this.uniformBuffer) return;
+
+        device.queue.writeBuffer(
+            this.uniformBuffer,
+            0,
+            viewProjectionMatrix as Float32Array
+        );
+
+        const bindGroup = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [{
+                binding: 0,
+                resource: { buffer: this.uniformBuffer }
+            }]
+        });
+
+        passEncoder.setPipeline(this.pipeline);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setVertexBuffer(0, this.vertexBuffer);
+        passEncoder.draw(this.segments.length);
     }
 
     public getSegments(): vec3[] {
@@ -111,7 +150,7 @@ export class Wire {
         }
     }
 
-    public update(deltaTime: number) {
+    public update(device: GPUDevice, deltaTime: number) {
         const force = this.windManager.getWindForce(deltaTime);
 
         for(let i = 1; i < this.segments.length; i++) {
@@ -133,14 +172,20 @@ export class Wire {
                 );
             }
         }
+
+        this.updateVertexBuffer(device);
     }
 
     public async init(
         device: GPUDevice,
-        passEncoder: GPURenderPassEncoder,
         shaderLoader: ShaderLoader
     ): Promise<void> {
+        this.uniformBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        await this.createPipeline(device, shaderLoader);
         this.initShaders(shaderLoader);
-        this.drawWire(device, passEncoder, shaderLoader);
     }
 }

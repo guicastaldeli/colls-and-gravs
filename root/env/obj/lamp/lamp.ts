@@ -47,8 +47,8 @@ export class Lamp {
         this.wire = new Wire(
             windManager,
             attachmentPoint,
-            10,
-            2.0
+            20.0,
+            10.0
         );
     }
 
@@ -96,7 +96,7 @@ export class Lamp {
                     this.size.h,
                     this.size.d
                 ]
-            )
+            );
         } catch(err) {
             console.error(err);
             throw err;
@@ -106,14 +106,9 @@ export class Lamp {
     public getBuffers(): EnvBufferData | undefined {
         return this.buffers;
     }
- 
-    public async render(passEncoder: GPURenderPassEncoder): Promise<void> {
-        this.wire.init(this.device, passEncoder, this.shaderLoader);
-        await this.createLamp();
-    }
 
-    public update(deltaTime: number) {
-        this.wire.update(deltaTime);
+    public update(device: GPUDevice, deltaTime: number) {
+        this.wire.update(device, deltaTime);
 
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
@@ -123,6 +118,7 @@ export class Lamp {
 
     public async init(): Promise<void> {
         this.buffers = await this.loadAssets();
+        await this.wire.init(this.device, this.shaderLoader);
         this.createLamp();
     }
 }

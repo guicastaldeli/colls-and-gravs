@@ -1,5 +1,8 @@
 import { vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
 export class Wire {
+    pipeline;
+    uniformBuffer;
+    vertexBuffer;
     windManager;
     segments;
     segmentLength;
@@ -12,14 +15,20 @@ export class Wire {
             this.segments.push(vec3.fromValues(attachmentPoint[0], y, attachmentPoint[2]));
         }
     }
-    async drawWire(device, passEncoder, shaderLoader) {
+    async createPipeline(device, shaderLoader) {
         try {
             const { vertexShader, fragShader } = await this.initShaders(shaderLoader);
-            const pipelineLayout = device.createPipelineLayout({
-                bindGroupLayouts: []
+            const bindGroupLayout = device.createBindGroupLayout({
+                entries: [{
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { type: 'uniform' }
+                    }]
             });
             const pipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [bindGroupLayout]
+                }),
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
@@ -43,27 +52,45 @@ export class Wire {
                     topology: 'line-strip'
                 },
                 depthStencil: {
-                    depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthWriteEnabled: false,
+                    depthCompare: 'always',
                     format: 'depth24plus'
                 }
             });
-            const vertices = new Float32Array(this.segments.flat());
-            const vertexBuffer = device.createBuffer({
-                size: vertices.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: true
-            });
-            new Float32Array(vertexBuffer.getMappedRange()).set(vertices);
-            vertexBuffer.unmap();
-            passEncoder.setPipeline(pipeline);
-            passEncoder.setVertexBuffer(0, vertexBuffer);
-            passEncoder.draw(this.segments.length);
         }
         catch (err) {
             console.log(err);
             throw err;
         }
+    }
+    updateVertexBuffer(device) {
+        const vertices = new Float32Array(this.segments.flat());
+        if (!this.vertexBuffer || this.vertexBuffer.size !== vertices.byteLength) {
+            this.vertexBuffer?.destroy();
+            this.vertexBuffer = device.createBuffer({
+                size: vertices.byteLength,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: true
+            });
+        }
+        new Float32Array(this.vertexBuffer.getMappedRange()).set(vertices);
+        this.vertexBuffer.unmap();
+    }
+    draw(device, passEncoder, viewProjectionMatrix) {
+        if (!this.pipeline || !this.vertexBuffer || !this.uniformBuffer)
+            return;
+        device.queue.writeBuffer(this.uniformBuffer, 0, viewProjectionMatrix);
+        const bindGroup = device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [{
+                    binding: 0,
+                    resource: { buffer: this.uniformBuffer }
+                }]
+        });
+        passEncoder.setPipeline(this.pipeline);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setVertexBuffer(0, this.vertexBuffer);
+        passEncoder.draw(this.segments.length);
     }
     getSegments() {
         return this.segments;
@@ -84,7 +111,7 @@ export class Wire {
             throw err;
         }
     }
-    update(deltaTime) {
+    update(device, deltaTime) {
         const force = this.windManager.getWindForce(deltaTime);
         for (let i = 1; i < this.segments.length; i++) {
             vec3.add(this.segments[i], this.segments[i], force);
@@ -98,9 +125,14 @@ export class Wire {
                 vec3.scaleAndAdd(this.segments[i], prevSegment, dir, this.segmentLength);
             }
         }
+        this.updateVertexBuffer(device);
     }
-    async init(device, passEncoder, shaderLoader) {
+    async init(device, shaderLoader) {
+        this.uniformBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        await this.createPipeline(device, shaderLoader);
         this.initShaders(shaderLoader);
-        this.drawWire(device, passEncoder, shaderLoader);
     }
 }

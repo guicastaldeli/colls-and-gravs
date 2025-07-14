@@ -574,7 +574,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 depthStoreOp: 'store',
             }
         }
-        
+
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
