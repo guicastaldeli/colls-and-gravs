@@ -108,6 +108,9 @@ let ObjectManager = class ObjectManager {
     removeObject(id) {
         return this.objects.delete(id);
     }
+    getAllObjects() {
+        return Array.from(this.objects.values());
+    }
 };
 ObjectManager = __decorate([
     Injectable(),

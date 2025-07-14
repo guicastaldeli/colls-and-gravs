@@ -394,13 +394,6 @@ async function pointLight() {
         pointLightel = new PointLight();
 }
 //
-//Renderer
-async function renderer() {
-    if (!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-        await envRenderer.render();
-    }
-}
 export async function render(canvas) {
     try {
         device.pushErrorScope('validation');
@@ -430,13 +423,12 @@ export async function render(canvas) {
             windManager = new WindManager(tick);
         //Objects
         if (!objectManager) {
-            await renderer();
             const deps = {
                 tick,
                 device,
                 loader,
                 shaderLoader,
-                ground: envRenderer.ground,
+                ground: envRenderer?.ground,
                 lightningManager,
                 canvas,
                 playerController,
@@ -446,14 +438,18 @@ export async function render(canvas) {
             };
             objectManager = new ObjectManager(deps);
         }
+        if (!envRenderer) {
+            envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+            await envRenderer.render();
+        }
+        //
         //Random Blocks
         if (!randomBlocks) {
-            await objectManager.createObject('randomBlocks');
-            randomBlocks = await objectManager.getObject(randomBlocks);
+            const id = await objectManager.createObject('randomBlocks');
+            randomBlocks = objectManager.getObject(id);
             if (deltaTime)
                 randomBlocks.update(deltaTime);
         }
-        //
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);

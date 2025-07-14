@@ -52,7 +52,7 @@ let windManager: WindManager;
 let objectManager: ObjectManager;
 
 let skybox: Skybox;
-let randomBlocks: any;
+let randomBlocks: RandomBlocks;
 let pointLightel: PointLight;
 
 async function toggleWireframe(): Promise<void> {
@@ -460,14 +460,6 @@ function parseColor(rgb: string): [number, number, number] {
     }
 //
 
-//Renderer
-async function renderer() {
-    if(!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-        await envRenderer.render();
-    }
-}
-
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         device.pushErrorScope('validation');
@@ -495,14 +487,12 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Objects
             if(!objectManager) {
-                await renderer();
-
                 const deps = {
                     tick,
                     device,
                     loader,
                     shaderLoader,
-                    ground: envRenderer.ground,
+                    ground: envRenderer?.ground,
                     lightningManager,
                     canvas,
                     playerController,
@@ -514,13 +504,18 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 objectManager = new ObjectManager(deps);
             }
 
-            //Random Blocks
-            if(!randomBlocks) {
-                await objectManager.createObject('randomBlocks');
-                randomBlocks = await objectManager.getObject<RandomBlocks>(randomBlocks);
-                if(deltaTime) randomBlocks.update(deltaTime);
+            if(!envRenderer) {
+                envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+                await envRenderer.render();
             }
         //
+
+        //Random Blocks
+        if(!randomBlocks) {
+            const id = await objectManager.createObject('randomBlocks');
+            randomBlocks = objectManager.getObject<RandomBlocks>(id);
+            if(deltaTime) randomBlocks.update(deltaTime);
+        }
 
         //Colliders
         if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);

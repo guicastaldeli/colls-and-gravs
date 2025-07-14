@@ -126,8 +126,8 @@ export class ObjectManager {
         return idNumber;
     }
 
-    public getObject<T extends List>(id: number): T | undefined {
-        return this.objects.get(id) as T | undefined;
+    public getObject<T extends List>(id: number): T {
+        return this.objects.get(id) as T;
     }
 
     public renderObject(
@@ -149,5 +149,9 @@ export class ObjectManager {
 
     public removeObject(id: number): boolean {
         return this.objects.delete(id);
+    }
+
+    public getAllObjects(): List[] {
+        return Array.from(this.objects.values());
     }
 }
