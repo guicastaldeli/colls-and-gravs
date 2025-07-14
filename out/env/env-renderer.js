@@ -1,7 +1,6 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
-import { Lamp } from "./obj/lamp/lamp.js";
 export class EnvRenderer {
     device;
     loader;
@@ -10,12 +9,15 @@ export class EnvRenderer {
     //Items
     walls;
     ground;
+    //Objects
+    objectManager;
     lamp;
-    constructor(device, loader, shaderLoader, windManager) {
+    constructor(device, loader, shaderLoader, windManager, objectManager) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.windManager = windManager;
+        this.objectManager = objectManager;
     }
     async renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup) {
         //Ground
@@ -37,12 +39,14 @@ export class EnvRenderer {
         }
         //
         //Lamp
-        const lamp = this.lamp.getBuffers();
-        if (lamp) {
-            const data = lamp;
-            const num = 256;
-            const offset = num;
-            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
+        if (this.objectManager) {
+            const lamp = this.objectManager.getObject(this.lamp)?.getBuffers();
+            if (lamp) {
+                const data = lamp;
+                const num = 256;
+                const offset = num;
+                await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
+            }
         }
         //
     }
@@ -61,17 +65,19 @@ export class EnvRenderer {
             ...this.ground.getBlocks(),
             ...this.walls.getBlocks(),
         ];
-        const lampBuffers = this.lamp.getBuffers();
-        if (lampBuffers)
-            renderers.push(lampBuffers);
+        if (this.objectManager) {
+            const lampBuffers = this.objectManager.getObject(this.lamp)?.getBuffers();
+            if (lampBuffers)
+                renderers.push(lampBuffers);
+        }
         return renderers;
     }
-    async init() {
+    async render() {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
-        this.lamp = new Lamp(this.device, this.loader, this.shaderLoader, this.windManager);
-        await this.lamp.init();
+        if (this.objectManager)
+            this.lamp = await this.objectManager.createObject('lamp');
     }
 }

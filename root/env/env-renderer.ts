@@ -8,6 +8,7 @@ import { WindManager } from "../wind-manager.js";
 
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
+import { ObjectManager } from "./obj/object-manager.js";
 import { Lamp } from "./obj/lamp/lamp.js";
 
 export class EnvRenderer {
@@ -19,18 +20,23 @@ export class EnvRenderer {
     //Items
     public walls!: Walls;
     public ground!: Ground;
-    private lamp!: Lamp;
+
+    //Objects
+    public objectManager?: ObjectManager;
+    private lamp!: number;
 
     constructor(
         device: GPUDevice, 
         loader: Loader,
         shaderLoader: ShaderLoader,
-        windManager: WindManager
+        windManager: WindManager,
+        objectManager?: ObjectManager
     ) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.windManager = windManager;
+        this.objectManager = objectManager;
     }
 
     public async renderEnv(
@@ -78,21 +84,23 @@ export class EnvRenderer {
         //
 
         //Lamp
-            const lamp = this.lamp.getBuffers();
-
-            if(lamp) {
-                const data = lamp;
-                const num = 256;
-                const offset = num;
-
-                await this.drawObject(
-                    passEncoder,
-                    data,
-                    uniformBuffer,
-                    viewProjectionMatrix,
-                    bindGroup,
-                    offset
-                )
+            if(this.objectManager) {
+                const lamp = this.objectManager.getObject<Lamp>(this.lamp)?.getBuffers();
+    
+                if(lamp) {
+                    const data = lamp;
+                    const num = 256;
+                    const offset = num;
+    
+                    await this.drawObject(
+                        passEncoder,
+                        data,
+                        uniformBuffer,
+                        viewProjectionMatrix,
+                        bindGroup,
+                        offset
+                    )
+                }
             }
         //
     }
@@ -122,20 +130,21 @@ export class EnvRenderer {
             ...this.walls.getBlocks(),
         ];
 
-        const lampBuffers = this.lamp.getBuffers();
-        if(lampBuffers) renderers.push(lampBuffers);
+        if(this.objectManager) {
+            const lampBuffers = this.objectManager.getObject<Lamp>(this.lamp)?.getBuffers();
+            if(lampBuffers) renderers.push(lampBuffers);
+        }
 
         return renderers;
     }
 
-    public async init(): Promise<void> {
+    public async render(): Promise<void> {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
 
-        this.lamp = new Lamp(this.device, this.loader, this.shaderLoader, this.windManager);
-        await this.lamp.init();
+        if(this.objectManager) this.lamp = await this.objectManager.createObject('lamp');
     }
 }

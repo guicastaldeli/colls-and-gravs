@@ -1,15 +1,30 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 import { mat3, mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { Injectable } from "../object-manager.js";
+import { Tick } from "../../../tick.js";
 import { BoxCollider } from "../../../collision/collider.js";
 import { GetColliders } from "../../../collision/get-colliders.js";
+import { Loader } from "../../../loader.js";
 import { ResourceManager } from "./resource-manager.js";
+import { ShaderLoader } from "../../../shader-loader.js";
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
 import { PhysicsSystem } from "../../../physics/physics-system.js";
 import { PhysicsObject } from "../../../physics/physics-object.js";
 import { PhysicsGrid } from "../../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
+import { Ground } from "../../ground.js";
+import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
-export class RandomBlocks {
+let RandomBlocks = class RandomBlocks {
     tick;
     device;
     loader;
@@ -498,4 +513,14 @@ export class RandomBlocks {
         this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);
     }
-}
+};
+RandomBlocks = __decorate([
+    Injectable(),
+    __metadata("design:paramtypes", [Tick,
+        GPUDevice,
+        Loader,
+        ShaderLoader,
+        Ground,
+        LightningManager])
+], RandomBlocks);
+export { RandomBlocks };

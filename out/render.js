@@ -12,8 +12,8 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
+import { ObjectManager } from "./env/obj/object-manager.js";
 import { Skybox } from "./skybox/skybox.js";
-import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
 import { PointLight } from "./lightning/point-light.js";
@@ -31,6 +31,7 @@ let shaderComposer;
 let playerController;
 let envRenderer;
 let getColliders;
+let hud;
 let wireframeMode = false;
 let wireframePipeline = null;
 let lightningManager;
@@ -393,11 +394,11 @@ async function pointLight() {
         pointLightel = new PointLight();
 }
 //
-//Render
-async function renderer(device) {
+//Renderer
+async function renderer() {
     if (!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager);
-        await envRenderer.init();
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+        await envRenderer.render();
     }
 }
 export async function render(canvas) {
@@ -409,6 +410,7 @@ export async function render(canvas) {
             tick = new Tick();
         const deltaTime = tick.update(currentTime);
         //Render Related
+        const format = navigator.gpu.getPreferredCanvasFormat();
         if (!loader)
             loader = new Loader(device);
         if (!shaderLoader)
@@ -417,7 +419,6 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initShaders();
-        await renderer(device);
         //Lightning
         if (!lightningManager)
             lightningManager = new LightningManager(device);
@@ -427,13 +428,32 @@ export async function render(canvas) {
         //Wind
         if (!windManager)
             windManager = new WindManager(tick);
-        //Random Blocks
-        const format = navigator.gpu.getPreferredCanvasFormat();
-        if (!randomBlocks) {
-            randomBlocks = new RandomBlocks(tick, device, loader, shaderLoader, envRenderer.ground, lightningManager);
+        //Objects
+        if (!objectManager) {
+            await renderer();
+            const deps = {
+                tick,
+                device,
+                loader,
+                shaderLoader,
+                ground: envRenderer.ground,
+                lightningManager,
+                canvas,
+                playerController,
+                format,
+                hud,
+                windManager
+            };
+            objectManager = new ObjectManager(deps);
         }
-        if (deltaTime)
-            randomBlocks.update(deltaTime);
+        //Random Blocks
+        if (!randomBlocks) {
+            await objectManager.createObject('randomBlocks');
+            randomBlocks = await objectManager.getObject(randomBlocks);
+            if (deltaTime)
+                randomBlocks.update(deltaTime);
+        }
+        //
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);
@@ -453,9 +473,11 @@ export async function render(canvas) {
             input = new Input(tick, camera, playerController);
             input.setupInputControls(canvas);
         }
-        const hud = camera.getHud();
-        hud.update(canvas.width, canvas.height);
-        camera.getProjectionMatrix(canvas.width / canvas.height);
+        if (camera) {
+            hud = camera.getHud();
+            hud.update(canvas.width, canvas.height);
+            camera.getProjectionMatrix(canvas.width / canvas.height);
+        }
         //
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||

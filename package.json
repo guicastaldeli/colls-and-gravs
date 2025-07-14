@@ -6,7 +6,10 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "gl-matrix": "^3.4.3"
+    "@types/reflect-metadata": "^0.0.5",
+    "gl-matrix": "^3.4.3",
+    "reflect-metadata": "^0.2.2",
+    "webgpu": "^0.3.0"
   },
   "name": "collsandgravs",
   "version": "1.0.0",

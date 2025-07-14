@@ -48,7 +48,7 @@ export class Wire {
                 }]
             });
             
-            const pipeline = device.createRenderPipeline({
+            this.pipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
                     bindGroupLayouts: [bindGroupLayout]
                 }),
@@ -75,8 +75,8 @@ export class Wire {
                     topology: 'line-strip'
                 },
                 depthStencil: {
-                    depthWriteEnabled: false,
-                    depthCompare: 'always',
+                    depthWriteEnabled: true,
+                    depthCompare: 'less-equal',
                     format: 'depth24plus'
                 }
             });
@@ -89,17 +89,16 @@ export class Wire {
     private updateVertexBuffer(device: GPUDevice): void {
         const vertices = new Float32Array(this.segments.flat());
 
-        if(!this.vertexBuffer || this.vertexBuffer.size !== vertices.byteLength) {
+        if(!this.vertexBuffer || this.vertexBuffer.size < vertices.byteLength) {
             this.vertexBuffer?.destroy();
             this.vertexBuffer = device.createBuffer({
                 size: vertices.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: true
+                mappedAtCreation: false
             });
         }
 
-        new Float32Array(this.vertexBuffer.getMappedRange()).set(vertices);
-        this.vertexBuffer.unmap();
+        device.queue.writeBuffer(this.vertexBuffer, 0, vertices);
     }
 
     public draw(
@@ -186,6 +185,5 @@ export class Wire {
         });
 
         await this.createPipeline(device, shaderLoader);
-        this.initShaders(shaderLoader);
     }
 }

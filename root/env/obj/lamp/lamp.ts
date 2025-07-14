@@ -1,10 +1,12 @@
 import { mat3, mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { Injectable, ObjectManager } from "../object-manager.js";
 import { EnvBufferData, initEnvBuffers } from "../../env-buffers.js";
 import { ShaderLoader } from "../../../shader-loader.js";
 import { Loader } from "../../../loader.js";
 import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
 
+@Injectable()
 export class Lamp {
     private device: GPUDevice;
     private loader: Loader;
@@ -107,8 +109,8 @@ export class Lamp {
         return this.buffers;
     }
 
-    public update(device: GPUDevice, deltaTime: number) {
-        this.wire.update(device, deltaTime);
+    public update(deltaTime: number) {
+        this.wire.update(this.device, deltaTime);
 
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);

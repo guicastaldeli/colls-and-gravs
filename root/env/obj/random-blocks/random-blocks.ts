@@ -1,5 +1,6 @@
 import { mat3, mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
 
+import { Injectable } from "../object-manager.js";
 import { Tick } from "../../../tick.js";
 import { BoxCollider, Collider, ICollidable } from "../../../collision/collider.js";
 import { GetColliders } from "../../../collision/get-colliders.js";
@@ -44,6 +45,7 @@ interface SharedResource {
     referenceCount: number;
 }
 
+@Injectable()
 export class RandomBlocks implements ICollidable {
     private tick: Tick;
     private device: GPUDevice;

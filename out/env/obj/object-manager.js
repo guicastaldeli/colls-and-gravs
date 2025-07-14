@@ -1,2 +1,116 @@
-export class ObjectManager {
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+import 'reflect-metadata';
+import { RandomBlocks } from "./random-blocks/random-blocks.js";
+import { Lamp } from "./lamp/lamp.js";
+import { Tick } from "../../tick.js";
+import { Loader } from "../../loader.js";
+import { ShaderLoader } from "../../shader-loader.js";
+import { Ground } from "../ground.js";
+import { LightningManager } from "../../lightning-manager.js";
+import { PlayerController } from "../../player/player-controller.js";
+import { Hud } from "../../hud.js";
+import { WindManager } from "../../wind-manager.js";
+export function Injectable() {
+    return (target) => {
+        Reflect.defineMetadata('injectable', true, target);
+    };
 }
+const dependenciesMap = new Map([
+    [Tick, 'tick'],
+    [GPUDevice, 'device'],
+    [Loader, 'loader'],
+    [ShaderLoader, 'shaderLoader'],
+    [Ground, 'ground'],
+    [LightningManager, 'lightningManager'],
+    [HTMLCanvasElement, 'canvas'],
+    [PlayerController, 'playerController'],
+    [Object, 'format'],
+    [Hud, 'hud'],
+    [WindManager, 'windManager']
+]);
+let ObjectManager = class ObjectManager {
+    id = 1;
+    deps;
+    objects = new Map();
+    typeRegistry = new Map();
+    constructor(deps) {
+        this.deps = deps;
+        this.registeredTypes();
+    }
+    registerType(type, constructor, init) {
+        this.typeRegistry.set(type, {
+            constructor,
+            init: init ? async (instance, deps) => {
+                await init(instance, deps);
+            } : undefined
+        });
+    }
+    async registeredTypes() {
+        //Random Blocks
+        this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
+            await instance.init(deps.canvas, deps.playerController, deps.format, deps.hud);
+        });
+        //Lamp
+        this.registerType('lamp', Lamp, async (instance, deps) => {
+            await instance.init();
+        });
+    }
+    resolveDependencies(constructor) {
+        const paramTypes = Reflect.getMetadata('design:paramtypes', constructor) || [];
+        return paramTypes.map(type => {
+            const key = dependenciesMap.get(type);
+            if (!key)
+                throw new Error(`No dep registered for type ${type.name}`);
+            const dependency = this.deps[key];
+            if (!dependency)
+                throw new Error(`Missing dependency ${String(key)}`);
+            return dependency;
+        });
+    }
+    async createObject(type) {
+        const typeInfo = this.typeRegistry.get(type);
+        if (!typeInfo)
+            throw new Error(`Object type ${type} not registered`);
+        const constructorArgs = this.resolveDependencies(typeInfo.constructor);
+        const instance = new typeInfo.constructor(...constructorArgs);
+        if (typeInfo.init)
+            await typeInfo.init(instance, this.deps);
+        const id = this.generateId(type);
+        this.objects.set(id, instance);
+        return id;
+    }
+    generateId(type) {
+        const idNumber = this.id++;
+        return idNumber;
+    }
+    getObject(id) {
+        return this.objects.get(id);
+    }
+    renderObject(id, device, passEncoder, viewProjectionMatrix, deltaTime) {
+        const instance = this.objects.get(id);
+        if (!instance)
+            return;
+        if ('draw' in instance && typeof instance.draw === 'function') {
+            instance.draw(device, passEncoder, viewProjectionMatrix);
+        }
+        else if ('update' in instance && typeof instance.update === 'function') {
+            instance.update(deltaTime);
+        }
+    }
+    removeObject(id) {
+        return this.objects.delete(id);
+    }
+};
+ObjectManager = __decorate([
+    Injectable(),
+    __metadata("design:paramtypes", [Object])
+], ObjectManager);
+export { ObjectManager };

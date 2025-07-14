@@ -25,6 +25,7 @@ import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
 import { PointLight } from "./lightning/point-light.js";
+import { Hud } from "./hud.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -41,6 +42,7 @@ let shaderComposer: ShaderComposer;
 let playerController: PlayerController;
 let envRenderer: EnvRenderer;
 let getColliders: GetColliders;
+let hud: Hud;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
@@ -50,8 +52,7 @@ let windManager: WindManager;
 let objectManager: ObjectManager;
 
 let skybox: Skybox;
-let randomBlocks: RandomBlocks;
-
+let randomBlocks: any;
 let pointLightel: PointLight;
 
 async function toggleWireframe(): Promise<void> {
@@ -459,11 +460,11 @@ function parseColor(rgb: string): [number, number, number] {
     }
 //
 
-//Render
-async function renderer(device: GPUDevice): Promise<void> {
+//Renderer
+async function renderer() {
     if(!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager);
-        await envRenderer.init();
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+        await envRenderer.render();
     }
 }
 
@@ -477,11 +478,11 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const deltaTime = tick.update(currentTime);
         
         //Render Related
+        const format = navigator.gpu.getPreferredCanvasFormat();
         if(!loader) loader = new Loader(device);
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initShaders();
-        await renderer(device);
 
         //Lightning
         if(!lightningManager) lightningManager = new LightningManager(device);
@@ -492,19 +493,34 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Wind
         if(!windManager) windManager = new WindManager(tick);
 
-        //Random Blocks
-        const format = navigator.gpu.getPreferredCanvasFormat();
-        if(!randomBlocks) {
-            randomBlocks = new RandomBlocks(
-                tick, 
-                device, 
-                loader, 
-                shaderLoader, 
-                envRenderer.ground,
-                lightningManager
-            );
-        }
-        if(deltaTime) randomBlocks.update(deltaTime);
+        //Objects
+            if(!objectManager) {
+                await renderer();
+
+                const deps = {
+                    tick,
+                    device,
+                    loader,
+                    shaderLoader,
+                    ground: envRenderer.ground,
+                    lightningManager,
+                    canvas,
+                    playerController,
+                    format,
+                    hud,
+                    windManager
+                }
+    
+                objectManager = new ObjectManager(deps);
+            }
+
+            //Random Blocks
+            if(!randomBlocks) {
+                await objectManager.createObject('randomBlocks');
+                randomBlocks = await objectManager.getObject<RandomBlocks>(randomBlocks);
+                if(deltaTime) randomBlocks.update(deltaTime);
+            }
+        //
 
         //Colliders
         if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
@@ -533,9 +549,11 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 input = new Input(tick, camera, playerController);
                 input.setupInputControls(canvas);
             }
-            const hud = camera.getHud();
-            hud.update(canvas.width, canvas.height);
-            camera.getProjectionMatrix(canvas.width / canvas.height);
+            if(camera) {
+                hud = camera.getHud();
+                hud.update(canvas.width, canvas.height);
+                camera.getProjectionMatrix(canvas.width / canvas.height);
+            }
         //
 
         if(depthTexture &&
