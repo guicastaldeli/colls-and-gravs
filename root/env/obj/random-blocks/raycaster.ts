@@ -1,5 +1,5 @@
-import { mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
-import { BoxCollider } from "../../collision/collider.js";
+import { mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { BoxCollider } from "../../../collision/collider.js";
 
 export class Raycaster {
     private boxCollider?: BoxCollider;

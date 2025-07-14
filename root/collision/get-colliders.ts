@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Collider, ICollidable } from "./collider.js";
 import { EnvRenderer } from "../env/env-renderer.js";
-import { RandomBlocks } from "../env/random-blocks/random-blocks.js";
+import { RandomBlocks } from "../env/obj/random-blocks/random-blocks.js";
 import { CollisionResponse } from "./collider.js";
 
 export type ColliderCollection = {

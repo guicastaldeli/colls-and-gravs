@@ -12,7 +12,7 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { Skybox } from "./skybox/skybox.js";
 import { LightningManager } from "./lightning-manager.js";
-import { RandomBlocks } from "./env/random-blocks/random-blocks.js";
+import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
 import { PointLight } from "./lightning/point-light.js";
@@ -57,7 +57,6 @@ async function initShaders() {
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {

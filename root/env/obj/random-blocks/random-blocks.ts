@@ -1,24 +1,24 @@
-import { mat3, mat4, vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
 
-import { Tick } from "../../tick.js";
-import { BoxCollider, Collider, ICollidable } from "../../collision/collider.js";
-import { GetColliders } from "../../collision/get-colliders.js";
-import { Loader } from "../../loader.js";
+import { Tick } from "../../../tick.js";
+import { BoxCollider, Collider, ICollidable } from "../../../collision/collider.js";
+import { GetColliders } from "../../../collision/get-colliders.js";
+import { Loader } from "../../../loader.js";
 import { ResourceManager } from "./resource-manager.js";
-import { PlayerController } from "../../player/player-controller.js";
-import { Hud } from "../../hud.js";
-import { ShaderLoader } from "../../shader-loader.js";
+import { PlayerController } from "../../../player/player-controller.js";
+import { Hud } from "../../../hud.js";
+import { ShaderLoader } from "../../../shader-loader.js";
 import { Raycaster } from "./raycaster.js";
 import { OutlineConfig } from "./outline-config.js";
-import { PhysicsSystem } from "../../physics/physics-system.js";
-import { PhysicsObject } from "../../physics/physics-object.js";
-import { PhysicsGrid } from "../../physics/physics-grid.js";
+import { PhysicsSystem } from "../../../physics/physics-system.js";
+import { PhysicsObject } from "../../../physics/physics-object.js";
+import { PhysicsGrid } from "../../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
 import { ListType } from "./list-type.js";
-import { Ground } from "../ground.js";
-import { LightningManager } from "../../lightning-manager.js";
-import { AmbientLight } from "../../lightning/ambient-light.js";
-import { PointLight } from "../../lightning/point-light.js";
+import { Ground } from "../../ground.js";
+import { LightningManager } from "../../../lightning-manager.js";
+import { AmbientLight } from "../../../lightning/ambient-light.js";
+import { PointLight } from "../../../lightning/point-light.js";
 
 interface BlockData {
     id: string,

@@ -1,7 +1,7 @@
 import { Tick } from "./tick.js";
 import { render } from "./render.js";
 import { Input } from "./input.js";
-import { loadListData } from "./env/random-blocks/list.js";
+import { loadListData } from "./env/obj/random-blocks/list.js";
 
 export const canvas = <HTMLCanvasElement>(document.querySelector('#content'));
 export const context = <GPUCanvasContext>(canvas.getContext('webgpu'));

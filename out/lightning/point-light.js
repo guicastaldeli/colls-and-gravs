@@ -15,8 +15,6 @@ export class PointLight {
         this._constant = 1.0;
         this._linear = 0.09;
         this._quadratic = 0.04;
-        console.log("Light data size:", this.getBufferData().length * 4, "bytes");
-        console.log("Light data:", this.getBufferData());
     }
     //Position
     set position(value) {
