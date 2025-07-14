@@ -431,31 +431,34 @@ export async function render(canvas) {
                 ground: envRenderer?.ground,
                 lightningManager,
                 canvas,
-                playerController,
+                playerController: null,
                 format,
-                hud,
+                hud: null,
                 windManager
             };
             objectManager = new ObjectManager(deps);
-        }
-        if (!envRenderer) {
-            envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-            await envRenderer.render();
+            if (!envRenderer) {
+                envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+                await envRenderer.render();
+                objectManager.deps.ground = envRenderer.ground;
+            }
         }
         //
         //Random Blocks
         if (!randomBlocks) {
             const id = await objectManager.createObject('randomBlocks');
             randomBlocks = objectManager.getObject(id);
-            if (deltaTime)
-                randomBlocks.update(deltaTime);
         }
+        if (deltaTime)
+            randomBlocks.update(deltaTime);
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);
         //Player Controller
-        if (!playerController)
+        if (!playerController) {
             playerController = new PlayerController(tick, undefined, getColliders);
+            objectManager.deps.playerController = playerController;
+        }
         playerController.update(deltaTime);
         //Camera
         if (!camera) {

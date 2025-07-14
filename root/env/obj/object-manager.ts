@@ -29,9 +29,9 @@ interface Dependencies {
     ground: Ground;
     lightningManager: LightningManager;
     canvas: HTMLCanvasElement, 
-    playerController: PlayerController,
+    playerController: PlayerController | null,
     format: GPUTextureFormat,
-    hud: Hud,
+    hud: Hud | null,
     windManager: WindManager
 }
 
@@ -52,7 +52,7 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
 @Injectable()
 export class ObjectManager {
     private id: number = 1;
-    private deps: Dependencies;
+    public deps: Dependencies;
     private objects: Map<number, List> = new Map();
     private typeRegistry: Map<Types, {
         constructor: new (...args: any[]) => List,
@@ -80,6 +80,8 @@ export class ObjectManager {
     private async registeredTypes(): Promise<void> {
         //Random Blocks
         this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
+            if(!deps.playerController || !deps.hud) return;
+
             await(instance as RandomBlocks).init(
                 deps.canvas,
                 deps.playerController,

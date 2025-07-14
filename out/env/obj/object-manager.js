@@ -56,6 +56,8 @@ let ObjectManager = class ObjectManager {
     async registeredTypes() {
         //Random Blocks
         this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
+            if (!deps.playerController || !deps.hud)
+                return;
             await instance.init(deps.canvas, deps.playerController, deps.format, deps.hud);
         });
         //Lamp
