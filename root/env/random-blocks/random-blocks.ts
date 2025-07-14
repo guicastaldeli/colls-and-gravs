@@ -18,6 +18,7 @@ import { ListType } from "./list-type.js";
 import { Ground } from "../ground.js";
 import { LightningManager } from "../../lightning-manager.js";
 import { AmbientLight } from "../../lightning/ambient-light.js";
+import { PointLight } from "../../lightning/point-light.js";
 
 interface BlockData {
     id: string,
@@ -60,6 +61,9 @@ export class RandomBlocks implements ICollidable {
 
     public sharedResources: Map<string, SharedResource> = new Map();
     private defaultSharedResourceId = 'default-m';
+
+    private blockLights: Map<string, PointLight> = new Map();
+    private lightningManager: LightningManager;
 
     //Model
     private currentItem: ListType;
@@ -115,6 +119,7 @@ export class RandomBlocks implements ICollidable {
         this.physicsGrid = new PhysicsGrid(2.0);
 
         this.ground = ground;
+        this.lightningManager = lightningManager;
     }
 
     public async preloadAssets(): Promise<void> {
@@ -248,6 +253,22 @@ export class RandomBlocks implements ICollidable {
             const groundLevel = this.ground.getGroundLevelY(position[0], position[2]);
             if(position[1] < groundLevel + this.currentItem.size.h) position[1] = groundLevel + this.currentItem.size.h;
 
+            const lightColor = vec3.fromValues(
+                Math.random() * 0.5 + 0.5,
+                Math.random() * 0.5 + 0.5,
+                Math.random() * 0.5 + 0.5
+            );
+
+            const light = new PointLight(
+                vec3.clone(position),
+                lightColor,
+                1.0,
+                3.0
+            );
+
+            this.blockLights.set(newBlock.id, light);
+            this.lightningManager.addPointLight(newBlock.id, light);
+            this.lightningManager.updatePointLightBuffer();
             return newBlock;
         } catch(err) {
             console.log(err)
@@ -657,6 +678,11 @@ export class RandomBlocks implements ICollidable {
                     ]
                 );
 
+                const light = this.blockLights.get(block.id);
+                if(light) {
+                    light.position = vec3.clone(physicsObj.position);
+                }
+
                 const colliderIndex = this.blocks.indexOf(block);
                 if(colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [
@@ -666,6 +692,8 @@ export class RandomBlocks implements ICollidable {
                     ];
                 }
             }
+
+            this.lightningManager.updatePointLightBuffer();
         }
     }
 

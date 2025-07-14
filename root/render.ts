@@ -85,6 +85,7 @@ async function initShaders(): Promise<void> {
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 
+        console.log(combinedFragCode.toString())
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {

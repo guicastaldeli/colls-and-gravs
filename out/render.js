@@ -57,6 +57,7 @@ async function initShaders() {
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {

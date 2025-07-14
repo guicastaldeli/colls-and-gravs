@@ -8,6 +8,7 @@ import { PhysicsSystem } from "../../physics/physics-system.js";
 import { PhysicsObject } from "../../physics/physics-object.js";
 import { PhysicsGrid } from "../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
+import { PointLight } from "../../lightning/point-light.js";
 export class RandomBlocks {
     tick;
     device;
@@ -23,6 +24,8 @@ export class RandomBlocks {
     eventListenersInitialized = false;
     sharedResources = new Map();
     defaultSharedResourceId = 'default-m';
+    blockLights = new Map();
+    lightningManager;
     //Model
     currentItem;
     gridSize = {
@@ -61,6 +64,7 @@ export class RandomBlocks {
         this.physicsSystem = new PhysicsSystem(ground);
         this.physicsGrid = new PhysicsGrid(2.0);
         this.ground = ground;
+        this.lightningManager = lightningManager;
     }
     async preloadAssets() {
         for (const item of ListData) {
@@ -166,6 +170,11 @@ export class RandomBlocks {
             const groundLevel = this.ground.getGroundLevelY(position[0], position[2]);
             if (position[1] < groundLevel + this.currentItem.size.h)
                 position[1] = groundLevel + this.currentItem.size.h;
+            const lightColor = vec3.fromValues(Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5);
+            const light = new PointLight(vec3.clone(position), lightColor, 1.0, 3.0);
+            this.blockLights.set(newBlock.id, light);
+            this.lightningManager.addPointLight(newBlock.id, light);
+            this.lightningManager.updatePointLightBuffer();
             return newBlock;
         }
         catch (err) {
@@ -469,6 +478,10 @@ export class RandomBlocks {
                     block.modelDef.size.h,
                     block.modelDef.size.d
                 ]);
+                const light = this.blockLights.get(block.id);
+                if (light) {
+                    light.position = vec3.clone(physicsObj.position);
+                }
                 const colliderIndex = this.blocks.indexOf(block);
                 if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [
@@ -478,6 +491,7 @@ export class RandomBlocks {
                     ];
                 }
             }
+            this.lightningManager.updatePointLightBuffer();
         }
     }
     async init(canvas, playerController, format, hud) {
