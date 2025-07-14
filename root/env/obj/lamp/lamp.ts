@@ -8,6 +8,7 @@ import { Wire } from "./wire.js";
 export class Lamp {
     private device: GPUDevice;
     private loader: Loader;
+    private buffers?: EnvBufferData;
     private shaderLoader: ShaderLoader;
 
     private windManager: WindManager;
@@ -17,28 +18,28 @@ export class Lamp {
     private modelMatrix: mat4;
 
     lampPos = {
-        x: 0,
-        y: 0,
-        z: 0
+        x: 3,
+        y: 4,
+        z: 2
     }
 
     size = {
-        w: 1.0,
-        h: 1.0,
-        d: 1.0
+        w: 0.1,
+        h: 0.1,
+        d: 0.1
     }
 
     constructor(
         device: GPUDevice,
         loader: Loader,
         shaderLoader: ShaderLoader,
-        windManager: WindManager,
-        attachmentPoint: vec3
+        windManager: WindManager
     ) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
 
+        const attachmentPoint = vec3.fromValues(0, 0, 0);
         this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         
@@ -81,15 +82,15 @@ export class Lamp {
 
     private async createLamp(): Promise<void> {
         try {
-            const lamp = await this.loadAssets();
+            if(!this.buffers) return;
 
             const position = vec3.fromValues(this.lampPos.x, this.lampPos.y, this.lampPos.z);
-            mat4.identity(lamp.modelMatrix);
-            mat4.translate(lamp.modelMatrix, lamp.modelMatrix, position);
+            mat4.identity(this.buffers.modelMatrix);
+            mat4.translate(this.buffers.modelMatrix, this.buffers.modelMatrix, position);
             
             mat4.scale(
-                lamp.modelMatrix,
-                lamp.modelMatrix,
+                this.buffers.modelMatrix,
+                this.buffers.modelMatrix,
                 [
                     this.size.w,
                     this.size.h,
@@ -102,6 +103,10 @@ export class Lamp {
         }
     }
 
+    public getBuffers(): EnvBufferData | undefined {
+        return this.buffers;
+    }
+ 
     public async render(passEncoder: GPURenderPassEncoder): Promise<void> {
         this.wire.init(this.device, passEncoder, this.shaderLoader);
         await this.createLamp();
@@ -113,6 +118,11 @@ export class Lamp {
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
 
+        this.createLamp();
+    }
+
+    public async init(): Promise<void> {
+        this.buffers = await this.loadAssets();
         this.createLamp();
     }
 }

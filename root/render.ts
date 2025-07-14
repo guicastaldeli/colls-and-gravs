@@ -16,8 +16,11 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { ICollidable } from "./collision/collider.js";
 
-import { Skybox } from "./skybox/skybox.js";
 import { LightningManager } from "./lightning-manager.js";
+import { WindManager } from "./wind-manager.js";
+import { ObjectManager } from "./env/obj/object-manager.js";
+
+import { Skybox } from "./skybox/skybox.js";
 import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -42,8 +45,11 @@ let getColliders: GetColliders;
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null; 
 
-let skybox: Skybox;
 let lightningManager: LightningManager;
+let windManager: WindManager;
+let objectManager: ObjectManager;
+
+let skybox: Skybox;
 let randomBlocks: RandomBlocks;
 
 let pointLightel: PointLight;
@@ -456,7 +462,7 @@ function parseColor(rgb: string): [number, number, number] {
 //Render
 async function renderer(device: GPUDevice): Promise<void> {
     if(!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader);
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager);
         await envRenderer.init();
     }
 }
@@ -482,6 +488,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await ambientLight();
         await directionalLight();
         await pointLight();
+
+        //Wind
+        if(!windManager) windManager = new WindManager(tick);
 
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();

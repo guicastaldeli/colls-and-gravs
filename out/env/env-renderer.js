@@ -1,15 +1,21 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
+import { Lamp } from "./obj/lamp/lamp.js";
 export class EnvRenderer {
     device;
     loader;
+    shaderLoader;
+    windManager;
     //Items
     walls;
     ground;
-    constructor(device, loader) {
+    lamp;
+    constructor(device, loader, shaderLoader, windManager) {
         this.device = device;
         this.loader = loader;
+        this.shaderLoader = shaderLoader;
+        this.windManager = windManager;
     }
     async renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup) {
         //Ground
@@ -30,6 +36,15 @@ export class EnvRenderer {
             await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
         }
         //
+        //Lamp
+        const lamp = this.lamp.getBuffers();
+        if (lamp) {
+            const data = lamp;
+            const num = 256;
+            const offset = num;
+            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
+        }
+        //
     }
     async drawObject(passEncoder, buffers, uniformBuffer, viewProjectionMatrix, bindGroup, offset) {
         const mvpMatrix = mat4.create();
@@ -44,8 +59,11 @@ export class EnvRenderer {
     get() {
         const renderers = [
             ...this.ground.getBlocks(),
-            ...this.walls.getBlocks()
+            ...this.walls.getBlocks(),
         ];
+        const lampBuffers = this.lamp.getBuffers();
+        if (lampBuffers)
+            renderers.push(lampBuffers);
         return renderers;
     }
     async init() {
@@ -53,5 +71,7 @@ export class EnvRenderer {
         await this.ground.init();
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
+        this.lamp = new Lamp(this.device, this.loader, this.shaderLoader, this.windManager);
+        await this.lamp.init();
     }
 }

@@ -10,8 +10,9 @@ import { ShaderComposer } from "./shader-composer.js";
 import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
-import { Skybox } from "./skybox/skybox.js";
 import { LightningManager } from "./lightning-manager.js";
+import { WindManager } from "./wind-manager.js";
+import { Skybox } from "./skybox/skybox.js";
 import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -32,8 +33,10 @@ let envRenderer;
 let getColliders;
 let wireframeMode = false;
 let wireframePipeline = null;
-let skybox;
 let lightningManager;
+let windManager;
+let objectManager;
+let skybox;
 let randomBlocks;
 let pointLightel;
 async function toggleWireframe() {
@@ -393,7 +396,7 @@ async function pointLight() {
 //Render
 async function renderer(device) {
     if (!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader);
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager);
         await envRenderer.init();
     }
 }
@@ -421,6 +424,9 @@ export async function render(canvas) {
         await ambientLight();
         await directionalLight();
         await pointLight();
+        //Wind
+        if (!windManager)
+            windManager = new WindManager(tick);
         //Random Blocks
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!randomBlocks) {

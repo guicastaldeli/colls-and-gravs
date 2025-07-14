@@ -3,23 +3,34 @@ import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData } from "./env-buffers.js";
 import { PlayerController } from "../player/player-controller.js";
 import { Loader } from "../loader.js";
+import { ShaderLoader } from "../shader-loader.js";
+import { WindManager } from "../wind-manager.js";
+
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
+import { Lamp } from "./obj/lamp/lamp.js";
 
 export class EnvRenderer {
     private device: GPUDevice;
     private loader: Loader;
+    private shaderLoader: ShaderLoader;
+    private windManager: WindManager;
 
     //Items
     public walls!: Walls;
     public ground!: Ground;
+    private lamp!: Lamp;
 
     constructor(
         device: GPUDevice, 
-        loader: Loader
+        loader: Loader,
+        shaderLoader: ShaderLoader,
+        windManager: WindManager
     ) {
         this.device = device;
         this.loader = loader;
+        this.shaderLoader = shaderLoader;
+        this.windManager = windManager;
     }
 
     public async renderEnv(
@@ -65,6 +76,25 @@ export class EnvRenderer {
                 );
             }
         //
+
+        //Lamp
+            const lamp = this.lamp.getBuffers();
+
+            if(lamp) {
+                const data = lamp;
+                const num = 256;
+                const offset = num;
+
+                await this.drawObject(
+                    passEncoder,
+                    data,
+                    uniformBuffer,
+                    viewProjectionMatrix,
+                    bindGroup,
+                    offset
+                )
+            }
+        //
     }
 
     private async drawObject(
@@ -89,8 +119,11 @@ export class EnvRenderer {
     public get(): EnvBufferData[] {
         const renderers = [
             ...this.ground.getBlocks(),
-            ...this.walls.getBlocks()
+            ...this.walls.getBlocks(),
         ];
+
+        const lampBuffers = this.lamp.getBuffers();
+        if(lampBuffers) renderers.push(lampBuffers);
 
         return renderers;
     }
@@ -101,5 +134,8 @@ export class EnvRenderer {
         
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
+
+        this.lamp = new Lamp(this.device, this.loader, this.shaderLoader, this.windManager);
+        await this.lamp.init();
     }
 }
