@@ -479,9 +479,8 @@ export class RandomBlocks {
                     block.modelDef.size.d
                 ]);
                 const light = this.blockLights.get(block.id);
-                if (light) {
+                if (light)
                     light.position = vec3.clone(physicsObj.position);
-                }
                 const colliderIndex = this.blocks.indexOf(block);
                 if (colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [

@@ -17,11 +17,19 @@ export class StructureManager {
         position: vec3,
         createBlock: (
             pos: vec3,
-            isBlock: boolean
+            isBlock: boolean,
+            rotation?: {
+                axis: 'x' | 'y' | 'z';
+                angle: number;
+            }
         ) => Promise<{
             block: EnvBufferData | null,
             collider: BoxCollider | null
         }>,
+        rotation?: {
+            axis: 'x' | 'y' | 'z';
+            angle: number;
+        }
     ): Promise<{
         blocks: EnvBufferData[];
         colliders: BoxCollider[];
@@ -43,7 +51,7 @@ export class StructureManager {
                     position[2]
                 );
                 
-                const { block, collider } = await createBlock(pos, isBlock);
+                const { block, collider } = await createBlock(pos, isBlock, rotation);
                 if(block) blocks.push(block);
                 if(collider) colliders.push(collider);
             }

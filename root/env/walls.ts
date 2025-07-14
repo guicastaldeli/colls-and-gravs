@@ -1,9 +1,23 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
 import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
 import { StructureManager } from "./structure-manager.js";
 import { PlayerController } from "../player/player-controller.js";
+
+interface PatternPos {
+    x: number;
+    y: number;
+    z: number
+}
+interface Pattern {
+    pos: PatternPos;
+    pattern: string[];
+    rotation?: {
+        axis: 'x' | 'y' | 'z';
+        angle: number;
+    }
+}
 
 interface WallData extends EnvBufferData {
     id?: string,
@@ -85,7 +99,11 @@ export class Walls implements ICollidable {
 
     private async createWallBlock(
         position: vec3,
-        isBlock: boolean
+        isBlock: boolean,
+        rotation?: {
+            axis: 'x' | 'y' | 'z';
+            angle: number;
+        }
     ): Promise<{ 
         block: WallData | null, 
         collider: BoxCollider | null
@@ -109,6 +127,21 @@ export class Walls implements ICollidable {
         }
 
         mat4.identity(block.modelMatrix);
+
+        if(rotation) {
+            switch(rotation.axis) {
+                case 'x':
+                    mat4.rotateX(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+                case 'y':
+                    mat4.rotateY(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+                case "z":
+                    mat4.rotateZ(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+            }
+        }
+
         mat4.translate(block.modelMatrix, block.modelMatrix, position);
         mat4.scale(block.modelMatrix, block.modelMatrix, [size.w, size.h, size.d]);
 
@@ -130,27 +163,57 @@ export class Walls implements ICollidable {
         this.blocks = [];
         this._Collider = [];
 
-        const pattern = [
-            '   ################',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   ################',
-        ];
+        const patterns: Record<string, Pattern> = {
+            rightWall: {
+                pos: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 5.0
+                },
+                pattern: [
+                    '   ################',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   ################',
+                ]
+            },
+            ceiling: {
+                pos: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: -6.0
+                },
+                rotation: {
+                    axis: 'x',
+                    angle: Math.PI / 2
+                },
+                pattern: [
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################'
+                ]
+            }
+        }
 
-        const { 
-            blocks, 
-            colliders 
-        } = await this.structureManager.createFromPattern(
-            pattern,
-            vec3.fromValues(this.pos.x, this.pos.y, this.pos.z),
-            this.createWallBlock.bind(this),
-        );
+        for(const [name, data] of Object.entries(patterns)) {
+            const position = vec3.fromValues(data.pos.x, data.pos.y, data.pos.z)
+            const { blocks, colliders } = await this.structureManager.createFromPattern(
+                data.pattern,
+                position,
+                this.createWallBlock.bind(this),
+                data.rotation
+            )
 
-        this.blocks = blocks.filter(b => b !== null) as WallData[];
-        this._Collider = colliders.filter(c => c !== null) as BoxCollider[];
+            this.blocks.push(...blocks.filter(b => b !== null) as WallData[]);
+            this._Collider.push(...colliders.filter(c => c !== null) as BoxCollider[]);
+        }
     }
 
     public getPosition(): vec3 {

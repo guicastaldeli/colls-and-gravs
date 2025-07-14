@@ -50,7 +50,7 @@ export class Walls {
         resource.referenceCount++;
         return resource;
     }
-    async createWallBlock(position, isBlock) {
+    async createWallBlock(position, isBlock, rotation) {
         if (!isBlock)
             return { block: null, collider: null };
         const size = this.structureManager.getSize();
@@ -69,6 +69,19 @@ export class Walls {
             resourceId: this.id
         };
         mat4.identity(block.modelMatrix);
+        if (rotation) {
+            switch (rotation.axis) {
+                case 'x':
+                    mat4.rotateX(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+                case 'y':
+                    mat4.rotateY(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+                case "z":
+                    mat4.rotateZ(block.modelMatrix, block.modelMatrix, rotation.angle);
+                    break;
+            }
+        }
         mat4.translate(block.modelMatrix, block.modelMatrix, position);
         mat4.scale(block.modelMatrix, block.modelMatrix, [size.w, size.h, size.d]);
         const collider = isBlock ?
@@ -83,18 +96,50 @@ export class Walls {
     async createWall() {
         this.blocks = [];
         this._Collider = [];
-        const pattern = [
-            '   ################',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   #              #',
-            '   ################',
-        ];
-        const { blocks, colliders } = await this.structureManager.createFromPattern(pattern, vec3.fromValues(this.pos.x, this.pos.y, this.pos.z), this.createWallBlock.bind(this));
-        this.blocks = blocks.filter(b => b !== null);
-        this._Collider = colliders.filter(c => c !== null);
+        const patterns = {
+            rightWall: {
+                pos: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 5.0
+                },
+                pattern: [
+                    '   ################',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   #              #',
+                    '   ################',
+                ]
+            },
+            ceiling: {
+                pos: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: -6.0
+                },
+                rotation: {
+                    axis: 'x',
+                    angle: Math.PI / 2
+                },
+                pattern: [
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################',
+                    '###################'
+                ]
+            }
+        };
+        for (const [name, data] of Object.entries(patterns)) {
+            const position = vec3.fromValues(data.pos.x, data.pos.y, data.pos.z);
+            const { blocks, colliders } = await this.structureManager.createFromPattern(data.pattern, position, this.createWallBlock.bind(this), data.rotation);
+            this.blocks.push(...blocks.filter(b => b !== null));
+            this._Collider.push(...colliders.filter(c => c !== null));
+        }
     }
     getPosition() {
         return vec3.fromValues(0, 0, 0);

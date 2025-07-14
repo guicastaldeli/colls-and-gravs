@@ -679,9 +679,7 @@ export class RandomBlocks implements ICollidable {
                 );
 
                 const light = this.blockLights.get(block.id);
-                if(light) {
-                    light.position = vec3.clone(physicsObj.position);
-                }
+                if(light) light.position = vec3.clone(physicsObj.position);
 
                 const colliderIndex = this.blocks.indexOf(block);
                 if(colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
