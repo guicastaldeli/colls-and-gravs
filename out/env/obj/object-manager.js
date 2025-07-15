@@ -37,13 +37,15 @@ const dependenciesMap = new Map([
     [WindManager, 'windManager']
 ]);
 let ObjectManager = class ObjectManager {
+    readyPromise;
     id = 1;
     deps;
     objects = new Map();
+    objectsType = new Map();
     typeRegistry = new Map();
     constructor(deps) {
         this.deps = deps;
-        this.registeredTypes();
+        this.readyPromise = this.registeredTypes();
     }
     registerType(type, constructor, init) {
         this.typeRegistry.set(type, {
@@ -93,8 +95,35 @@ let ObjectManager = class ObjectManager {
         const idNumber = this.id++;
         return idNumber;
     }
-    getObject(id) {
+    getObjectInstance(id) {
         return this.objects.get(id);
+    }
+    async getObject(type) {
+        if (!this.typeRegistry.has(type))
+            throw new Error(`Type "${type}" is not registered.`);
+        for (const [id, instance] of this.objects) {
+            const typeInfo = this.typeRegistry.get(type);
+            if (typeInfo && instance instanceof typeInfo.constructor) {
+                return instance;
+            }
+        }
+        const id = await this.createObject(type);
+        const instance = this.objects.get(id);
+        if (!instance)
+            throw new Error(`Failed to create object of type ${type}`);
+        return instance;
+    }
+    async setObjectBuffer(type) {
+        const obj = await this.getObject(type);
+        if (obj && 'getBuffers' in obj)
+            return obj.getBuffers();
+        return undefined;
+    }
+    getAllOfType(type) {
+        const typeInfo = this.typeRegistry.get(type);
+        if (!typeInfo)
+            throw new Error(`Type "${type}" is not registered.`);
+        return Array.from(this.objects.values()).filter(obj => obj instanceof typeInfo.constructor);
     }
     renderObject(id, device, passEncoder, viewProjectionMatrix, deltaTime) {
         const instance = this.objects.get(id);
@@ -112,6 +141,9 @@ let ObjectManager = class ObjectManager {
     }
     getAllObjects() {
         return Array.from(this.objects.values());
+    }
+    async ready() {
+        await this.readyPromise;
     }
 };
 ObjectManager = __decorate([

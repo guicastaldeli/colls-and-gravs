@@ -38,7 +38,6 @@ let lightningManager;
 let windManager;
 let objectManager;
 let skybox;
-let randomBlocks;
 let pointLightel;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
@@ -250,7 +249,9 @@ async function initShaders() {
 async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
-    const renderBuffers = [...envRenderer.get(), ...randomBlocks.getBlocks()];
+    const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
+    const randomBlocks = getRandomBlocks.flatMap(rb => rb.getBlocks());
+    const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
         size: bufferSize,
@@ -337,19 +338,23 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
-    if (randomBlocks.targetBlockIndex >= 0) {
-        const outline = randomBlocks.getBlocks()[randomBlocks.targetBlockIndex];
-        if (outline) {
-            const outlineModelMatrix = mat4.create();
-            mat4.copy(outlineModelMatrix, outline.modelMatrix);
-            const mvp = mat4.create();
-            mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
-            device.queue.writeBuffer(randomBlocks.outline.outlineUniformBuffer, 0, mvp);
-            passEncoder.setPipeline(randomBlocks.outline.outlinePipeline);
-            passEncoder.setBindGroup(0, randomBlocks.outline.outlineBindGroup);
-            passEncoder.setVertexBuffer(0, outline.vertex);
-            passEncoder.setIndexBuffer(outline.index, 'uint16');
-            passEncoder.drawIndexed(outline.indexCount);
+    const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
+    for (const obj of randomBlocksObj) {
+        const rb = obj;
+        if (rb.targetBlockIndex >= 0) {
+            const outline = rb.getBlocks()[rb.targetBlockIndex];
+            if (outline) {
+                const outlineModelMatrix = mat4.create();
+                mat4.copy(outlineModelMatrix, outline.modelMatrix);
+                const mvp = mat4.create();
+                mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
+                device.queue.writeBuffer(rb.outline.outlineUniformBuffer, 0, mvp);
+                passEncoder.setPipeline(rb.outline.outlinePipeline);
+                passEncoder.setBindGroup(0, rb.outline.outlineBindGroup);
+                passEncoder.setVertexBuffer(0, outline.vertex);
+                passEncoder.setIndexBuffer(outline.index, 'uint16');
+                passEncoder.drawIndexed(outline.indexCount);
+            }
         }
     }
 }
@@ -394,6 +399,13 @@ async function pointLight() {
         pointLightel = new PointLight();
 }
 //
+async function renderEnv() {
+    if (!envRenderer) {
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+        await envRenderer.render();
+        objectManager.deps.ground = envRenderer.ground;
+    }
+}
 export async function render(canvas) {
     try {
         device.pushErrorScope('validation');
@@ -436,21 +448,16 @@ export async function render(canvas) {
                 hud: null,
                 windManager
             };
-            objectManager = new ObjectManager(deps);
-            if (!envRenderer) {
-                envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-                await envRenderer.render();
-                objectManager.deps.ground = envRenderer.ground;
+            if (!objectManager) {
+                objectManager = new ObjectManager(deps);
+                await objectManager.ready();
             }
+            await renderEnv();
         }
         //
         //Random Blocks
-        if (!randomBlocks) {
-            const id = await objectManager.createObject('randomBlocks');
-            randomBlocks = objectManager.getObject(id);
-        }
-        if (deltaTime)
-            randomBlocks.update(deltaTime);
+        const randomBlocks = await objectManager.getObject('randomBlocks');
+        randomBlocks.update(deltaTime);
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);

@@ -40,7 +40,7 @@ export class EnvRenderer {
         //
         //Lamp
         if (this.objectManager) {
-            const lamp = this.objectManager.getObject(this.lamp)?.getBuffers();
+            const lamp = await this.objectManager.setObjectBuffer('lamp');
             if (lamp) {
                 const data = lamp;
                 const num = 256;
@@ -60,13 +60,13 @@ export class EnvRenderer {
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.drawIndexed(buffers.indexCount);
     }
-    get() {
+    async get() {
         const renderers = [
             ...this.ground.getBlocks(),
             ...this.walls.getBlocks(),
         ];
         if (this.objectManager) {
-            const lampBuffers = this.objectManager.getObject(this.lamp)?.getBuffers();
+            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if (lampBuffers)
                 renderers.push(lampBuffers);
         }

@@ -3,6 +3,7 @@ import { Collider, ICollidable } from "./collider.js";
 import { EnvRenderer } from "../env/env-renderer.js";
 import { RandomBlocks } from "../env/obj/random-blocks/random-blocks.js";
 import { CollisionResponse } from "./collider.js";
+import { List, ObjectManager } from "../env/obj/object-manager.js";
 
 export type ColliderCollection = {
     type: string,
@@ -14,11 +15,11 @@ export type ColliderCollection = {
 
 export class GetColliders {
     private envRenderer?: EnvRenderer;
-    private randomBlocks?: RandomBlocks;
+    private randomBlocks?: RandomBlocks | List;
 
     constructor(
         envRenderer?: EnvRenderer,
-        randomBlocks?: RandomBlocks
+        randomBlocks?: RandomBlocks | List
     ) {
         this.envRenderer = envRenderer;
         this.randomBlocks = randomBlocks;
@@ -48,13 +49,17 @@ export class GetColliders {
         }
 
         if(this.randomBlocks) {
-            colliders.push({
-                type: 'block',
-                colliders: this.randomBlocks.getAllColliders().map(data => ({
-                    collider: data.collider,
-                    position: data.position
-                }))
-            });
+            const randomBlockColl = (this.randomBlocks as RandomBlocks).getAllColliders();
+
+            if(randomBlockColl) {
+                colliders.push({
+                    type: 'block',
+                    colliders: randomBlockColl.map(data => ({
+                        collider: data.collider,
+                        position: data.position
+                    }))
+                });
+            }
         }
 
         return colliders;

@@ -9,7 +9,6 @@ import { WindManager } from "../wind-manager.js";
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
 import { ObjectManager } from "./obj/object-manager.js";
-import { Lamp } from "./obj/lamp/lamp.js";
 
 export class EnvRenderer {
     private device: GPUDevice;
@@ -85,7 +84,7 @@ export class EnvRenderer {
 
         //Lamp
             if(this.objectManager) {
-                const lamp = this.objectManager.getObject<Lamp>(this.lamp)?.getBuffers();
+                const lamp = await this.objectManager.setObjectBuffer('lamp');
     
                 if(lamp) {
                     const data = lamp;
@@ -124,14 +123,14 @@ export class EnvRenderer {
         passEncoder.drawIndexed(buffers.indexCount);
     }
 
-    public get(): EnvBufferData[] {
+    public async get(): Promise<EnvBufferData[]> {
         const renderers = [
             ...this.ground.getBlocks(),
             ...this.walls.getBlocks(),
         ];
 
         if(this.objectManager) {
-            const lampBuffers = this.objectManager.getObject<Lamp>(this.lamp)?.getBuffers();
+            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if(lampBuffers) renderers.push(lampBuffers);
         }
 

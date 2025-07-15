@@ -28,13 +28,16 @@ export class GetColliders {
             });
         }
         if (this.randomBlocks) {
-            colliders.push({
-                type: 'block',
-                colliders: this.randomBlocks.getAllColliders().map(data => ({
-                    collider: data.collider,
-                    position: data.position
-                }))
-            });
+            const randomBlockColl = this.randomBlocks.getAllColliders();
+            if (randomBlockColl) {
+                colliders.push({
+                    type: 'block',
+                    colliders: randomBlockColl.map(data => ({
+                        collider: data.collider,
+                        position: data.position
+                    }))
+                });
+            }
         }
         return colliders;
     }

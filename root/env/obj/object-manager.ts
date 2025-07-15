@@ -11,6 +11,7 @@ import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { WindManager } from "../../wind-manager.js";
+import { EnvBufferData } from "../env-buffers.js";
 
 export function Injectable() {
     return (target: any) => {
@@ -18,7 +19,7 @@ export function Injectable() {
     }
 }
 
-type List = RandomBlocks | Lamp;
+export type List = RandomBlocks | Lamp;
 type Types = 'randomBlocks' | 'lamp';
 
 interface Dependencies {
@@ -51,9 +52,11 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
 
 @Injectable()
 export class ObjectManager {
+    private readyPromise: Promise<void>;
     private id: number = 1;
     public deps: Dependencies;
     private objects: Map<number, List> = new Map();
+    private objectsType: Map<Types, List> = new Map();
     private typeRegistry: Map<Types, {
         constructor: new (...args: any[]) => List,
         init?: (instance: List, deps: Dependencies) => Promise<void>
@@ -61,7 +64,7 @@ export class ObjectManager {
 
     constructor(deps: Dependencies) {
         this.deps = deps;
-        this.registeredTypes();
+        this.readyPromise = this.registeredTypes();
     }
 
     private registerType<T extends List>(
@@ -128,8 +131,38 @@ export class ObjectManager {
         return idNumber;
     }
 
-    public getObject<T extends List>(id: number): T {
+    public getObjectInstance<T extends List>(id: number): T {
         return this.objects.get(id) as T;
+    }
+
+    public async getObject<T extends List>(type: Types): Promise<T> {
+        if(!this.typeRegistry.has(type)) throw new Error(`Type "${type}" is not registered.`);
+
+        for(const [id, instance] of this.objects) {
+            const typeInfo = this.typeRegistry.get(type);
+            if(typeInfo && instance instanceof typeInfo.constructor) {
+                return instance as T;
+            }
+        }
+
+        const id = await this.createObject(type);
+        const instance = this.objects.get(id);
+        if(!instance) throw new Error(`Failed to create object of type ${type}`);
+        return instance as T;
+    }
+
+    public async setObjectBuffer(type: Types): Promise<EnvBufferData | undefined> {
+        const obj = await this.getObject(type);
+        if(obj && 'getBuffers' in obj) return (obj as any).getBuffers();
+        return undefined;
+    }
+
+    public getAllOfType<T extends List>(type: Types): T[] {
+        const typeInfo = this.typeRegistry.get(type);
+        if(!typeInfo) throw new Error(`Type "${type}" is not registered.`);
+        return Array.from(this.objects.values()).filter(
+            obj => obj instanceof typeInfo.constructor
+        ) as T[];
     }
 
     public renderObject(
@@ -155,5 +188,9 @@ export class ObjectManager {
 
     public getAllObjects(): List[] {
         return Array.from(this.objects.values());
+    }
+
+    public async ready(): Promise<void> {
+        await this.readyPromise;
     }
 }
