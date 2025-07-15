@@ -72,12 +72,14 @@ export class EnvRenderer {
         }
         return renderers;
     }
-    async render() {
+    async render(deltaTime, passEncoder, viewProjectionMatrix) {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
-        if (this.objectManager)
+        if (this.objectManager) {
             this.lamp = await this.objectManager.createObject('lamp');
+            (await this.objectManager.getObject('lamp')).update(deltaTime, passEncoder, viewProjectionMatrix);
+        }
     }
 }

@@ -33,10 +33,7 @@ export class Wire {
         }
     }
 
-    private async createPipeline(
-        device: GPUDevice,
-        shaderLoader: ShaderLoader
-    ): Promise<void> {
+    private async createPipeline(device: GPUDevice, shaderLoader: ShaderLoader): Promise<void> {
         try {
             const { vertexShader, fragShader } = await this.initShaders(shaderLoader);
 
@@ -72,11 +69,12 @@ export class Wire {
                     }]
                 },
                 primitive: {
-                    topology: 'line-strip'
+                    topology: 'line-strip',
+                    stripIndexFormat: 'uint32'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less-equal',
+                    depthCompare: 'less',
                     format: 'depth24plus'
                 }
             });
@@ -90,11 +88,10 @@ export class Wire {
         const vertices = new Float32Array(this.segments.flat());
 
         if(!this.vertexBuffer || this.vertexBuffer.size < vertices.byteLength) {
-            this.vertexBuffer?.destroy();
+            //this.vertexBuffer?.destroy();
             this.vertexBuffer = device.createBuffer({
                 size: vertices.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: false
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
         }
 
@@ -154,7 +151,7 @@ export class Wire {
 
         for(let i = 1; i < this.segments.length; i++) {
             vec3.add(this.segments[i], this.segments[i], force);
-            this.segments[i][1] -= 0.01;
+            this.segments[i][1] -= 0.5;
 
             const prevSegment = this.segments[i - 1];
             const dir = vec3.create();
@@ -184,6 +181,7 @@ export class Wire {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
 
+        this.updateVertexBuffer(device);
         await this.createPipeline(device, shaderLoader);
     }
 }

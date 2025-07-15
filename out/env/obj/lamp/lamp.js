@@ -27,6 +27,11 @@ let Lamp = class Lamp {
         y: 4,
         z: 2
     };
+    wirePos = {
+        x: 5,
+        y: 5,
+        z: 5
+    };
     size = {
         w: 0.1,
         h: 0.1,
@@ -36,7 +41,7 @@ let Lamp = class Lamp {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-        const attachmentPoint = vec3.fromValues(0, 0, 0);
+        const attachmentPoint = vec3.fromValues(this.wirePos.x, this.wirePos.y, this.wirePos.z);
         this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         this.windManager = windManager;
@@ -88,8 +93,11 @@ let Lamp = class Lamp {
     getBuffers() {
         return this.buffers;
     }
-    update(deltaTime) {
+    update(deltaTime, passEncoder, viewProjectionMatrix) {
+        if (!passEncoder || !viewProjectionMatrix)
+            throw new Error('err');
         this.wire.update(this.device, deltaTime);
+        this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
         this.createLamp();

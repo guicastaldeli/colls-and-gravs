@@ -25,6 +25,12 @@ export class Lamp {
         z: 2
     }
 
+    wirePos = {
+        x: 5,
+        y: 5,
+        z: 5
+    }
+
     size = {
         w: 0.1,
         h: 0.1,
@@ -41,7 +47,7 @@ export class Lamp {
         this.loader = loader;
         this.shaderLoader = shaderLoader;
 
-        const attachmentPoint = vec3.fromValues(0, 0, 0);
+        const attachmentPoint = vec3.fromValues(this.wirePos.x, this.wirePos.y, this.wirePos.z);
         this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         
@@ -109,8 +115,15 @@ export class Lamp {
         return this.buffers;
     }
 
-    public update(deltaTime: number) {
+    public update(
+        deltaTime: number,
+        passEncoder?: GPURenderPassEncoder,
+        viewProjectionMatrix?: mat4
+    ) {
+        if(!passEncoder || !viewProjectionMatrix) throw new Error('err');
+        
         this.wire.update(this.device, deltaTime);
+        this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
 
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);

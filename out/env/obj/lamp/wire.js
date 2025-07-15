@@ -49,11 +49,12 @@ export class Wire {
                         }]
                 },
                 primitive: {
-                    topology: 'line-strip'
+                    topology: 'line-strip',
+                    stripIndexFormat: 'uint32'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less-equal',
+                    depthCompare: 'less',
                     format: 'depth24plus'
                 }
             });
@@ -66,11 +67,10 @@ export class Wire {
     updateVertexBuffer(device) {
         const vertices = new Float32Array(this.segments.flat());
         if (!this.vertexBuffer || this.vertexBuffer.size < vertices.byteLength) {
-            this.vertexBuffer?.destroy();
+            //this.vertexBuffer?.destroy();
             this.vertexBuffer = device.createBuffer({
                 size: vertices.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-                mappedAtCreation: false
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
             });
         }
         device.queue.writeBuffer(this.vertexBuffer, 0, vertices);
@@ -114,7 +114,7 @@ export class Wire {
         const force = this.windManager.getWindForce(deltaTime);
         for (let i = 1; i < this.segments.length; i++) {
             vec3.add(this.segments[i], this.segments[i], force);
-            this.segments[i][1] -= 0.01;
+            this.segments[i][1] -= 0.5;
             const prevSegment = this.segments[i - 1];
             const dir = vec3.create();
             vec3.subtract(dir, this.segments[i], prevSegment);
@@ -131,6 +131,7 @@ export class Wire {
             size: 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
+        this.updateVertexBuffer(device);
         await this.createPipeline(device, shaderLoader);
     }
 }

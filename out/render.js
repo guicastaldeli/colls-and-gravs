@@ -374,7 +374,7 @@ function parseColor(rgb) {
 async function ambientLight() {
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);
-    const light = new AmbientLight(colorArray, 0.5);
+    const light = new AmbientLight(colorArray, 1.0);
     lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }
@@ -399,10 +399,10 @@ async function pointLight() {
         pointLightel = new PointLight();
 }
 //
-async function renderEnv() {
+async function renderEnv(deltaTime, passEncoder, viewProjectionMatrix) {
     if (!envRenderer) {
         envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-        await envRenderer.render();
+        await envRenderer.render(deltaTime, passEncoder, viewProjectionMatrix);
         objectManager.deps.ground = envRenderer.ground;
     }
 }
@@ -414,6 +414,8 @@ export async function render(canvas) {
         if (!tick)
             tick = new Tick();
         const deltaTime = tick.update(currentTime);
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = context.getCurrentTexture().createView();
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!loader)
@@ -424,6 +426,41 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initShaders();
+        if (depthTexture &&
+            (depthTextureWidth !== canvas.width ||
+                depthTextureHeight !== canvas.height)) {
+            await device.queue.onSubmittedWorkDone();
+            depthTexture.destroy();
+            depthTexture = null;
+        }
+        if (!depthTexture) {
+            depthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            depthTextureWidth = canvas.width;
+            depthTextureHeight = canvas.height;
+        }
+        const renderPassDescriptor = {
+            colorAttachments: [{
+                    view: textureView,
+                    clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }],
+            depthStencilAttachment: {
+                view: depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            }
+        };
+        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        const modelMatrix = mat4.create();
+        const viewProjectionMatrix = mat4.create();
         //Lightning
         if (!lightningManager)
             lightningManager = new LightningManager(device);
@@ -452,7 +489,7 @@ export async function render(canvas) {
                 objectManager = new ObjectManager(deps);
                 await objectManager.ready();
             }
-            await renderEnv();
+            await renderEnv(deltaTime, passEncoder, viewProjectionMatrix);
         }
         //
         //Random Blocks
@@ -485,45 +522,8 @@ export async function render(canvas) {
             camera.getProjectionMatrix(canvas.width / canvas.height);
         }
         //
-        if (depthTexture &&
-            (depthTextureWidth !== canvas.width ||
-                depthTextureHeight !== canvas.height)) {
-            await device.queue.onSubmittedWorkDone();
-            depthTexture.destroy();
-            depthTexture = null;
-        }
-        if (!depthTexture) {
-            depthTexture = device.createTexture({
-                size: [canvas.width, canvas.height],
-                format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
-            });
-            depthTextureWidth = canvas.width;
-            depthTextureHeight = canvas.height;
-        }
-        const commandEncoder = device.createCommandEncoder();
-        const textureView = context.getCurrentTexture().createView();
-        const renderPassDescriptor = {
-            colorAttachments: [{
-                    view: textureView,
-                    clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-                    loadOp: 'clear',
-                    storeOp: 'store'
-                }],
-            depthStencilAttachment: {
-                view: depthTexture.createView(),
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            }
-        };
-        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-        passEncoder.setPipeline(pipeline);
-        const modelMatrix = mat4.create();
-        const viewMatrix = camera.getViewMatrix();
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
-        const viewProjectionMatrix = mat4.create();
+        const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         //Late Renderers

@@ -137,13 +137,19 @@ export class EnvRenderer {
         return renderers;
     }
 
-    public async render(): Promise<void> {
+    public async render(
+        deltaTime: number, 
+        passEncoder: GPURenderPassEncoder, 
+        viewProjectionMatrix: mat4): Promise<void> {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
 
-        if(this.objectManager) this.lamp = await this.objectManager.createObject('lamp');
+        if(this.objectManager) {
+            this.lamp = await this.objectManager.createObject('lamp');
+            (await this.objectManager.getObject('lamp')).update(deltaTime, passEncoder, viewProjectionMatrix);
+        }
     }
 }
