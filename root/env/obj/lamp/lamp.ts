@@ -106,7 +106,7 @@ export class Lamp {
         const buffers: EnvBufferData[] = [];
         if(this.buffers) buffers.push(this.buffers);
         const wireBuffers = await this.wire.getBuffers();
-        if(wireBuffers) buffers.push(wireBuffers);
+        if(wireBuffers) buffers.push(...wireBuffers);
         return buffers;
     }
 

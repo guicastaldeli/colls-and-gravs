@@ -13,7 +13,11 @@ export class Wire {
     private buffers?: EnvBufferData;
     private windManager: WindManager;
     private loader: Loader;
-    private modelMatrix: mat4;
+
+    private segments: EnvBufferData[] = [];
+    private segmentLength: number = 1.0;
+    private segmentCount: number = 10;
+    private totalLength: number = this.segmentLength * this.segmentCount; 
 
     pos = {
         x: 7,
@@ -30,7 +34,6 @@ export class Wire {
     constructor(windManager: WindManager, loader: Loader) {
         this.windManager = windManager;
         this.loader = loader;
-        this.modelMatrix = mat4.create();
     }
 
     private async loadAssets(): Promise<EnvBufferData> {
@@ -57,23 +60,28 @@ export class Wire {
         }
     }
 
-    private async createWire(): Promise<void> {
+    private async createWire(baseBuffer: EnvBufferData, i: number): Promise<EnvBufferData> {
         try {
-            if(!this.buffers) return;
+            const segmentBuffer = { ...baseBuffer, modelMatrix: mat4.create() };
 
-            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
-            mat4.identity(this.buffers.modelMatrix);
-            mat4.translate(this.buffers.modelMatrix, this.buffers.modelMatrix, position);
-            
+            const position = vec3.fromValues(
+                this.pos.x,
+                this.pos.y + (i * this.segmentLength),
+                this.pos.z
+            );
+
+            mat4.translate(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, position);
             mat4.scale(
-                this.buffers.modelMatrix,
-                this.buffers.modelMatrix,
+                segmentBuffer.modelMatrix,
+                segmentBuffer.modelMatrix,
                 [
                     this.size.w,
                     this.size.h,
                     this.size.d
                 ]
             );
+
+            return segmentBuffer;
         } catch(err) {
             console.error(err);
             throw err;
@@ -97,8 +105,8 @@ export class Wire {
         }
     }
 
-    public async getBuffers(): Promise<EnvBufferData | undefined> {
-        return this.buffers;
+    public async getBuffers(): Promise<EnvBufferData[] | undefined> {
+        return this.segments;
     }
 
     public async update(device: GPUDevice, deltaTime: number): Promise<void> {
@@ -106,8 +114,8 @@ export class Wire {
     }
 
     public async init(shaderLoader: ShaderLoader): Promise<void> {
-        this.buffers = await this.loadAssets();
-        await this.createWire();
+        const buffers = await this.loadAssets();
+        for(let i = 0; i < this.segmentCount; i++) this.segments.push(await this.createWire(buffers, i));
         this.initShaders(shaderLoader);
     }
 }

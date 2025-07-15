@@ -3,7 +3,10 @@ export class Wire {
     buffers;
     windManager;
     loader;
-    modelMatrix;
+    segments = [];
+    segmentLength = 1.0;
+    segmentCount = 10;
+    totalLength = this.segmentLength * this.segmentCount;
     pos = {
         x: 7,
         y: 0,
@@ -17,7 +20,6 @@ export class Wire {
     constructor(windManager, loader) {
         this.windManager = windManager;
         this.loader = loader;
-        this.modelMatrix = mat4.create();
     }
     async loadAssets() {
         try {
@@ -41,18 +43,17 @@ export class Wire {
             throw err;
         }
     }
-    async createWire() {
+    async createWire(baseBuffer, i) {
         try {
-            if (!this.buffers)
-                return;
-            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
-            mat4.identity(this.buffers.modelMatrix);
-            mat4.translate(this.buffers.modelMatrix, this.buffers.modelMatrix, position);
-            mat4.scale(this.buffers.modelMatrix, this.buffers.modelMatrix, [
+            const segmentBuffer = { ...baseBuffer, modelMatrix: mat4.create() };
+            const position = vec3.fromValues(this.pos.x, this.pos.y + (i * this.segmentLength), this.pos.z);
+            mat4.translate(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, position);
+            mat4.scale(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, [
                 this.size.w,
                 this.size.h,
                 this.size.d
             ]);
+            return segmentBuffer;
         }
         catch (err) {
             console.error(err);
@@ -76,14 +77,15 @@ export class Wire {
         }
     }
     async getBuffers() {
-        return this.buffers;
+        return this.segments;
     }
     async update(device, deltaTime) {
         const force = this.windManager.getWindForce(deltaTime);
     }
     async init(shaderLoader) {
-        this.buffers = await this.loadAssets();
-        await this.createWire();
+        const buffers = await this.loadAssets();
+        for (let i = 0; i < this.segmentCount; i++)
+            this.segments.push(await this.createWire(buffers, i));
         this.initShaders(shaderLoader);
     }
 }

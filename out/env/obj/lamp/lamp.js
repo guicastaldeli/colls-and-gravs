@@ -93,7 +93,7 @@ let Lamp = class Lamp {
             buffers.push(this.buffers);
         const wireBuffers = await this.wire.getBuffers();
         if (wireBuffers)
-            buffers.push(wireBuffers);
+            buffers.push(...wireBuffers);
         return buffers;
     }
     async update(deltaTime, passEncoder, viewProjectionMatrix) {
