@@ -12,12 +12,10 @@ export class Lamp {
     private loader: Loader;
     private buffers?: EnvBufferData;
     private shaderLoader: ShaderLoader;
+    private modelMatrix: mat4;
 
     private windManager: WindManager;
-    private wire: Wire;
-
-    private position: vec3;
-    private modelMatrix: mat4;
+    public wire: Wire;
 
     lampPos = {
         x: 3,
@@ -26,9 +24,9 @@ export class Lamp {
     }
 
     wirePos = {
-        x: 5,
-        y: 5,
-        z: 5
+        x: 1,
+        y: 1,
+        z: 0
     }
 
     size = {
@@ -47,21 +45,10 @@ export class Lamp {
         this.loader = loader;
         this.shaderLoader = shaderLoader;
 
-        const attachmentPoint = vec3.fromValues(
-            this.wirePos.x, 
-            this.wirePos.y, 
-            this.wirePos.z
-        );
-        this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         
         this.windManager = windManager;
-        this.wire = new Wire(
-            windManager,
-            attachmentPoint,
-            10,
-            10
-        );
+        this.wire = new Wire(windManager, loader);
     }
 
     public getModelMatrix(): mat4 {
@@ -125,16 +112,12 @@ export class Lamp {
         viewProjectionMatrix?: mat4
     ): Promise<void> {
         if(!passEncoder || !viewProjectionMatrix) throw new Error('err');
-        
-        const wireSegments = this.wire.getSegments();
-        vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
-        await this.wire.init(this.device, this.shaderLoader);
         await this.wire.update(this.device, deltaTime);
-        await this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
     }
 
     public async init(): Promise<void> {
         this.buffers = await this.loadAssets();
         this.createLamp();
+        await this.wire.init(this.shaderLoader);
     }
 }

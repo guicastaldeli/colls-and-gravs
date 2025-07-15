@@ -3,6 +3,7 @@ import 'reflect-metadata';
 
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
+import { Wire } from "./lamp/wire.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -19,7 +20,7 @@ export function Injectable() {
     }
 }
 
-export type List = RandomBlocks | Lamp;
+export type List = RandomBlocks | (Lamp & WireObject);
 type Types = 'randomBlocks' | 'lamp';
 
 interface Dependencies {
@@ -36,6 +37,10 @@ interface Dependencies {
     windManager: WindManager
 }
 
+interface WireObject {
+    wire?: Wire;
+}
+
 const dependenciesMap = new Map<Function, keyof Dependencies>([
     [Tick, 'tick'],
     [GPUDevice, 'device'],
@@ -49,6 +54,10 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
     [Hud, 'hud'],
     [WindManager, 'windManager']
 ]);
+
+export function hasWire(obj: List): obj is Lamp & WireObject {
+    return 'wire' in obj;
+}
 
 @Injectable()
 export class ObjectManager {

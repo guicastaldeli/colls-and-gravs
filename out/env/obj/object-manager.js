@@ -36,6 +36,9 @@ const dependenciesMap = new Map([
     [Hud, 'hud'],
     [WindManager, 'windManager']
 ]);
+export function hasWire(obj) {
+    return 'wire' in obj;
+}
 let ObjectManager = class ObjectManager {
     readyPromise;
     id = 1;

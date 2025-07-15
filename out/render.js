@@ -181,7 +181,7 @@ async function initShaders() {
             },
             depthStencil: {
                 depthWriteEnabled: true,
-                depthCompare: 'less',
+                depthCompare: 'less-equal',
                 format: 'depth24plus'
             }
         });

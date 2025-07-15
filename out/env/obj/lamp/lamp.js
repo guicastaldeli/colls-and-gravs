@@ -18,19 +18,18 @@ let Lamp = class Lamp {
     loader;
     buffers;
     shaderLoader;
+    modelMatrix;
     windManager;
     wire;
-    position;
-    modelMatrix;
     lampPos = {
         x: 3,
         y: 4,
         z: 2
     };
     wirePos = {
-        x: 5,
-        y: 5,
-        z: 5
+        x: 1,
+        y: 1,
+        z: 0
     };
     size = {
         w: 0.1,
@@ -41,11 +40,9 @@ let Lamp = class Lamp {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-        const attachmentPoint = vec3.fromValues(this.wirePos.x, this.wirePos.y, this.wirePos.z);
-        this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         this.windManager = windManager;
-        this.wire = new Wire(windManager, attachmentPoint, 10, 10);
+        this.wire = new Wire(windManager, loader);
     }
     getModelMatrix() {
         return this.modelMatrix;
@@ -96,15 +93,12 @@ let Lamp = class Lamp {
     async update(deltaTime, passEncoder, viewProjectionMatrix) {
         if (!passEncoder || !viewProjectionMatrix)
             throw new Error('err');
-        const wireSegments = this.wire.getSegments();
-        vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
-        await this.wire.init(this.device, this.shaderLoader);
         await this.wire.update(this.device, deltaTime);
-        await this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
     }
     async init() {
         this.buffers = await this.loadAssets();
         this.createLamp();
+        await this.wire.init(this.shaderLoader);
     }
 };
 Lamp = __decorate([

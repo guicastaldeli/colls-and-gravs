@@ -216,7 +216,7 @@ async function initShaders(): Promise<void> {
             },
             depthStencil: {
                 depthWriteEnabled: true,
-                depthCompare: 'less',
+                depthCompare: 'less-equal',
                 format: 'depth24plus'
             }
         });
