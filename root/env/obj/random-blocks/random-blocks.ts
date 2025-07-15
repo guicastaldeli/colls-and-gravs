@@ -18,7 +18,6 @@ import { ListData, getRandomItem } from "./list.js";
 import { ListType } from "./list-type.js";
 import { Ground } from "../../ground.js";
 import { LightningManager } from "../../../lightning-manager.js";
-import { AmbientLight } from "../../../lightning/ambient-light.js";
 import { PointLight } from "../../../lightning/point-light.js";
 
 interface BlockData {
@@ -445,52 +444,20 @@ export class RandomBlocks implements ICollidable {
     
             if(this.targetBlockIndex >= 0) {
                 const targetBlock = this.blocks[this.targetBlockIndex];
-                const offset = this.currentItem.size.w * 5;
+                const offset = this.currentItem.size.w * 1.01;
                 const faceNormal = this.getFaceNormal(this.lastHitFace);
-    
-                switch(this.lastHitFace) {
-                    case 0:
-                        vec3.set(newPos, 
-                            targetBlock.position[0] + offset * 2, 
-                            targetBlock.position[1], 
-                            targetBlock.position[2]);
-                        break;
-                    case 1:
-                        vec3.set(newPos, 
-                            targetBlock.position[0] - offset, 
-                            targetBlock.position[1], 
-                            targetBlock.position[2]);
-                        break;
-                    case 2:
-                        vec3.set(newPos, 
-                            targetBlock.position[0], 
-                            targetBlock.position[1] + offset * 2, 
-                            targetBlock.position[2]);
-                        break;
-                    case 3:
-                        vec3.set(newPos, 
-                            targetBlock.position[0], 
-                            targetBlock.position[1] - offset * 2, 
-                            targetBlock.position[2]);
-                        break;
-                    case 4:
-                        vec3.set(newPos, 
-                            targetBlock.position[0], 
-                            targetBlock.position[1], 
-                            targetBlock.position[2] + offset * 2);
-                        break;
-                    case 5:
-                        vec3.set(newPos, 
-                            targetBlock.position[0], 
-                            targetBlock.position[1], 
-                            targetBlock.position[2] - offset * 2);
-                        break;
-                }
+                vec3.scaleAndAdd(newPos, targetBlock.position, faceNormal, offset);
 
-                newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
-                newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y;
-                newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
-                if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController, faceNormal);
+                const toNewPos = vec3.sub(vec3.create(), newPos, rayOrigin);
+                const dot = vec3.dot(rayDirection, vec3.normalize(vec3.create(), toNewPos));
+
+                if(dot > 0.707) {
+                    newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
+                    newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y;
+                    newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
+
+                    if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController, faceNormal);
+                }
             } else {
                 const targetPos = hud.getCrosshairWorldPos(rayOrigin, rayDirection, minDistance);
                 if(!targetPos) throw new Error('err target');
@@ -499,7 +466,8 @@ export class RandomBlocks implements ICollidable {
                 newPos[0] = Math.abs(targetPos[0] / this.gridSize.x) * this.gridSize.x;
                 newPos[1] = Math.abs(targetPos[1] / this.gridSize.y) * this.gridSize.y;
                 newPos[2] = Math.abs(targetPos[2] / this.gridSize.z) * this.gridSize.z;
-                if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController)
+
+                if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController);
             }
         } finally {
             this.isPlacingBlock = false;
