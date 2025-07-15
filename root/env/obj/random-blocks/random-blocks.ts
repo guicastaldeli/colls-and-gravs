@@ -576,7 +576,7 @@ export class RandomBlocks implements ICollidable {
     }
 
     public getCollider(): Collider {
-        throw new Error('.')
+        throw new Error('.');
     }
 
     public getAllColliders(): {
