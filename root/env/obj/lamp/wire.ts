@@ -28,8 +28,12 @@ export class Wire {
         this.segmentLength = totalLength / segmentCount;
 
         for(let i = 0; i < segmentCount; i++) {
-            const y = attachmentPoint[1] - i * this.segmentLength;
-            this.segments.push(vec3.fromValues(attachmentPoint[0], y, attachmentPoint[2]));
+            const y = attachmentPoint[1] - (i * this.segmentLength);
+            const segment = vec3.create();
+            segment[0] = attachmentPoint[0];
+            segment[1] = y;
+            segment[2] = attachmentPoint[2];
+            this.segments.push(segment);
         }
     }
 
@@ -53,7 +57,7 @@ export class Wire {
                     module: vertexShader,
                     entryPoint: 'main',
                     buffers: [{
-                        arrayStride: 3 * 4,
+                        arrayStride: 8 * 4,
                         attributes: [{
                             shaderLocation: 0,
                             offset: 0,
@@ -69,12 +73,12 @@ export class Wire {
                     }]
                 },
                 primitive: {
-                    topology: 'line-strip',
-                    stripIndexFormat: 'uint32'
+                    topology: 'triangle-strip',
+ 
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthCompare: 'always',
                     format: 'depth24plus'
                 }
             });
@@ -85,24 +89,48 @@ export class Wire {
     }
 
     private updateVertexBuffer(device: GPUDevice): void {
-        const vertices = new Float32Array(this.segments.flat());
+        for(let i = 0; i < this.segments.length; i++) {
+            if(this.segments[i].some(isNaN)) {
+                console.error(`NaN detected in segment ${i}:`, this.segments[i]);
+                throw new Error(`Segment ${i} contains NaN values`);
+            }
+        }
 
-        if(!this.vertexBuffer || this.vertexBuffer.size < vertices.byteLength) {
-            //this.vertexBuffer?.destroy();
+        const vertexCount = this.segments.length * 3;
+        const vertices = new Float32Array(vertexCount);
+        console.log(vertices)
+
+        for(let i = 0; i < this.segments.length; i++) {
+            vertices[i * 3] = this.segments[i][0];
+            vertices[i * 3 + 1] = this.segments[i][1];
+            vertices[i * 3 + 2] = this.segments[i][2];
+        }
+
+        console.log('Wire vertices:', {
+            length: vertices.length,
+            first3: vertices.slice(0, 3),
+            last3: vertices.slice(-3),
+            fullData: vertices
+        });
+
+        const reqSize = vertices.byteLength;
+        if(!this.vertexBuffer || this.vertexBuffer.size < reqSize) {
+            this.vertexBuffer?.destroy();
             this.vertexBuffer = device.createBuffer({
-                size: vertices.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+                size: reqSize,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: false
             });
         }
 
         device.queue.writeBuffer(this.vertexBuffer, 0, vertices);
     }
 
-    public draw(
+    public async draw(
         device: GPUDevice,
         passEncoder: GPURenderPassEncoder,
         viewProjectionMatrix: mat4
-    ): void {
+    ): Promise<void> {
         if(!this.pipeline || !this.vertexBuffer || !this.uniformBuffer) return;
 
         device.queue.writeBuffer(
@@ -146,7 +174,7 @@ export class Wire {
         }
     }
 
-    public update(device: GPUDevice, deltaTime: number) {
+    public async update(device: GPUDevice, deltaTime: number): Promise<void> {
         const force = this.windManager.getWindForce(deltaTime);
 
         for(let i = 1; i < this.segments.length; i++) {
@@ -181,7 +209,6 @@ export class Wire {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
 
-        this.updateVertexBuffer(device);
         await this.createPipeline(device, shaderLoader);
     }
 }

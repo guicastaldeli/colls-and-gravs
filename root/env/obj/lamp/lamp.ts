@@ -47,7 +47,11 @@ export class Lamp {
         this.loader = loader;
         this.shaderLoader = shaderLoader;
 
-        const attachmentPoint = vec3.fromValues(this.wirePos.x, this.wirePos.y, this.wirePos.z);
+        const attachmentPoint = vec3.fromValues(
+            this.wirePos.x, 
+            this.wirePos.y, 
+            this.wirePos.z
+        );
         this.position = vec3.clone(attachmentPoint);
         this.modelMatrix = mat4.create();
         
@@ -55,8 +59,8 @@ export class Lamp {
         this.wire = new Wire(
             windManager,
             attachmentPoint,
-            20.0,
-            10.0
+            10,
+            10
         );
     }
 
@@ -115,25 +119,22 @@ export class Lamp {
         return this.buffers;
     }
 
-    public update(
+    public async update(
         deltaTime: number,
         passEncoder?: GPURenderPassEncoder,
         viewProjectionMatrix?: mat4
-    ) {
+    ): Promise<void> {
         if(!passEncoder || !viewProjectionMatrix) throw new Error('err');
         
-        this.wire.update(this.device, deltaTime);
-        this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
-
         const wireSegments = this.wire.getSegments();
         vec3.copy(this.position, wireSegments[wireSegments.length - 1]);
-
-        this.createLamp();
+        await this.wire.init(this.device, this.shaderLoader);
+        await this.wire.update(this.device, deltaTime);
+        await this.wire.draw(this.device, passEncoder, viewProjectionMatrix);
     }
 
     public async init(): Promise<void> {
         this.buffers = await this.loadAssets();
-        await this.wire.init(this.device, this.shaderLoader);
         this.createLamp();
     }
 }
