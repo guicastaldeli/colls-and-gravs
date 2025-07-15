@@ -455,7 +455,7 @@ export class RandomBlocks implements ICollidable {
                     newPos[0] = Math.abs(newPos[0] / this.gridSize.x) * this.gridSize.x;
                     newPos[1] = Math.abs(newPos[1] / this.gridSize.y) * this.gridSize.y;
                     newPos[2] = Math.abs(newPos[2] / this.gridSize.z) * this.gridSize.z;
-
+                    
                     if(!this.isPositionOccupied(newPos)) await this.addBlock(newPos, playerController, faceNormal);
                 }
             } else {
