@@ -87,8 +87,14 @@ let Lamp = class Lamp {
             throw err;
         }
     }
-    getBuffers() {
-        return this.buffers;
+    async getBuffers() {
+        const buffers = [];
+        if (this.buffers)
+            buffers.push(this.buffers);
+        const wireBuffers = await this.wire.getBuffers();
+        if (wireBuffers)
+            buffers.push(wireBuffers);
+        return buffers;
     }
     async update(deltaTime, passEncoder, viewProjectionMatrix) {
         if (!passEncoder || !viewProjectionMatrix)

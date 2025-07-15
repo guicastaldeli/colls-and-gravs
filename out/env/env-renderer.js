@@ -1,7 +1,6 @@
 import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
-import { hasWire } from "./obj/object-manager.js";
 export class EnvRenderer {
     device;
     loader;
@@ -41,18 +40,14 @@ export class EnvRenderer {
         //
         //Lamp
         if (this.objectManager) {
-            const lamp = await this.objectManager.getObject('lamp');
-            if (lamp) {
-                if (lamp && hasWire(lamp) && lamp.wire) {
-                    lamp.wire.getBuffers();
-                }
-            }
             const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if (lampBuffers) {
-                const data = lampBuffers;
-                const num = 256;
-                const offset = num;
-                await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
+                let offsetCounter = 1;
+                for (const buffer of lampBuffers) {
+                    const num = 256;
+                    const offset = num;
+                    await this.drawObject(passEncoder, buffer, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
+                }
             }
         }
         //
@@ -75,7 +70,7 @@ export class EnvRenderer {
         if (this.objectManager) {
             const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if (lampBuffers)
-                renderers.push(lampBuffers);
+                renderers.push(...lampBuffers);
         }
         return renderers;
     }

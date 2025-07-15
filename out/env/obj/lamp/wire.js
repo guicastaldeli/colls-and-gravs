@@ -22,7 +22,7 @@ export class Wire {
     async loadAssets() {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/lamp.obj'),
+                this.loader.parser('./assets/env/obj/wire.obj'),
                 this.loader.textureLoader('./assets/env/textures/lamp.png')
             ]);
             const wire = {
@@ -75,16 +75,15 @@ export class Wire {
             throw err;
         }
     }
-    getBuffers() {
+    async getBuffers() {
         return this.buffers;
     }
     async update(device, deltaTime) {
         const force = this.windManager.getWindForce(deltaTime);
     }
     async init(shaderLoader) {
-        this.getBuffers();
         this.buffers = await this.loadAssets();
-        //this.initShaders(shaderLoader);
-        this.createWire();
+        await this.createWire();
+        this.initShaders(shaderLoader);
     }
 }

@@ -36,9 +36,6 @@ const dependenciesMap = new Map([
     [Hud, 'hud'],
     [WindManager, 'windManager']
 ]);
-export function hasWire(obj) {
-    return 'wire' in obj;
-}
 let ObjectManager = class ObjectManager {
     readyPromise;
     id = 1;
@@ -118,8 +115,10 @@ let ObjectManager = class ObjectManager {
     }
     async setObjectBuffer(type) {
         const obj = await this.getObject(type);
-        if (obj && 'getBuffers' in obj)
-            return obj.getBuffers();
+        if (obj && 'getBuffers' in obj) {
+            const buffers = await obj.getBuffers();
+            return Array.isArray(buffers) ? buffers : buffers ? [buffers] : undefined;
+        }
         return undefined;
     }
     getAllOfType(type) {

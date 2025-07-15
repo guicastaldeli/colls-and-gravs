@@ -3,7 +3,6 @@ import 'reflect-metadata';
 
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
-import { Wire } from "./lamp/wire.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -20,7 +19,7 @@ export function Injectable() {
     }
 }
 
-export type List = RandomBlocks | (Lamp & WireObject);
+export type List = RandomBlocks | Lamp;
 type Types = 'randomBlocks' | 'lamp';
 
 interface Dependencies {
@@ -37,10 +36,6 @@ interface Dependencies {
     windManager: WindManager
 }
 
-interface WireObject {
-    wire?: Wire;
-}
-
 const dependenciesMap = new Map<Function, keyof Dependencies>([
     [Tick, 'tick'],
     [GPUDevice, 'device'],
@@ -54,10 +49,6 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
     [Hud, 'hud'],
     [WindManager, 'windManager']
 ]);
-
-export function hasWire(obj: List): obj is Lamp & WireObject {
-    return 'wire' in obj;
-}
 
 @Injectable()
 export class ObjectManager {
@@ -160,9 +151,12 @@ export class ObjectManager {
         return instance as T;
     }
 
-    public async setObjectBuffer(type: Types): Promise<EnvBufferData | undefined> {
+    public async setObjectBuffer(type: Types): Promise<EnvBufferData[] | undefined> {
         const obj = await this.getObject(type);
-        if(obj && 'getBuffers' in obj) return (obj as any).getBuffers();
+        if(obj && 'getBuffers' in obj) {
+            const buffers = await obj.getBuffers();
+            return Array.isArray(buffers) ? buffers : buffers ? [buffers] : undefined;
+        }
         return undefined;
     }
 

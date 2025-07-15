@@ -36,7 +36,7 @@ export class Wire {
     private async loadAssets(): Promise<EnvBufferData> {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/lamp.obj'),
+                this.loader.parser('./assets/env/obj/wire.obj'),
                 this.loader.textureLoader('./assets/env/textures/lamp.png')
             ]);
 
@@ -97,7 +97,7 @@ export class Wire {
         }
     }
 
-    public getBuffers(): EnvBufferData | undefined {
+    public async getBuffers(): Promise<EnvBufferData | undefined> {
         return this.buffers;
     }
 
@@ -106,9 +106,8 @@ export class Wire {
     }
 
     public async init(shaderLoader: ShaderLoader): Promise<void> {
-        this.getBuffers();
         this.buffers = await this.loadAssets();
-        //this.initShaders(shaderLoader);
-        this.createWire();
+        await this.createWire();
+        this.initShaders(shaderLoader);
     }
 }
