@@ -13,6 +13,8 @@ import { ShaderLoader } from "../../../shader-loader.js";
 import { Loader } from "../../../loader.js";
 import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
+import { LightningManager } from "../../../lightning-manager.js";
+import { PointLight } from "../../../lightning/point-light.js";
 let Lamp = class Lamp {
     device;
     passEncoder;
@@ -22,6 +24,7 @@ let Lamp = class Lamp {
     modelMatrix;
     windManager;
     wire;
+    lightningManager;
     lampPos = {
         x: 3,
         y: 4,
@@ -37,7 +40,7 @@ let Lamp = class Lamp {
         h: 0.1,
         d: 0.1
     };
-    constructor(device, passEncoder, loader, shaderLoader, windManager) {
+    constructor(device, passEncoder, loader, shaderLoader, windManager, lightningManager) {
         this.device = device;
         this.passEncoder = passEncoder;
         this.loader = loader;
@@ -45,6 +48,7 @@ let Lamp = class Lamp {
         this.modelMatrix = mat4.create();
         this.windManager = windManager;
         this.wire = new Wire(windManager, loader);
+        this.lightningManager = lightningManager;
     }
     getModelMatrix() {
         return this.modelMatrix;
@@ -83,6 +87,9 @@ let Lamp = class Lamp {
                 this.size.h,
                 this.size.d
             ]);
+            const light = new PointLight(vec3.fromValues(this.lampPos.x, this.lampPos.y, this.lampPos.z), vec3.fromValues(1.0, 1.0, 1.0), 1.0, 10.0);
+            this.lightningManager.addPointLight('point', light);
+            this.lightningManager.updatePointLightBuffer();
         }
         catch (err) {
             console.error(err);
@@ -103,7 +110,7 @@ let Lamp = class Lamp {
             throw new Error('err');
         await this.wire.update(this.device, deltaTime);
     }
-    async init(viewProjectionMatrix) {
+    async init() {
         this.buffers = await this.loadAssets();
         this.createLamp();
         await this.wire.init();
@@ -115,6 +122,7 @@ Lamp = __decorate([
         GPURenderPassEncoder,
         Loader,
         ShaderLoader,
-        WindManager])
+        WindManager,
+        LightningManager])
 ], Lamp);
 export { Lamp };

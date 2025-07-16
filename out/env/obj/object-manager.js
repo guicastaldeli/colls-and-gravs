@@ -67,7 +67,7 @@ let ObjectManager = class ObjectManager {
         });
         //Lamp
         this.registerType('lamp', Lamp, async (instance, deps) => {
-            await instance.init(deps.viewProjectionMatrix);
+            await instance.init();
         });
     }
     resolveDependencies(constructor) {

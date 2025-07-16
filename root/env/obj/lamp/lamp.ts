@@ -5,6 +5,8 @@ import { ShaderLoader } from "../../../shader-loader.js";
 import { Loader } from "../../../loader.js";
 import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
+import { LightningManager } from "../../../lightning-manager.js";
+import { PointLight } from "../../../lightning/point-light.js";
 
 @Injectable()
 export class Lamp {
@@ -17,6 +19,7 @@ export class Lamp {
 
     private windManager: WindManager;
     public wire: Wire;
+    private lightningManager: LightningManager;
 
     lampPos = {
         x: 3,
@@ -41,7 +44,8 @@ export class Lamp {
         passEncoder: GPURenderPassEncoder,
         loader: Loader,
         shaderLoader: ShaderLoader,
-        windManager: WindManager
+        windManager: WindManager,
+        lightningManager: LightningManager
     ) {
         this.device = device;
         this.passEncoder = passEncoder;
@@ -52,6 +56,7 @@ export class Lamp {
         
         this.windManager = windManager;
         this.wire = new Wire(windManager, loader);
+        this.lightningManager = lightningManager;
     }
 
     public getModelMatrix(): mat4 {
@@ -99,6 +104,20 @@ export class Lamp {
                     this.size.d
                 ]
             );
+
+            const light = new PointLight(
+                vec3.fromValues(
+                    this.lampPos.x,
+                    this.lampPos.y,
+                    this.lampPos.z
+                ),
+                vec3.fromValues(1.0, 1.0, 1.0),
+                1.0,
+                10.0
+            );
+
+            this.lightningManager.addPointLight('point', light);
+            this.lightningManager.updatePointLightBuffer();
         } catch(err) {
             console.error(err);
             throw err;
@@ -122,7 +141,7 @@ export class Lamp {
         await this.wire.update(this.device, deltaTime);
     }
 
-    public async init(viewProjectionMatrix: mat4): Promise<void> {
+    public async init(): Promise<void> {
         this.buffers = await this.loadAssets();
         this.createLamp();
         await this.wire.init();

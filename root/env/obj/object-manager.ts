@@ -12,6 +12,7 @@ import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { WindManager } from "../../wind-manager.js";
 import { EnvBufferData } from "../env-buffers.js";
+import { PointLight } from "../../lightning/point-light.js";
 
 export function Injectable() {
     return (target: any) => {
@@ -99,7 +100,7 @@ export class ObjectManager {
 
         //Lamp
         this.registerType('lamp', Lamp, async (instance, deps) => {
-            await(instance as Lamp).init(deps.viewProjectionMatrix);
+            await(instance as Lamp).init();
         });
     }
 
