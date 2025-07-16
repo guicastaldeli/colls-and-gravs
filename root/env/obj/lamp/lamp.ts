@@ -9,6 +9,7 @@ import { Wire } from "./wire.js";
 @Injectable()
 export class Lamp {
     private device: GPUDevice;
+    private passEncoder: GPURenderPassEncoder;
     private loader: Loader;
     private buffers?: EnvBufferData;
     private shaderLoader: ShaderLoader;
@@ -37,11 +38,13 @@ export class Lamp {
 
     constructor(
         device: GPUDevice,
+        passEncoder: GPURenderPassEncoder,
         loader: Loader,
         shaderLoader: ShaderLoader,
         windManager: WindManager
     ) {
         this.device = device;
+        this.passEncoder = passEncoder;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
 
@@ -119,9 +122,15 @@ export class Lamp {
         await this.wire.update(this.device, deltaTime);
     }
 
-    public async init(): Promise<void> {
+    public async init(viewProjectionMatrix: mat4): Promise<void> {
         this.buffers = await this.loadAssets();
         this.createLamp();
-        await this.wire.init(this.shaderLoader);
+
+        await this.wire.init(
+            this.device, 
+            this.passEncoder, 
+            this.shaderLoader,
+            viewProjectionMatrix
+        );
     }
 }

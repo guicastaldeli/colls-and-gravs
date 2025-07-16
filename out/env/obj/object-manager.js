@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+import { mat4 } from "../../../node_modules/gl-matrix/esm/index.js";
 import 'reflect-metadata';
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
@@ -26,6 +27,7 @@ export function Injectable() {
 const dependenciesMap = new Map([
     [Tick, 'tick'],
     [GPUDevice, 'device'],
+    [GPURenderPassEncoder, 'passEncoder'],
     [Loader, 'loader'],
     [ShaderLoader, 'shaderLoader'],
     [Ground, 'ground'],
@@ -34,7 +36,8 @@ const dependenciesMap = new Map([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [WindManager, 'windManager']
+    [WindManager, 'windManager'],
+    [mat4, 'viewProjectionMatrix']
 ]);
 let ObjectManager = class ObjectManager {
     readyPromise;
@@ -64,7 +67,7 @@ let ObjectManager = class ObjectManager {
         });
         //Lamp
         this.registerType('lamp', Lamp, async (instance, deps) => {
-            await instance.init();
+            await instance.init(deps.viewProjectionMatrix);
         });
     }
     resolveDependencies(constructor) {

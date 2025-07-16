@@ -15,6 +15,7 @@ import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
 let Lamp = class Lamp {
     device;
+    passEncoder;
     loader;
     buffers;
     shaderLoader;
@@ -36,8 +37,9 @@ let Lamp = class Lamp {
         h: 0.1,
         d: 0.1
     };
-    constructor(device, loader, shaderLoader, windManager) {
+    constructor(device, passEncoder, loader, shaderLoader, windManager) {
         this.device = device;
+        this.passEncoder = passEncoder;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.modelMatrix = mat4.create();
@@ -101,15 +103,16 @@ let Lamp = class Lamp {
             throw new Error('err');
         await this.wire.update(this.device, deltaTime);
     }
-    async init() {
+    async init(viewProjectionMatrix) {
         this.buffers = await this.loadAssets();
         this.createLamp();
-        await this.wire.init(this.shaderLoader);
+        await this.wire.init(this.device, this.passEncoder, this.shaderLoader, viewProjectionMatrix);
     }
 };
 Lamp = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [GPUDevice,
+        GPURenderPassEncoder,
         Loader,
         ShaderLoader,
         WindManager])

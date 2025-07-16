@@ -475,6 +475,7 @@ export async function render(canvas) {
             const deps = {
                 tick,
                 device,
+                passEncoder,
                 loader,
                 shaderLoader,
                 ground: envRenderer?.ground,
@@ -483,7 +484,8 @@ export async function render(canvas) {
                 playerController: null,
                 format,
                 hud: null,
-                windManager
+                windManager,
+                viewProjectionMatrix
             };
             if (!objectManager) {
                 objectManager = new ObjectManager(deps);

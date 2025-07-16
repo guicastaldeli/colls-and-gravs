@@ -551,6 +551,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 const deps = {
                     tick,
                     device,
+                    passEncoder,
                     loader,
                     shaderLoader,
                     ground: envRenderer?.ground,
@@ -559,7 +560,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                     playerController: null,
                     format,
                     hud: null,
-                    windManager
+                    windManager,
+                    viewProjectionMatrix
                 }
     
                 if(!objectManager) {

@@ -25,6 +25,7 @@ type Types = 'randomBlocks' | 'lamp';
 interface Dependencies {
     tick: Tick;
     device: GPUDevice;
+    passEncoder: GPURenderPassEncoder;
     loader: Loader;
     shaderLoader: ShaderLoader;
     ground: Ground;
@@ -33,12 +34,14 @@ interface Dependencies {
     playerController: PlayerController | null,
     format: GPUTextureFormat,
     hud: Hud | null,
-    windManager: WindManager
+    windManager: WindManager,
+    viewProjectionMatrix: mat4
 }
 
 const dependenciesMap = new Map<Function, keyof Dependencies>([
     [Tick, 'tick'],
     [GPUDevice, 'device'],
+    [GPURenderPassEncoder, 'passEncoder'],
     [Loader, 'loader'],
     [ShaderLoader, 'shaderLoader'],
     [Ground, 'ground'],
@@ -47,7 +50,8 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [WindManager, 'windManager']
+    [WindManager, 'windManager'],
+    [mat4, 'viewProjectionMatrix']
 ]);
 
 @Injectable()
@@ -95,7 +99,7 @@ export class ObjectManager {
 
         //Lamp
         this.registerType('lamp', Lamp, async (instance, deps) => {
-            await(instance as Lamp).init();
+            await(instance as Lamp).init(deps.viewProjectionMatrix);
         });
     }
 
