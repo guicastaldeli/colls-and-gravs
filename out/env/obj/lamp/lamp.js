@@ -106,7 +106,7 @@ let Lamp = class Lamp {
     async init(viewProjectionMatrix) {
         this.buffers = await this.loadAssets();
         this.createLamp();
-        await this.wire.init(this.device, this.passEncoder, this.shaderLoader, viewProjectionMatrix);
+        await this.wire.init();
     }
 };
 Lamp = __decorate([

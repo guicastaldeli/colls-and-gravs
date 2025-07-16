@@ -125,12 +125,6 @@ export class Lamp {
     public async init(viewProjectionMatrix: mat4): Promise<void> {
         this.buffers = await this.loadAssets();
         this.createLamp();
-
-        await this.wire.init(
-            this.device, 
-            this.passEncoder, 
-            this.shaderLoader,
-            viewProjectionMatrix
-        );
+        await this.wire.init();
     }
 }

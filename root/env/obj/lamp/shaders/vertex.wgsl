@@ -6,18 +6,18 @@ struct Uniforms {
 
 struct VertexInput {
     @location(0) position: vec3f,
-    @location(1) color: vec3f
+    @location(1) texCoord: vec2f
 }
 
 struct VertexOutput {
     @builtin(position) position: vec4f,
-    @location(0) color: vec3f
+    @location(0) texCoord: vec2f
 }
 
 @vertex
 fn main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.position = uniforms.mvpMatrix * vec4f(input.position, 1.0);
-    output.color = input.color;
+    output.texCoord = input.texCoord;
     return output;
 }

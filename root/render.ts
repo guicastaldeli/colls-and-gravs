@@ -436,7 +436,7 @@ function parseColor(rgb: string): [number, number, number] {
         const color = 'rgb(255, 255, 255)';
         const colorArray = parseColor(color);
 
-        const light = new AmbientLight(colorArray, 1.0);
+        const light = new AmbientLight(colorArray, 0.5);
         lightningManager.addAmbientLight('ambient', light);
         lightningManager.updateLightBuffer('ambient');
     }
