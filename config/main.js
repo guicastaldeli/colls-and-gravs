@@ -12,10 +12,13 @@ const res = {
   }
 }
 
+let currentResoltion = 'f';
+let win;
+
 const createWindow = () => {
-  const win = new BrowserWindow({
-    width: res.f.w,
-    height: res.f.h,
+  win = new BrowserWindow({
+    width: res[currentResoltion].w,
+    height: res[currentResoltion].h,
     webPreferences: {
     nodeIntegration: false,
       contextIsolation: true,
@@ -25,6 +28,18 @@ const createWindow = () => {
 
   win.loadFile('./root/index.html')
   win.setMenuBarVisibility(false);
+
+  win.webContents.on('before-input-event', (event, input) => {
+    if(input.key === 'r' && input.type === 'keyDown') {
+      toggleResolution();
+    }
+  });
+}
+
+function toggleResolution() {
+  currentResoltion = currentResoltion === 's' ? 'f' : 's';
+  win.setSize(res[currentResoltion].w, res[currentResoltion].h);
+  win.center();
 }
 
 app.whenReady().then(() => {
