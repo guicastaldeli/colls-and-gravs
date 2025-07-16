@@ -175,7 +175,7 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back',
+                cullMode: 'none',
                 frontFace: 'ccw',
             },
             depthStencil: {
@@ -380,9 +380,9 @@ async function ambientLight() {
 //Directional
 async function directionalLight() {
     const pos = {
-        x: -10,
-        y: 5,
-        z: -15
+        x: -10.0,
+        y: 5.0,
+        z: -15.0
     };
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);

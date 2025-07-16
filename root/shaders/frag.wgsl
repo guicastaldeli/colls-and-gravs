@@ -25,7 +25,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
             pointLights[i]
         );
     }
-
+    
     finalColor = max(finalColor, vec3f(0.0));
     return vec4f(finalColor, texColor.a);
 }

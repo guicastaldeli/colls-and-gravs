@@ -210,7 +210,7 @@ async function initShaders(): Promise<void> {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back',
+                cullMode: 'none',
                 frontFace: 'ccw',
             },
             depthStencil: {
@@ -443,9 +443,9 @@ export function parseColor(rgb: string): [number, number, number] {
     //Directional
     async function directionalLight(): Promise<void> {
         const pos = {
-            x: -10,
-            y: 5,
-            z: -15
+            x: -10.0,
+            y: 5.0,
+            z: -15.0
         }
         
         const color = 'rgb(255, 255, 255)';

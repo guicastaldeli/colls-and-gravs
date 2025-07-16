@@ -624,6 +624,11 @@ export class RandomBlocks implements ICollidable {
                     ]
                 );
 
+                const normalMatrix = mat3.create();
+                mat3.fromQuat(normalMatrix, physicsObj.orientation);
+                mat3.invert(normalMatrix, normalMatrix);
+                mat3.transpose(normalMatrix, normalMatrix);
+
                 const colliderIndex = this.blocks.indexOf(block);
                 if(colliderIndex >= 0 && colliderIndex < this._Colliders.length) {
                     this._Colliders[colliderIndex]._offset = [

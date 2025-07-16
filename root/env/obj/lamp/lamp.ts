@@ -123,8 +123,8 @@ export class Lamp {
                 const light = new PointLight(
                     vec3.fromValues(lx, ly, lz),
                     colorArray,
-                    1.0,
-                    7.0
+                    0.8,
+                    8.0
                 );
 
                 this.lightningManager.addPointLight('point', light);

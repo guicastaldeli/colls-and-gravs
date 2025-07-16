@@ -40,7 +40,7 @@ fn applyPointLight(
     }
 
     let lightDir = normalize(worldPos + light.position.xyz);
-    let NdotL = max(dot(normal, lightDir.xyz), 0.0);
+    let NdotL = abs(dot(normal, lightDir.xyz));
 
     let attenuation = calculateAttenuation(
         distance,
