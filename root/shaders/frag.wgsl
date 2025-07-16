@@ -17,23 +17,15 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, normal);
-    if(input.worldPos.y > 0.1) {
-        for(var i = 0u; i < pointLightCount; i++) {
-            finalColor += applyPointLight(
-                baseColor,
-                normal,
-                worldPos,
-                pointLights[i]
-            );
-        }
+    for(var i = 0u; i < pointLightCount; i++) {
+        finalColor += applyPointLight(
+            baseColor,
+            normal,
+            worldPos,
+            pointLights[i]
+        );
     }
 
-
-/*
-    if (input.worldPos.z < 0.1) {
-        return vec4f(1.0, 0.0, 0.0, 1.0);
-    }
-*/
     finalColor = max(finalColor, vec3f(0.0));
     return vec4f(finalColor, texColor.a);
 }
