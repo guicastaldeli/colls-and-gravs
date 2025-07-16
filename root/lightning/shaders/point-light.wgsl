@@ -32,9 +32,6 @@ fn applyPointLight(
     worldPos: vec3f,
     light: PointLight
 ) -> vec3f {
-    if(worldPos.z < 0.5) {
-        return vec3f(0.0);
-    }
     let worldPos4 = vec4f(worldPos, 0.0);
     let lightVec = light.position - worldPos4;
     let distance = length(lightVec.xyz);
@@ -60,8 +57,5 @@ fn applyPointLight(
     );
 
     let result = baseColor * diffuse * rangeFactor;
-    if (worldPos.y < 0.1) {
-        return result;
-    }
     return result;
 }

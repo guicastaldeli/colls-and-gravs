@@ -8,9 +8,9 @@ export class Wire {
     segmentCount = 1;
     totalLength = this.segmentLength * this.segmentCount;
     pos = {
-        x: 5.0,
+        x: 7.0,
         y: 4.0,
-        z: 2.0
+        z: 7.5
     };
     size = {
         w: 0.5,

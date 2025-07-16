@@ -20,9 +20,9 @@ export class Wire {
     private totalLength: number = this.segmentLength * this.segmentCount; 
 
     public pos = {
-        x: 5.0,
+        x: 7.0,
         y: 4.0,
-        z: 2.0
+        z: 7.5
     }
 
     size = {
