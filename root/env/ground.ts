@@ -65,8 +65,7 @@ export class Ground implements ICollidable {
                     block.modelMatrix,
                     [this.size.w, this.size.h, this.size.d]
                 );
-
-                mat4.copy(block.modelMatrix, block.modelMatrix)
+                mat4.copy(block.modelMatrix, block.modelMatrix);
 
                 const collider = new BoxCollider(
                     [this.pos.gap(), this.pos.gap(), this.pos.gap()],

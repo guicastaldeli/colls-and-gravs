@@ -32,6 +32,9 @@ fn applyPointLight(
     worldPos: vec3f,
     light: PointLight
 ) -> vec3f {
+    if(worldPos.z < 0.5) {
+        return vec3f(0.0);
+    }
     let worldPos4 = vec4f(worldPos, 0.0);
     let lightVec = light.position - worldPos4;
     let distance = length(lightVec.xyz);
@@ -41,7 +44,7 @@ fn applyPointLight(
 
     let lightDir = lightVec / distance;
     let NdotL = dot(normal, lightDir.xyz);
-    if(NdotL <= 0.0) {
+    if(NdotL >= 0.0) {
         return vec3f(0.0);
     }
 
@@ -53,11 +56,15 @@ fn applyPointLight(
     );
 
     let diffuse = light.color.xyz * light.intensity * NdotL * attenuation;
-    let rangeFactor = 2.0 - smoothstep(
+    let rangeFactor = 1.0 - smoothstep(
         light.range * 0.75,
         light.range,
         distance
     );
 
-    return baseColor * diffuse * rangeFactor;
+    let result = baseColor * diffuse * rangeFactor;
+    if (worldPos.y < 0.1) {
+        return result;
+    }
+    return result;
 }

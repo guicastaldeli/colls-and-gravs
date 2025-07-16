@@ -30,7 +30,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
 
 /*
-    if (input.worldPos.y < 0.1) {
+    if (input.worldPos.z < 0.1) {
         return vec4f(1.0, 0.0, 0.0, 1.0);
     }
 */
