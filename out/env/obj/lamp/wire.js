@@ -5,17 +5,17 @@ export class Wire {
     loader;
     segments = [];
     segmentLength = 1.0;
-    segmentCount = 10;
+    segmentCount = 1;
     totalLength = this.segmentLength * this.segmentCount;
     pos = {
-        x: 7,
-        y: 0,
-        z: 0
+        x: 5.0,
+        y: 4.0,
+        z: 2.0
     };
     size = {
-        w: 5.0,
-        h: 5.0,
-        d: 5.0
+        w: 0.5,
+        h: 0.5 + this.totalLength,
+        d: 0.5
     };
     constructor(windManager, loader) {
         this.windManager = windManager;
@@ -46,7 +46,10 @@ export class Wire {
     async createWire(baseBuffer, i) {
         try {
             const segmentBuffer = { ...baseBuffer, modelMatrix: mat4.create() };
-            const position = vec3.fromValues(this.pos.x, this.pos.y + (i * this.segmentLength), this.pos.z);
+            const x = this.pos.x;
+            const y = this.pos.y + 1.0;
+            const z = this.pos.z;
+            const position = vec3.fromValues(x, y + (i * this.segmentLength), z);
             mat4.translate(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, position);
             mat4.scale(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, [
                 this.size.w,

@@ -49,9 +49,7 @@ let wireframePipeline: GPURenderPipeline | null = null;
 let lightningManager: LightningManager;
 let windManager: WindManager;
 let objectManager: ObjectManager;
-
 let skybox: Skybox;
-let pointLightel: PointLight;
 
 async function toggleWireframe(): Promise<void> {
     document.addEventListener('keydown', async (e) => {
@@ -419,7 +417,7 @@ async function setBuffers(
 }
 
 //Color Parser
-function parseColor(rgb: string): [number, number, number] {
+export function parseColor(rgb: string): [number, number, number] {
     const matches = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
     if(!matches) throw new Error('Invalid RGB string or format!');
 
@@ -458,11 +456,6 @@ function parseColor(rgb: string): [number, number, number] {
         const light = new DirectionalLight(colorArray, direction, 0.0);
         lightningManager.addDirectionalLight('directional', light);
         lightningManager.updateLightBuffer('directional');
-    }
-
-    //Point
-    async function pointLight(): Promise<void> {
-        if(!pointLightel) pointLightel = new PointLight();
     }
 //
 
@@ -541,7 +534,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!lightningManager) lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
-        await pointLight();
 
         //Wind
         if(!windManager) windManager = new WindManager(tick);

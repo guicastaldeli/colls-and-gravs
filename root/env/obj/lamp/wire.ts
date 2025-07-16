@@ -16,19 +16,19 @@ export class Wire {
 
     private segments: EnvBufferData[] = [];
     private segmentLength: number = 1.0;
-    private segmentCount: number = 10;
+    private segmentCount: number = 1;
     private totalLength: number = this.segmentLength * this.segmentCount; 
 
-    pos = {
-        x: 7,
-        y: 0,
-        z: 0
+    public pos = {
+        x: 5.0,
+        y: 4.0,
+        z: 2.0
     }
 
     size = {
-        w: 5.0,
-        h: 5.0,
-        d: 5.0
+        w: 0.5,
+        h: 0.5 + this.totalLength,
+        d: 0.5
     }
 
     constructor(windManager: WindManager, loader: Loader) {
@@ -64,10 +64,14 @@ export class Wire {
         try {
             const segmentBuffer = { ...baseBuffer, modelMatrix: mat4.create() };
 
+            const x = this.pos.x;
+            const y = this.pos.y + 1.0;
+            const z = this.pos.z;
+
             const position = vec3.fromValues(
-                this.pos.x,
-                this.pos.y + (i * this.segmentLength),
-                this.pos.z
+                x,
+                y + (i * this.segmentLength),
+                z
             );
 
             mat4.translate(segmentBuffer.modelMatrix, segmentBuffer.modelMatrix, position);

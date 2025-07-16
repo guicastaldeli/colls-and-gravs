@@ -15,6 +15,7 @@ import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
 import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
+import { parseColor } from "../../../render.js";
 let Lamp = class Lamp {
     device;
     passEncoder;
@@ -25,16 +26,6 @@ let Lamp = class Lamp {
     windManager;
     wire;
     lightningManager;
-    lampPos = {
-        x: 3,
-        y: 4,
-        z: 2
-    };
-    wirePos = {
-        x: 1,
-        y: 1,
-        z: 0
-    };
     size = {
         w: 0.1,
         h: 0.1,
@@ -79,7 +70,10 @@ let Lamp = class Lamp {
         try {
             if (!this.buffers)
                 return;
-            const position = vec3.fromValues(this.lampPos.x, this.lampPos.y, this.lampPos.z);
+            const x = this.wire.pos.x;
+            const y = this.wire.pos.y;
+            const z = this.wire.pos.z;
+            const position = vec3.fromValues(x, y, z);
             mat4.identity(this.buffers.modelMatrix);
             mat4.translate(this.buffers.modelMatrix, this.buffers.modelMatrix, position);
             mat4.scale(this.buffers.modelMatrix, this.buffers.modelMatrix, [
@@ -87,9 +81,16 @@ let Lamp = class Lamp {
                 this.size.h,
                 this.size.d
             ]);
-            const light = new PointLight(vec3.fromValues(this.lampPos.x, this.lampPos.y, this.lampPos.z), vec3.fromValues(1.0, 1.0, 1.0), 1.0, 10.0);
+            //Lightning
+            const color = 'rgb(255, 255, 255)';
+            const colorArray = parseColor(color);
+            const lx = x + 3;
+            const ly = y;
+            const lz = z;
+            const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 1.0, 8.0);
             this.lightningManager.addPointLight('point', light);
             this.lightningManager.updatePointLightBuffer();
+            //
         }
         catch (err) {
             console.error(err);

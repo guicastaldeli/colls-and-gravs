@@ -61,7 +61,7 @@ export class PointLight {
     }
 
     public getBufferData(): Float32Array {
-        const data = new Float32Array(12);
+        const data = new Float32Array(14);
         data.set(this._position, 0);
         data[3] = 0.0;
         data.set(this._color, 4);
@@ -71,6 +71,7 @@ export class PointLight {
         data[10] = this._constant;
         data[11] = this._linear;
         data[12] = this._quadratic;
+        data[13] = 0.0;
         return data;
     }
 }

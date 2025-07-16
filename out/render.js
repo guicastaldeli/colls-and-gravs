@@ -16,7 +16,6 @@ import { ObjectManager } from "./env/obj/object-manager.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
-import { PointLight } from "./lightning/point-light.js";
 let pipeline;
 let buffers;
 let depthTexture = null;
@@ -38,7 +37,6 @@ let lightningManager;
 let windManager;
 let objectManager;
 let skybox;
-let pointLightel;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
         if (e.key.toLowerCase() === 't') {
@@ -359,7 +357,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     }
 }
 //Color Parser
-function parseColor(rgb) {
+export function parseColor(rgb) {
     const matches = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
     if (!matches)
         throw new Error('Invalid RGB string or format!');
@@ -392,11 +390,6 @@ async function directionalLight() {
     const light = new DirectionalLight(colorArray, direction, 0.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
-}
-//Point
-async function pointLight() {
-    if (!pointLightel)
-        pointLightel = new PointLight();
 }
 //
 async function renderEnv(deltaTime, passEncoder, viewProjectionMatrix) {
@@ -466,7 +459,6 @@ export async function render(canvas) {
             lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
-        await pointLight();
         //Wind
         if (!windManager)
             windManager = new WindManager(tick);
