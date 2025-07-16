@@ -30,7 +30,7 @@ const createWindow = () => {
   win.setMenuBarVisibility(false);
 
   win.webContents.on('before-input-event', (event, input) => {
-    if(input.key === 'r' && input.type === 'keyDown') {
+    if(input.key === 'f' && input.type === 'keyDown') {
       toggleResolution();
     }
   });
