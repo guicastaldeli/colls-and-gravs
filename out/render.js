@@ -57,6 +57,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl')
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
+        console.log(combinedFragCode.toString());
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [

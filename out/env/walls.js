@@ -103,7 +103,7 @@ export class Walls {
                     y: 0.0,
                     z: 5.0
                 },
-                pattern: [
+                pattern: [] /* [
                     '   ################',
                     '   #              #',
                     '   #              #',
@@ -112,6 +112,7 @@ export class Walls {
                     '   #              #',
                     '   ################',
                 ]
+                    */
             },
             ceiling: {
                 pos: {

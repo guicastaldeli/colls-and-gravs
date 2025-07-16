@@ -85,6 +85,7 @@ async function initShaders(): Promise<void> {
             directionalLightSrc,
             pointLightSrc
         );
+        console.log(combinedFragCode.toString())
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 

@@ -170,7 +170,7 @@ export class Walls implements ICollidable {
                     y: 0.0,
                     z: 5.0
                 },
-                pattern: [
+                pattern:[]/* [
                     '   ################',
                     '   #              #',
                     '   #              #',
@@ -179,6 +179,7 @@ export class Walls implements ICollidable {
                     '   #              #',
                     '   ################',
                 ]
+                    */
             },
             ceiling: {
                 pos: {

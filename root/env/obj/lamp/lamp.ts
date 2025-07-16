@@ -110,19 +110,21 @@ export class Lamp {
                 ]
             );
 
+            mat4.copy(this.modelMatrix, this.buffers.modelMatrix);
+
             //Lightning
                 const color = 'rgb(255, 255, 255)';
                 const colorArray = parseColor(color);
 
                 const lx = x + 3;
                 const ly = y;
-                const lz = z;
+                const lz = z + 5;
 
                 const light = new PointLight(
                     vec3.fromValues(lx, ly, lz),
                     colorArray,
                     1.0,
-                    8.0
+                    7.0
                 );
 
                 this.lightningManager.addPointLight('point', light);

@@ -41,6 +41,7 @@ export class Ground {
                 mat4.identity(block.modelMatrix);
                 mat4.translate(block.modelMatrix, block.modelMatrix, position);
                 mat4.scale(block.modelMatrix, block.modelMatrix, [this.size.w, this.size.h, this.size.d]);
+                mat4.copy(block.modelMatrix, block.modelMatrix);
                 const collider = new BoxCollider([this.pos.gap(), this.pos.gap(), this.pos.gap()], vec3.fromValues(position[0], position[1], position[2]));
                 this.blocks.push(block);
                 this._Collider.push(collider);

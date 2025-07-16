@@ -20,8 +20,8 @@ export class PointLight {
         this._intensity = intensity;
         this._range = range;
         this._constant = 1.0;
-        this._linear = 0.09;
-        this._quadratic = 0.04;
+        this._linear = 0.01;
+        this._quadratic = 0.01;
     }
 
     //Position

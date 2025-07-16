@@ -21,7 +21,8 @@ fn calculateAttenuation(
     return 1.0 / (
         constant +
         linear * distance +
-        quadratic * distance * distance 
+        quadratic * distance * 
+        distance 
     );
 }
 
@@ -39,6 +40,11 @@ fn applyPointLight(
     }
 
     let lightDir = lightVec / distance;
+    let NdotL = dot(normal, lightDir.xyz);
+    if(NdotL <= 0.0) {
+        return vec3f(0.0);
+    }
+
     let attenuation = calculateAttenuation(
         distance,
         light.constant,
@@ -46,9 +52,8 @@ fn applyPointLight(
         light.quadratic
     );
 
-    let diff = max(dot(normal, lightDir.xyz), 0.0);
-    let diffuse = light.color.xyz * light.intensity * diff * attenuation;
-    let rangeFactor = 1.0 - smoothstep(
+    let diffuse = light.color.xyz * light.intensity * NdotL * attenuation;
+    let rangeFactor = 2.0 - smoothstep(
         light.range * 0.75,
         light.range,
         distance
