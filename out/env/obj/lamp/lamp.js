@@ -23,13 +23,14 @@ let Lamp = class Lamp {
     buffers;
     shaderLoader;
     modelMatrix;
+    emissiveStrength = 2.5;
     windManager;
     wire;
     lightningManager;
     size = {
-        w: 0.1,
-        h: 0.1,
-        d: 0.1
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     };
     constructor(device, passEncoder, loader, shaderLoader, windManager, lightningManager) {
         this.device = device;
@@ -90,10 +91,38 @@ let Lamp = class Lamp {
             const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 1.0, 8.0);
             this.lightningManager.addPointLight('point', light);
             this.lightningManager.updatePointLightBuffer();
+            const uniformData = new Float32Array(20);
+            const mvpMatrix = mat4.create();
+            uniformData.set(mvpMatrix, 0);
+            uniformData[16] = this.emissiveStrength;
+            uniformData.set([0, 0, 0], 17);
+            const uniformBuffer = this.device.createBuffer({
+                size: uniformData.byteLength,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: true
+            });
+            new Float32Array(uniformBuffer.getMappedRange()).set(uniformData);
+            uniformBuffer.unmap();
             //
         }
         catch (err) {
             console.error(err);
+            throw err;
+        }
+    }
+    async initShaders() {
+        try {
+            const [vertexShader, fragShader] = await Promise.all([
+                this.shaderLoader.loader('./env/obj/lamp/shaders/vertex.wgsl'),
+                this.shaderLoader.loader('./env/obj/lamp/shaders/frag.wgsl'),
+            ]);
+            return {
+                vertexShader,
+                fragShader
+            };
+        }
+        catch (err) {
+            console.log(err);
             throw err;
         }
     }
@@ -112,6 +141,7 @@ let Lamp = class Lamp {
         await this.wire.update(this.device, deltaTime);
     }
     async init() {
+        await this.initShaders();
         this.buffers = await this.loadAssets();
         this.createLamp();
         await this.wire.init();

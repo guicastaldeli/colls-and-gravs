@@ -9,6 +9,17 @@ import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
 import { parseColor } from "../../../render.js";
 
+interface Shaders {
+    vertexShader: GPUShaderModule;
+    fragShader: GPUShaderModule
+}
+
+interface Uniforms {
+    mvpMatrix: Float32Array;
+    emissiveStrength: number;
+    padding: Float32Array;
+}
+
 @Injectable()
 export class Lamp {
     private device: GPUDevice;
@@ -18,14 +29,15 @@ export class Lamp {
     private shaderLoader: ShaderLoader;
     private modelMatrix: mat4;
 
+    private emissiveStrength: number = 2.5;
     private windManager: WindManager;
     public wire: Wire;
     private lightningManager: LightningManager;
 
     size = {
-        w: 0.1,
-        h: 0.1,
-        d: 0.1
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     }
 
     constructor(
@@ -115,9 +127,40 @@ export class Lamp {
 
                 this.lightningManager.addPointLight('point', light);
                 this.lightningManager.updatePointLightBuffer();
+
+                const uniformData = new Float32Array(20);
+                const mvpMatrix = mat4.create();
+                uniformData.set(mvpMatrix, 0);
+                uniformData[16] = this.emissiveStrength;
+                uniformData.set([0, 0, 0], 17);
+
+                const uniformBuffer = this.device.createBuffer({
+                    size: uniformData.byteLength,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    mappedAtCreation: true
+                });
+                new Float32Array(uniformBuffer.getMappedRange()).set(uniformData);
+                uniformBuffer.unmap();
             //
         } catch(err) {
             console.error(err);
+            throw err;
+        }
+    }
+
+    private async initShaders(): Promise<Shaders> {
+        try {
+            const [vertexShader, fragShader] = await Promise.all([
+                this.shaderLoader.loader('./env/obj/lamp/shaders/vertex.wgsl'),
+                this.shaderLoader.loader('./env/obj/lamp/shaders/frag.wgsl'),
+            ]);
+
+            return {
+                vertexShader,
+                fragShader
+            }
+        } catch(err) {
+            console.log(err);
             throw err;
         }
     }
@@ -140,6 +183,7 @@ export class Lamp {
     }
 
     public async init(): Promise<void> {
+        await this.initShaders();
         this.buffers = await this.loadAssets();
         this.createLamp();
         await this.wire.init();
