@@ -4,16 +4,16 @@ export class CommandManager {
     canvas;
     input;
     playerController;
+    randomBlocks;
     commandBar = null;
     commandConfig = null;
     spawnHandler = new Map();
-    constructor(canvas, input, playerController) {
+    constructor(canvas, input, playerController, randomBlocks) {
         this.canvas = canvas;
         this.input = input;
         this.playerController = playerController;
-        this.loadCommands();
+        this.randomBlocks = randomBlocks;
         this.registerHandlers();
-        this.showCommandBar();
     }
     async loadCommands() {
         try {
@@ -55,7 +55,7 @@ export class CommandManager {
         if (!commandContainer)
             throw new Error('Command bar err');
         const commandBarElement = commandContainer.cloneNode(true);
-        document.body.appendChild(commandContainer);
+        document.body.appendChild(commandBarElement);
         this.commandBar = commandBarElement;
         //Empty
         this.commandBar.addEventListener('keydown', async (e) => {
@@ -103,15 +103,15 @@ export class CommandManager {
             return;
         }
         let position;
+        const playerPos = this.playerController.getPosition();
+        const forward = this.playerController.getForward();
         if (args.length >= 4) {
             position = vec3.fromValues(parseFloat(args[1]), parseFloat(args[2]), parseFloat(args[3]));
         }
         else {
-            const playerPos = this.playerController.getPosition();
-            const forward = this.playerController.getForward();
             position = vec3.fromValues(playerPos[0] + forward[0] * 3, playerPos[1] + forward[1] * 3, playerPos[2] + forward[2] * 3);
         }
-        this.spawnBlock(blockDef, position);
+        this.spawnBlock(playerPos, position);
     }
     async handleClear() {
         console.log('Cleaning all blocks...');
@@ -121,7 +121,16 @@ export class CommandManager {
             console.log(`- ${block.id}: ${block.modelPath}`);
         });
     }
-    async spawnBlock(blockDef, position) {
-        throw new Error('Spawn block err');
+    async spawnBlock(playerController, position) {
+        try {
+            this.randomBlocks.addBlock(playerController, position);
+        }
+        catch (err) {
+            throw new Error('Spawn block err');
+        }
+    }
+    async init() {
+        await this.loadCommands();
+        this.showCommandBar();
     }
 }

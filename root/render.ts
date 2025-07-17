@@ -484,11 +484,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
 
-        //Commands
-        if(!commandManager && input && playerController) {
-            commandManager = new CommandManager(canvas, input, playerController);
-        }
-
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();
         if(!loader) loader = new Loader(device);
@@ -586,6 +581,18 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         }
         playerController.update(deltaTime);
 
+        //Commands
+        if(!commandManager && input && 
+            playerController && randomBlocks
+        ) {
+            commandManager = new CommandManager(
+                canvas, 
+                input, 
+                playerController, 
+                randomBlocks
+            );
+            commandManager.init();
+        }
 
         //Camera
             if(!camera) {

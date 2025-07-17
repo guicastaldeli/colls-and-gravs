@@ -411,10 +411,6 @@ export async function render(canvas) {
         const deltaTime = tick.update(currentTime);
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
-        //Commands
-        if (!commandManager && input && playerController) {
-            commandManager = new CommandManager(canvas, input, playerController);
-        }
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!loader)
@@ -504,6 +500,12 @@ export async function render(canvas) {
             objectManager.deps.playerController = playerController;
         }
         playerController.update(deltaTime);
+        //Commands
+        if (!commandManager && input &&
+            playerController && randomBlocks) {
+            commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
+            commandManager.init();
+        }
         //Camera
         if (!camera) {
             camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);

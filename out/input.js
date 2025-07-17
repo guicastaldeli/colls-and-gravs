@@ -91,7 +91,6 @@ export class Input {
             this.keys[key] = false;
     }
     update(playerController, keys, time) {
-        console.log(this.isPaused);
         if (!this.tick || !this.playerController)
             return;
         if (!time || this.tick.isPaused)

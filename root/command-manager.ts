@@ -2,6 +2,7 @@ import { mat3, mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { ListData } from "./env/obj/random-blocks/list.js";
 import { PlayerController } from "./player/player-controller.js";
 import { Input } from "./input.js";
+import { RandomBlocks } from "./env/obj/random-blocks/random-blocks.js";
 
 interface CommandConfig {
     commands: {
@@ -22,6 +23,8 @@ export class CommandManager {
     private canvas: HTMLCanvasElement;
     private input: Input;
     private playerController: PlayerController;
+    private randomBlocks: RandomBlocks | any;
+
     private commandBar: HTMLInputElement | null = null;
     private commandConfig: CommandConfig | null = null;
     private spawnHandler: Map<string, (args: string[]) => Promise<void>> = new Map();
@@ -29,14 +32,14 @@ export class CommandManager {
     constructor(
         canvas: HTMLCanvasElement,
         input: Input, 
-        playerController: PlayerController
+        playerController: PlayerController,
+        randomBlocks: RandomBlocks | any
     ) {
         this.canvas = canvas;
         this.input = input;
         this.playerController = playerController;
-        this.loadCommands();
+        this.randomBlocks = randomBlocks;
         this.registerHandlers();
-        this.showCommandBar();
     }
 
     private async loadCommands(): Promise<void> {
@@ -83,7 +86,7 @@ export class CommandManager {
         if(!commandContainer) throw new Error('Command bar err');
 
         const commandBarElement = commandContainer.cloneNode(true) as HTMLInputElement;
-        document.body.appendChild(commandContainer);
+        document.body.appendChild(commandBarElement);
         this.commandBar = commandBarElement;
 
         //Empty
@@ -137,6 +140,9 @@ export class CommandManager {
         }
 
         let position: vec3;
+        const playerPos = this.playerController.getPosition();
+        const forward = this.playerController.getForward();
+
         if(args.length >= 4) {
             position = vec3.fromValues(
                 parseFloat(args[1]),
@@ -144,8 +150,6 @@ export class CommandManager {
                 parseFloat(args[3])
             );
         } else {
-            const playerPos = this.playerController.getPosition();
-            const forward = this.playerController.getForward();
             position = vec3.fromValues(
                 playerPos[0] + forward[0] * 3,
                 playerPos[1] + forward[1] * 3,
@@ -153,7 +157,7 @@ export class CommandManager {
             );
         }
 
-        this.spawnBlock(blockDef, position);
+        this.spawnBlock(playerPos, position);
     }
 
     private async handleClear(): Promise<void> {
@@ -166,10 +170,16 @@ export class CommandManager {
         });
     }
 
-    private async spawnBlock(
-        blockDef: typeof ListData[0],
-        position: vec3
-    ): Promise<void> {
-        throw new Error('Spawn block err');
+    private async spawnBlock(playerController: PlayerController, position: vec3): Promise<void> {
+        try {
+            this.randomBlocks.addBlock(playerController, position);
+        } catch(err) {
+            throw new Error('Spawn block err');
+        }
+    }
+
+    public async init(): Promise<void> {
+        await this.loadCommands();
+        this.showCommandBar();
     }
 }

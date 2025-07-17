@@ -111,7 +111,6 @@ export class Input {
         keys: Record<string, boolean>,
         time: number,
     ): void {
-        console.log(this.isPaused)
         if(!this.tick || !this.playerController) return;
         if(!time || this.tick.isPaused) return;
 
