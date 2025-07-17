@@ -1,0 +1,26 @@
+{
+    "commands": {
+        "spawn": {
+            "description": "Spawn a block with id.",
+            "args": [
+                {
+                    "name": "blockId",
+                    "type": "string",
+                    "required": true,
+                    "description": "id of block to spawn."
+                }
+            ],
+            "handler": "handleSpawn"
+        },
+        "clear": {
+            "description": "Remove all spawned blocks",
+            "args": [],
+            "handler": "handleClear"
+        },
+        "list": {
+            "description": "List of all commands",
+            "args": [],
+            "handler": "handleList"
+        }
+    }
+}

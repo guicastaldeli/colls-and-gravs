@@ -5,6 +5,7 @@ import { initBuffers, drawBuffers } from "./buffers.js";
 import { BufferData } from "./buffers.js";
 
 import { Tick } from "./tick.js";
+import { CommandManager } from "./command-manager.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { Loader } from "./loader.js";
@@ -33,6 +34,7 @@ let depthTextureWidth = 0;
 let depthTextureHeight = 0;
 
 let tick: Tick;
+let commandManager: CommandManager;
 let camera: Camera;
 let input: Input;
 let loader: Loader;
@@ -85,7 +87,6 @@ async function initShaders(): Promise<void> {
             directionalLightSrc,
             pointLightSrc
         );
-        console.log(combinedFragCode.toString())
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 
@@ -482,6 +483,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const deltaTime = tick.update(currentTime);
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
+
+        //Commands
+        if(!commandManager && playerController) commandManager = new CommandManager(playerController);
 
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();

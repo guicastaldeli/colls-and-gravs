@@ -2,6 +2,7 @@ import { mat3, mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { context, device } from "./init.js";
 import { initBuffers } from "./buffers.js";
 import { Tick } from "./tick.js";
+import { CommandManager } from "./command-manager.js";
 import { Camera } from "./camera.js";
 import { Input } from "./input.js";
 import { Loader } from "./loader.js";
@@ -22,6 +23,7 @@ let depthTexture = null;
 let depthTextureWidth = 0;
 let depthTextureHeight = 0;
 let tick;
+let commandManager;
 let camera;
 let input;
 let loader;
@@ -57,7 +59,6 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl')
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
-        console.log(combinedFragCode.toString());
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
@@ -410,6 +411,9 @@ export async function render(canvas) {
         const deltaTime = tick.update(currentTime);
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
+        //Commands
+        if (!commandManager && playerController)
+            commandManager = new CommandManager(playerController);
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!loader)

@@ -21,3 +21,10 @@ html, body {
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
+
+#command-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 999;
+}
