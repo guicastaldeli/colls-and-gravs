@@ -42,8 +42,10 @@ export class CommandManager {
         });
     }
     async createCommandBar() {
-        if (this.commandBar)
+        if (this.commandBar) {
+            this.commandBar.style.display = 'block';
             return;
+        }
         const commandBar = `
             <div class="command-container">
                 <input id="command-bar" type="text"></input>
@@ -97,7 +99,7 @@ export class CommandManager {
     }
     async handleSpawn(args) {
         const blockId = args[0];
-        const blockDef = ListData.find(item => item.id === blockId);
+        const blockDef = ListData.find(item => item.id === blockId.toString());
         if (!blockDef) {
             console.log(`Block ID ${blockId} not found`);
             return;
@@ -111,7 +113,7 @@ export class CommandManager {
         else {
             position = vec3.fromValues(playerPos[0] + forward[0] * 3, playerPos[1] + forward[1] * 3, playerPos[2] + forward[2] * 3);
         }
-        this.spawnBlock(playerPos, position);
+        this.spawnBlock(position, blockId);
     }
     async handleClear() {
         console.log('Cleaning all blocks...');
@@ -121,9 +123,10 @@ export class CommandManager {
             console.log(`- ${block.id}: ${block.modelPath}`);
         });
     }
-    async spawnBlock(playerController, position) {
+    async spawnBlock(position, id) {
         try {
-            this.randomBlocks.addBlock(playerController, position);
+            this.randomBlocks.addBlock(position, this.playerController, undefined, id);
+            this.playerController.updateCollidables();
         }
         catch (err) {
             throw new Error('Spawn block err');

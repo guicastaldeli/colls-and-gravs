@@ -118,11 +118,13 @@ let RandomBlocks = class RandomBlocks {
             this.sharedResources.delete(id);
         }
     }
-    async addBlock(position, playerController, faceNormal) {
+    async addBlock(position, playerController, faceNormal, id) {
         try {
             if (this.isPositionOccupied(position))
                 throw new Error('err pos');
-            this.currentItem = getRandomItem();
+            this.currentItem = id ?
+                ListData.find(item => item.id === id) || getRandomItem() :
+                getRandomItem();
             const itemId = this.currentItem.id.toString();
             const modelMatrix = mat4.create();
             mat4.translate(modelMatrix, modelMatrix, position);

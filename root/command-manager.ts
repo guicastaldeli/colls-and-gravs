@@ -72,7 +72,10 @@ export class CommandManager {
     }
     
     private async createCommandBar(): Promise<void> {
-        if(this.commandBar) return;
+        if(this.commandBar) {
+            this.commandBar.style.display = 'block';
+            return;
+        }
 
         const commandBar = `
             <div class="command-container">
@@ -133,7 +136,7 @@ export class CommandManager {
 
     private async handleSpawn(args: string[]): Promise<void> {
         const blockId = args[0];
-        const blockDef = ListData.find(item => item.id === blockId);
+        const blockDef = ListData.find(item => item.id === blockId.toString());
         if(!blockDef) {
             console.log(`Block ID ${blockId} not found`);
             return;
@@ -157,7 +160,7 @@ export class CommandManager {
             );
         }
 
-        this.spawnBlock(playerPos, position);
+        this.spawnBlock(position, blockId);
     }
 
     private async handleClear(): Promise<void> {
@@ -170,9 +173,10 @@ export class CommandManager {
         });
     }
 
-    private async spawnBlock(playerController: PlayerController, position: vec3): Promise<void> {
+    private async spawnBlock(position: vec3, id: string): Promise<void> {
         try {
-            this.randomBlocks.addBlock(playerController, position);
+            this.randomBlocks.addBlock(position, this.playerController, undefined, id);
+            this.playerController.updateCollidables();
         } catch(err) {
             throw new Error('Spawn block err');
         }

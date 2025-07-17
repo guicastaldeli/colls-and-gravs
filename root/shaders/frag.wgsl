@@ -15,8 +15,9 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     let dFdxPos = dpdx(input.worldPos);
     let dFdyPos = dpdy(input.worldPos);
-    let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
     let worldPos = input.worldPos;
+    let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
+    
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {

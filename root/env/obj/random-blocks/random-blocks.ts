@@ -165,12 +165,15 @@ export class RandomBlocks implements ICollidable {
     public async addBlock(
         position: vec3, 
         playerController: PlayerController,
-        faceNormal?: vec3
+        faceNormal?: vec3,
+        id?: string
     ): Promise<BlockData> {
         try {
             if(this.isPositionOccupied(position)) throw new Error('err pos');
 
-            this.currentItem = getRandomItem();
+            this.currentItem = id ?
+            ListData.find(item => item.id === id) || getRandomItem() :
+            getRandomItem();
             const itemId = this.currentItem.id.toString();
 
             const modelMatrix = mat4.create();

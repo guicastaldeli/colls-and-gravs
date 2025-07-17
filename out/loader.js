@@ -190,12 +190,16 @@ export class Loader {
         const modelMatrix = mat4.create();
         mat4.translate(modelMatrix, modelMatrix, [0, 0, 0]);
         mat4.scale(modelMatrix, modelMatrix, [0, 0, 0]);
+        const normalMatrix = mat4.create();
+        mat4.invert(normalMatrix, modelMatrix);
+        mat4.transpose(normalMatrix, normalMatrix);
         return {
             vertex: vertexBuffer,
             color: colorBuffer,
             index: indexBuffer,
             indexCount: this.objIndices.length,
             modelMatrix: modelMatrix,
+            normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
             indexData: new Uint16Array(this.objIndices)
