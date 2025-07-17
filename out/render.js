@@ -231,7 +231,7 @@ async function initShaders() {
             },
             primitive: {
                 topology: 'line-list',
-                cullMode: 'back',
+                cullMode: 'none',
             },
             depthStencil: {
                 depthWriteEnabled: true,

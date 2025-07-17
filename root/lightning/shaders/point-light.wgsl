@@ -36,10 +36,10 @@ fn applyPointLight(
     let lightVec = light.position - worldPos4;
     let distance = length(lightVec.xyz);
     if(distance > light.range) {
-        return vec3f(0.0);
+        return vec3f(1.0);
     }
 
-    let lightDir = normalize(worldPos + light.position.xyz);
+    let lightDir = normalize(lightVec);
     let NdotL = abs(dot(normal, lightDir.xyz));
 
     let attenuation = calculateAttenuation(

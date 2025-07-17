@@ -9,23 +9,11 @@ export class BoxCollider {
     _size;
     _offset;
     _orientation = quat.create();
-    constructor(_size, _offset) {
+    constructor(_size, _offset, _orientation) {
         this._size = vec3.clone(_size);
         this._offset = _offset ? vec3.clone(_offset) : vec3.create();
-    }
-    checkCollision(other, otherPosition, otherOrientation) {
-        if (other instanceof BoxCollider) {
-            if (!quat.equals(this._orientation, quat.create) ||
-                (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
-                return this.checkOOBBCollision(this._offset, this._size, this._orientation, otherPosition || other._offset, other._size, otherOrientation || other._orientation);
-            }
-            const a = this.getBoundingBox();
-            const b = other.getBoundingBox(otherPosition);
-            return (a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
-                a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
-                a.min[2] <= b.max[2] && a.max[2] >= b.min[2]);
-        }
-        return false;
+        if (_orientation)
+            this._orientation = quat.clone(_orientation);
     }
     getBoundingBox(position) {
         const halfSize = vec3.create();
@@ -131,6 +119,20 @@ export class BoxCollider {
             max = Math.max(max, proj);
         }
         return { min, max };
+    }
+    checkCollision(other, otherPosition, otherOrientation) {
+        if (other instanceof BoxCollider) {
+            if (!quat.equals(this._orientation, quat.create) ||
+                (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
+                return this.checkOOBBCollision(this._offset, this._size, this._orientation, otherPosition || other._offset, other._size, otherOrientation || other._orientation);
+            }
+            const a = this.getBoundingBox();
+            const b = other.getBoundingBox(otherPosition);
+            return (a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
+                a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
+                a.min[2] <= b.max[2] && a.max[2] >= b.min[2]);
+        }
+        return false;
     }
     checkOOBBCollision(pos1, size1, rot1, pos2, size2, rot2) {
         const axes = [];

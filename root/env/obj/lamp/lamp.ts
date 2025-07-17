@@ -77,6 +77,7 @@ export class Lamp {
                 index: model.index,
                 indexCount: model.indexCount,
                 modelMatrix: mat4.create(),
+                normalMatrix: mat3.create(),
                 texture: tex,
                 sampler: this.loader.createSampler()
             }

@@ -31,40 +31,10 @@ export class BoxCollider implements Collider {
     public _offset: vec3;
     public _orientation: quat = quat.create();
 
-    constructor(_size?: vec3, _offset?: vec3) {
+    constructor(_size?: vec3, _offset?: vec3, _orientation?: quat) {
         this._size = vec3.clone(_size);
         this._offset = _offset ? vec3.clone(_offset) : vec3.create();
-    }
-
-    public checkCollision(
-        other: BoxCollider,
-        otherPosition?: vec3,
-        otherOrientation?: quat
-    ): boolean {
-        if(other instanceof BoxCollider) {
-            if(!quat.equals(this._orientation, quat.create) ||
-            (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
-                return this.checkOOBBCollision(
-                    this._offset,
-                    this._size,
-                    this._orientation,
-                    otherPosition || other._offset,
-                    other._size,
-                    otherOrientation || other._orientation
-                );
-            }
-
-            const a = this.getBoundingBox();
-            const b = other.getBoundingBox(otherPosition);
-    
-            return (
-                a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
-                a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
-                a.min[2] <= b.max[2] && a.max[2] >= b.min[2]
-            );
-        }
-
-        return false;
+        if(_orientation) this._orientation = quat.clone(_orientation);
     }
 
     public getBoundingBox(position?: vec3): { min: vec3; max: vec3; } {
@@ -198,6 +168,37 @@ export class BoxCollider implements Collider {
         }
 
         return { min, max };
+    }
+
+    public checkCollision(
+        other: BoxCollider,
+        otherPosition?: vec3,
+        otherOrientation?: quat
+    ): boolean {
+        if(other instanceof BoxCollider) {
+            if(!quat.equals(this._orientation, quat.create) ||
+            (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
+                return this.checkOOBBCollision(
+                    this._offset,
+                    this._size,
+                    this._orientation,
+                    otherPosition || other._offset,
+                    other._size,
+                    otherOrientation || other._orientation
+                );
+            }
+
+            const a = this.getBoundingBox();
+            const b = other.getBoundingBox(otherPosition);
+    
+            return (
+                a.min[0] <= b.max[0] && a.max[0] >= b.min[0] &&
+                a.min[1] <= b.max[1] && a.max[1] >= b.min[1] &&
+                a.min[2] <= b.max[2] && a.max[2] >= b.min[2]
+            );
+        }
+
+        return false;
     }
 
     private checkOOBBCollision(

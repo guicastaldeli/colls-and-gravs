@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
 import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
@@ -44,6 +44,7 @@ export class Ground implements ICollidable {
                     index: model.index,
                     indexCount: model.indexCount,
                     modelMatrix: mat4.create(),
+                    normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler
                 }

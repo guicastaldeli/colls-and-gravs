@@ -1,4 +1,4 @@
-import { mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
 import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
@@ -117,6 +117,7 @@ export class Walls implements ICollidable {
         const block: WallData = {
             id: `block-${this.blockIdCounter++}`,
             modelMatrix: mat4.create(),
+            normalMatrix: mat3.create(),
             vertex: source.vertex,
             color: source.color,
             index: source.index,

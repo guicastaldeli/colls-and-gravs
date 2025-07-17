@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { BoxCollider } from "../collision/collider.js";
 import { StructureManager } from "./structure-manager.js";
 export class Walls {
@@ -60,6 +60,7 @@ export class Walls {
         const block = {
             id: `block-${this.blockIdCounter++}`,
             modelMatrix: mat4.create(),
+            normalMatrix: mat3.create(),
             vertex: source.vertex,
             color: source.color,
             index: source.index,

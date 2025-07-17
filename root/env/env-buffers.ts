@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
 export type EnvBufferData = {
     vertex: GPUBuffer;
@@ -6,6 +6,7 @@ export type EnvBufferData = {
     index: GPUBuffer;
     indexCount: number;
     modelMatrix: mat4;
+    normalMatrix: mat3;
     texture: GPUTexture;
     sampler: GPUSampler;
     indexData?: Uint16Array;
@@ -19,6 +20,11 @@ export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> 
     
         const modelMatrix = mat4.create();
         mat4.translate(modelMatrix, modelMatrix, [-2, 0, 0]);
+
+        const normalMatrix = mat3.create();
+        mat3.fromMat4(normalMatrix, modelMatrix);
+        mat3.invert(normalMatrix, normalMatrix);
+        mat3.transpose(normalMatrix, normalMatrix);
     
         const texture = device.createTexture({
             size: [1, 1],
@@ -43,6 +49,7 @@ export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> 
             index: indexBuffer,
             indexCount: indexCount,
             modelMatrix: modelMatrix,
+            normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler
         }

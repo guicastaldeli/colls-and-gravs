@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { BoxCollider, CollisionResponse } from "../collision/collider.js";
 export class Ground {
     device;
@@ -34,6 +34,7 @@ export class Ground {
                     index: model.index,
                     indexCount: model.indexCount,
                     modelMatrix: mat4.create(),
+                    normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler
                 };
