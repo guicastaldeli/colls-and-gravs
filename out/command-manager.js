@@ -1,11 +1,15 @@
 import { vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { ListData } from "./env/obj/random-blocks/list.js";
 export class CommandManager {
+    canvas;
+    input;
     playerController;
     commandBar = null;
     commandConfig = null;
     spawnHandler = new Map();
-    constructor(playerController) {
+    constructor(canvas, input, playerController) {
+        this.canvas = canvas;
+        this.input = input;
         this.playerController = playerController;
         this.loadCommands();
         this.registerHandlers();
@@ -26,17 +30,18 @@ export class CommandManager {
         this.spawnHandler.set('handleClear', this.handleClear.bind(this));
         this.spawnHandler.set('handleList', this.handleList.bind(this));
     }
-    showCommandBar() {
-        document.addEventListener('keydown', (e) => {
+    async showCommandBar() {
+        document.addEventListener('keydown', async (e) => {
             const eKey = e.key.toLowerCase();
             if (eKey === 'y') {
                 e.preventDefault();
-                this.createCommandBar();
+                this.input.exitPointerLock(true);
+                await this.createCommandBar();
                 this.commandBar?.focus();
             }
         });
     }
-    createCommandBar() {
+    async createCommandBar() {
         if (this.commandBar)
             return;
         const commandBar = `
@@ -53,9 +58,11 @@ export class CommandManager {
         document.body.appendChild(commandContainer);
         this.commandBar = commandBarElement;
         //Empty
-        this.commandBar.addEventListener('keydown', (e) => {
+        this.commandBar.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
-                this.processCommand(this.commandBar.value);
+                e.preventDefault();
+                this.input.lockPointer(this.canvas);
+                await this.processCommand(this.commandBar.value);
                 this.commandBar.value = '';
                 this.commandBar.style.display = 'none';
             }

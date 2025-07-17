@@ -1,4 +1,6 @@
 export class Input {
+    isPaused = false;
+    activePause = false;
     lastTime = 0;
     firstMouse = true;
     isPointerLocked = false;
@@ -64,20 +66,32 @@ export class Input {
         if (this.isPointerLocked) {
             setTimeout(() => {
                 this.firstMouse = true;
+                this.activePause = false;
+                this.isPaused = false;
                 if (this.tick)
                     this.tick.resume();
             }, this.interval);
         }
         else {
-            this.clearKeys();
-            this.tick.pause();
+            if (!this.activePause) {
+                this.isPaused = true;
+                this.clearKeys();
+                this.tick.pause();
+            }
         }
+    }
+    exitPointerLock(pause = false) {
+        this.isPaused = false;
+        this.activePause = pause;
+        if (document.pointerLockElement)
+            document.exitPointerLock();
     }
     clearKeys() {
         for (const key in this.keys)
             this.keys[key] = false;
     }
     update(playerController, keys, time) {
+        console.log(this.isPaused);
         if (!this.tick || !this.playerController)
             return;
         if (!time || this.tick.isPaused)

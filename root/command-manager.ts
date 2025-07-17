@@ -1,6 +1,7 @@
 import { mat3, mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 import { ListData } from "./env/obj/random-blocks/list.js";
 import { PlayerController } from "./player/player-controller.js";
+import { Input } from "./input.js";
 
 interface CommandConfig {
     commands: {
@@ -18,12 +19,20 @@ interface CommandConfig {
 }
 
 export class CommandManager {
+    private canvas: HTMLCanvasElement;
+    private input: Input;
     private playerController: PlayerController;
     private commandBar: HTMLInputElement | null = null;
     private commandConfig: CommandConfig | null = null;
     private spawnHandler: Map<string, (args: string[]) => Promise<void>> = new Map();
 
-    constructor(playerController: PlayerController) {
+    constructor(
+        canvas: HTMLCanvasElement,
+        input: Input, 
+        playerController: PlayerController
+    ) {
+        this.canvas = canvas;
+        this.input = input;
         this.playerController = playerController;
         this.loadCommands();
         this.registerHandlers();
@@ -46,19 +55,20 @@ export class CommandManager {
         this.spawnHandler.set('handleList', this.handleList.bind(this));
     }
 
-    private showCommandBar(): void {
-        document.addEventListener('keydown', (e) => {
+    private async showCommandBar(): Promise<void> {
+        document.addEventListener('keydown', async (e) => {
             const eKey = e.key.toLowerCase();
 
             if(eKey === 'y') {
                 e.preventDefault();
-                this.createCommandBar();
+                this.input.exitPointerLock(true);
+                await this.createCommandBar();
                 this.commandBar?.focus();
             }
-        })
+        });
     }
     
-    private createCommandBar(): void {
+    private async createCommandBar(): Promise<void> {
         if(this.commandBar) return;
 
         const commandBar = `
@@ -77,9 +87,11 @@ export class CommandManager {
         this.commandBar = commandBarElement;
 
         //Empty
-        this.commandBar.addEventListener('keydown', (e) => {
+        this.commandBar.addEventListener('keydown', async (e) => {
             if(e.key === 'Enter') {
-                this.processCommand(this.commandBar!.value);
+                e.preventDefault();
+                this.input.lockPointer(this.canvas);
+                await this.processCommand(this.commandBar!.value);
                 this.commandBar!.value = '';
                 this.commandBar!.style.display = 'none';
             } else if(e.key === 'Escape') {

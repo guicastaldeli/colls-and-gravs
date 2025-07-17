@@ -412,8 +412,9 @@ export async function render(canvas) {
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
         //Commands
-        if (!commandManager && playerController)
-            commandManager = new CommandManager(playerController);
+        if (!commandManager && input && playerController) {
+            commandManager = new CommandManager(canvas, input, playerController);
+        }
         //Render Related
         const format = navigator.gpu.getPreferredCanvasFormat();
         if (!loader)

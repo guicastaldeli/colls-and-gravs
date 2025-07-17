@@ -3,6 +3,8 @@ import { Camera } from "./camera.js";
 import { PlayerController } from "./player/player-controller.js";
 
 export class Input {
+    private isPaused: boolean = false;
+    private activePause: boolean = false;
     private lastTime: number = 0;
     private firstMouse: boolean = true;
     private isPointerLocked: boolean = false;
@@ -53,7 +55,6 @@ export class Input {
         });
 
         document.addEventListener('pointerlockchange', this.onPointerLock.bind(this, canvas));
-
         this.requestPointerLock(canvas);
         this.lastTime = performance.now();
         if(this.playerController) this.initLoop(this.playerController, this.keys);
@@ -66,7 +67,6 @@ export class Input {
     public lockPointer(canvas: HTMLCanvasElement): void {
         if(this.isRequestingLock || this.isPointerLocked) return;
         this.isRequestingLock = true;
-
         canvas.requestPointerLock()
         .catch(err => {
             console.warn(err);
@@ -83,12 +83,23 @@ export class Input {
         if(this.isPointerLocked) {
             setTimeout(() => {
                 this.firstMouse = true;
+                this.activePause = false;
+                this.isPaused = false;
                 if(this.tick) this.tick.resume(); 
             }, this.interval)
         } else {
-            this.clearKeys();
-            this.tick.pause();
+            if(!this.activePause) {
+                this.isPaused = true;
+                this.clearKeys(); 
+                this.tick.pause();
+            }
         }
+    }
+
+    public exitPointerLock(pause: boolean = false): void {
+        this.isPaused = false;
+        this.activePause = pause;
+        if(document.pointerLockElement) document.exitPointerLock();
     }
 
     public clearKeys(): void {
@@ -100,6 +111,7 @@ export class Input {
         keys: Record<string, boolean>,
         time: number,
     ): void {
+        console.log(this.isPaused)
         if(!this.tick || !this.playerController) return;
         if(!time || this.tick.isPaused) return;
 
