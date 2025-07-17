@@ -27,8 +27,8 @@ fn main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
 
     output.Position = uniforms.mvpMatrix * vec4f(input.position, 1.0);
-    output.normal = normalize(uniforms.normalMatrix * input.normal);
     output.worldPos = (uniforms.modelMatrix * vec4f(input.position, 1.0)).xyz;
+    output.normal = normalize(uniforms.normalMatrix * input.normal);
 
     output.color = input.color;
     output.texCoord = input.texCoord;

@@ -12,15 +12,17 @@ struct FragmentInput {
 fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
     let baseColor = mix(texColor.rgb, input.color, 0.1);
-    let normal = normalize(input.normal);
-    let worldPos = input.worldPos;
 
+    let dFdxPos = dpdx(input.worldPos);
+    let dFdyPos = dpdy(input.worldPos);
+    let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
+    let worldPos = input.worldPos;
     var finalColor = applyAmbientLight(baseColor);
-    finalColor += applyDirectionalLight(baseColor, normal);
+    finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {
         finalColor += applyPointLight(
             baseColor,
-            normal,
+            calculatedNormal,
             worldPos,
             pointLights[i]
         );

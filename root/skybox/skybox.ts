@@ -134,7 +134,7 @@ export class Skybox {
         passEncoder.drawIndexed(36);
 
         //Stars
-        const time = deltaTime * 5;
+        const time = deltaTime * 10;
         this.stars.rotationAngle += this.stars.rotationSpeed * time;
         const rotationMatrix = mat4.create();
         mat4.rotateY(rotationMatrix, rotationMatrix, this.stars.rotationAngle);

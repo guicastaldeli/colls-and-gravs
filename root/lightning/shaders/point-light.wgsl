@@ -32,16 +32,16 @@ fn applyPointLight(
     worldPos: vec3f,
     light: PointLight
 ) -> vec3f {
-    let worldPos4 = vec4f(worldPos, 0.0);
+    let baseWorldPos = worldPos - normal;
+    let worldPos4 = vec4f(baseWorldPos, 0.0);
     let lightVec = light.position - worldPos4;
     let distance = length(lightVec.xyz);
     if(distance > light.range) {
-        return vec3f(1.0);
+        return vec3f(0.0);
     }
 
     let lightDir = normalize(lightVec);
     let NdotL = abs(dot(normal, lightDir.xyz));
-
     let attenuation = calculateAttenuation(
         distance,
         light.constant,
@@ -49,9 +49,10 @@ fn applyPointLight(
         light.quadratic
     );
 
-    let diffuse = light.color.xyz * light.intensity * NdotL * attenuation;
+    let toDiffuse = light.color.xyz * light.intensity * attenuation;
+    let diffuse = toDiffuse * NdotL;
     let rangeFactor = 1.0 - smoothstep(
-        light.range * 0.75,
+        light.range * 0.70,
         light.range,
         distance
     );
