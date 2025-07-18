@@ -1,3 +1,9 @@
+struct Uniforms {
+    mvpMatrix: mat4x4f,
+    emissiveStrength: f32,
+    padding: vec3f
+}
+
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var lampTex: texture_2d<f32>;
 @group(0) @binding(2) var lampSampler: sampler;
@@ -11,9 +17,9 @@ struct VertexOutput {
 
 @fragment
 fn main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let texColor = textureSample(lampTex, lampSampler, input.uv);
+    let texColor = textureSample(lampTex, lampSampler, input.uv).rgb;
     let emissiveColor = mix(vec3(1.0), texColor, 0.3);
     let glowColor = texColor + emissiveColor * uniforms.emissiveStrength;
-    let finalColor = glowColor / (glowColor + vec3(1.0));
+    let finalColor = glowColor / (glowColor + vec3(2.0));
     return vec4(finalColor, 1.0);
 }

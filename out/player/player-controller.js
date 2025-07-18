@@ -126,7 +126,7 @@ export class PlayerController {
                         this.setKeyboard('UP', deltaTime, moveDirection);
                         break;
                     case 'shift':
-                        this.setKeyboard('DOWN', deltaTime, moveDirection);
+                        //this.setKeyboard('DOWN', deltaTime, moveDirection);
                         break;
                 }
             }

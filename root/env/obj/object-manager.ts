@@ -100,7 +100,7 @@ export class ObjectManager {
 
         //Lamp
         this.registerType('lamp', Lamp, async (instance, deps) => {
-            await(instance as Lamp).init();
+            await(instance as Lamp).init(deps.passEncoder, deps.viewProjectionMatrix);
         });
     }
 

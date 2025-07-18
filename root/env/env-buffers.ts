@@ -6,7 +6,7 @@ export type EnvBufferData = {
     index: GPUBuffer;
     indexCount: number;
     modelMatrix: mat4;
-    normalMatrix: mat3;
+    normalMatrix?: mat3;
     texture: GPUTexture;
     sampler: GPUSampler;
     indexData?: Uint16Array;

@@ -13,9 +13,9 @@ export class Wire {
         z: 7.5
     };
     size = {
-        w: 0.5,
-        h: 0.5 + this.totalLength,
-        d: 0.5
+        w: 0.3,
+        h: 0.3 + this.totalLength,
+        d: 0.3
     };
     constructor(windManager, loader) {
         this.windManager = windManager;

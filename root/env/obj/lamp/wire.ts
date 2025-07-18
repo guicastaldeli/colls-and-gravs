@@ -4,11 +4,6 @@ import { WindManager } from "../../../wind-manager.js";
 import { Loader } from "../../../loader.js";
 import { EnvBufferData } from "../../env-buffers.js";
 
-interface Shaders {
-    vertexShader: GPUShaderModule;
-    fragShader: GPUShaderModule;
-}
-
 export class Wire {
     private buffers?: EnvBufferData;
     private windManager: WindManager;
@@ -26,9 +21,9 @@ export class Wire {
     }
 
     size = {
-        w: 0.5,
-        h: 0.5 + this.totalLength,
-        d: 0.5
+        w: 0.3,
+        h: 0.3 + this.totalLength,
+        d: 0.3
     }
 
     constructor(windManager: WindManager, loader: Loader) {
