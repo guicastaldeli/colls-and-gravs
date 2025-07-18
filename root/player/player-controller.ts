@@ -1,12 +1,14 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 
 import { Tick } from "../tick.js";
+import { Input } from "../input.js";
 import { Rigidbody } from "./rigidbody.js";
 import { BoxCollider, Collider, CollisionResponse, ICollidable } from "../collision/collider.js";
 import { GetColliders } from "../collision/get-colliders.js";
 
 export class PlayerController implements ICollidable {
     private tick: Tick;
+    private input: Input;
 
     private _initialPosition: vec3;
     private _position: vec3 = vec3.fromValues(0, 3, 0);
@@ -44,10 +46,12 @@ export class PlayerController implements ICollidable {
         
     constructor(
         tick: Tick,
+        input: Input,
         _initialPosition?: vec3, 
         collidables?: GetColliders,
     ) {
         this.tick = tick;
+        this.input = input;
 
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
@@ -88,6 +92,11 @@ export class PlayerController implements ICollidable {
         deltaTime: number,
         moveDirection: vec3
     ): void {
+        if(this.input && this.input.isCommandBarOpen) {
+            this.clearForces();
+            return;
+        }
+        
         if(this.tick.isPaused) {
             this.clearForces();
             return;
@@ -123,6 +132,11 @@ export class PlayerController implements ICollidable {
         keys: Record<string, boolean>,
         deltaTime: number,
     ): void {
+        if(this.input && this.input.isCommandBarOpen) {
+            this.clearForces();
+            return;
+        }
+
         const moveDirection = vec3.create();
         const velocity = this._movSpeed * deltaTime;
         
@@ -342,7 +356,7 @@ export class PlayerController implements ICollidable {
     public isJumping(): boolean { return this._isJumping; }
     
     public update(deltaTime: number): void {
-        if(this.tick.isPaused) {
+        if(this.tick.isPaused || (this.input && this.input.isCommandBarOpen)) {
             this.clearForces();
             return;
         }

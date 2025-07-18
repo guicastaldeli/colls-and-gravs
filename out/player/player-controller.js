@@ -4,6 +4,7 @@ import { BoxCollider } from "../collision/collider.js";
 import { GetColliders } from "../collision/get-colliders.js";
 export class PlayerController {
     tick;
+    input;
     _initialPosition;
     _position = vec3.fromValues(0, 3, 0);
     _forward = vec3.fromValues(0, 0, -1);
@@ -31,8 +32,9 @@ export class PlayerController {
     //Jump
     _jumpForce = 25.0;
     _isJumping = false;
-    constructor(tick, _initialPosition, collidables) {
+    constructor(tick, input, _initialPosition, collidables) {
         this.tick = tick;
+        this.input = input;
         this._position = this._initialPosition ? vec3.clone(this._initialPosition) : this._position;
         this._forward = this._forward ? vec3.clone(this._forward) : this._forward;
         this._worldUp = this._worldUp ? vec3.clone(this._worldUp) : this._worldUp;
@@ -62,6 +64,10 @@ export class PlayerController {
         return cameraPos;
     }
     setKeyboard(direction, deltaTime, moveDirection) {
+        if (this.input && this.input.isCommandBarOpen) {
+            this.clearForces();
+            return;
+        }
         if (this.tick.isPaused) {
             this.clearForces();
             return;
@@ -93,6 +99,10 @@ export class PlayerController {
             vec3.scaleAndAdd(this._position, this._position, this._worldUp, -velocity);
     }
     updateInput(keys, deltaTime) {
+        if (this.input && this.input.isCommandBarOpen) {
+            this.clearForces();
+            return;
+        }
         const moveDirection = vec3.create();
         const velocity = this._movSpeed * deltaTime;
         for (const key in keys) {
@@ -275,7 +285,7 @@ export class PlayerController {
     getBobOffset() { return this._bobOffset; }
     isJumping() { return this._isJumping; }
     update(deltaTime) {
-        if (this.tick.isPaused) {
+        if (this.tick.isPaused || (this.input && this.input.isCommandBarOpen)) {
             this.clearForces();
             return;
         }

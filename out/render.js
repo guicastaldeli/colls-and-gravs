@@ -496,16 +496,10 @@ export async function render(canvas) {
             getColliders = new GetColliders(envRenderer, randomBlocks);
         //Player Controller
         if (!playerController) {
-            playerController = new PlayerController(tick, undefined, getColliders);
+            playerController = new PlayerController(tick, input, undefined, getColliders);
             objectManager.deps.playerController = playerController;
         }
         playerController.update(deltaTime);
-        //Commands
-        if (!commandManager && input &&
-            playerController && randomBlocks) {
-            commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
-            commandManager.init();
-        }
         //Camera
         if (!camera) {
             camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
@@ -524,6 +518,12 @@ export async function render(canvas) {
             camera.getProjectionMatrix(canvas.width / canvas.height);
         }
         //
+        //Commands
+        if (!commandManager && input &&
+            playerController && randomBlocks) {
+            commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
+            commandManager.init();
+        }
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);

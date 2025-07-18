@@ -576,23 +576,10 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Player Controller
         if(!playerController) {
-            playerController = new PlayerController(tick, undefined, getColliders);
+            playerController = new PlayerController(tick, input, undefined, getColliders);
             objectManager.deps.playerController = playerController;
         }
         playerController.update(deltaTime);
-
-        //Commands
-        if(!commandManager && input && 
-            playerController && randomBlocks
-        ) {
-            commandManager = new CommandManager(
-                canvas, 
-                input, 
-                playerController, 
-                randomBlocks
-            );
-            commandManager.init();
-        }
 
         //Camera
             if(!camera) {
@@ -620,6 +607,19 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 camera.getProjectionMatrix(canvas.width / canvas.height);
             }
         //
+
+        //Commands
+        if(!commandManager && input && 
+            playerController && randomBlocks
+        ) {
+            commandManager = new CommandManager(
+                canvas, 
+                input, 
+                playerController, 
+                randomBlocks
+            );
+            commandManager.init();
+        }
 
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();

@@ -35,6 +35,7 @@ export class CommandManager {
             const eKey = e.key.toLowerCase();
             if (eKey === 'y') {
                 e.preventDefault();
+                this.input.setCommandBarOpen(true);
                 this.input.exitPointerLock(true);
                 await this.createCommandBar();
                 this.commandBar?.focus();
@@ -44,6 +45,7 @@ export class CommandManager {
     async createCommandBar() {
         if (this.commandBar) {
             this.commandBar.style.display = 'block';
+            this.input.setCommandBarOpen(true);
             return;
         }
         const commandBar = `
@@ -63,12 +65,14 @@ export class CommandManager {
         this.commandBar.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                this.input.setCommandBarOpen(false);
                 this.input.lockPointer(this.canvas);
                 await this.processCommand(this.commandBar.value);
                 this.commandBar.value = '';
                 this.commandBar.style.display = 'none';
             }
             else if (e.key === 'Escape') {
+                this.input.setCommandBarOpen(false);
                 this.commandBar.value = '';
                 this.commandBar.style.display = 'none';
             }

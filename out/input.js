@@ -1,11 +1,12 @@
 export class Input {
-    isPaused = false;
-    activePause = false;
     lastTime = 0;
     firstMouse = true;
     isPointerLocked = false;
     isRequestingLock = false;
     interval = 500;
+    isPaused = false;
+    activePause = false;
+    _isCommandBarOpen = false;
     tick;
     camera;
     keys = {};
@@ -89,6 +90,14 @@ export class Input {
     clearKeys() {
         for (const key in this.keys)
             this.keys[key] = false;
+    }
+    get isCommandBarOpen() {
+        return this._isCommandBarOpen;
+    }
+    setCommandBarOpen(state) {
+        this._isCommandBarOpen = state;
+        if (state)
+            this.clearKeys();
     }
     update(playerController, keys, time) {
         if (!this.tick || !this.playerController)

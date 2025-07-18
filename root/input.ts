@@ -3,13 +3,14 @@ import { Camera } from "./camera.js";
 import { PlayerController } from "./player/player-controller.js";
 
 export class Input {
-    private isPaused: boolean = false;
-    private activePause: boolean = false;
     private lastTime: number = 0;
     private firstMouse: boolean = true;
     private isPointerLocked: boolean = false;
     private isRequestingLock: boolean = false;
     private interval: number = 500;
+    private isPaused: boolean = false;
+    private activePause: boolean = false;
+    public _isCommandBarOpen: boolean = false;
 
     private tick?: Tick;
     private camera?: Camera;
@@ -104,6 +105,15 @@ export class Input {
 
     public clearKeys(): void {
         for(const key in this.keys) this.keys[key] = false;
+    }
+
+    get isCommandBarOpen(): boolean {
+        return this._isCommandBarOpen;
+    }
+
+    public setCommandBarOpen(state: boolean): void {
+        this._isCommandBarOpen = state;
+        if(state) this.clearKeys();
     }
 
     private update(
