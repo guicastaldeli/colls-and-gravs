@@ -20,6 +20,7 @@ import { Ground } from "../../ground.js";
 
 interface BlockData {
     id: string,
+    id_attr: string,
     modelMatrix: mat4;
     position: vec3;
     vertex: GPUBuffer;
@@ -194,6 +195,7 @@ export class RandomBlocks implements ICollidable {
     
             const newBlock = {
                 id: `block-${this.blockIdCounter++}`,
+                id_attr: this.currentItem.id_attr,
                 modelMatrix,
                 position: vec3.clone(position),
                 vertex: sharedResource.vertex,

@@ -139,10 +139,11 @@ export class CommandManager {
     }
 
     private async handleSpawn(args: string[]): Promise<void> {
-        const blockId = args[0];
-        const blockDef = ListData.find(item => item.id === blockId.toString());
-        if(!blockDef) {
-            console.log(`Block ID ${blockId} not found`);
+        const id = args[0];
+        let blockDef = ListData.find(item => item.id === id);
+        if(!blockDef) blockDef = ListData.find(item => item.id_attr === id);
+        if (!blockDef) {
+            console.log(`Block with ID or attribute '${id}' not found`);
             return;
         }
 
@@ -164,7 +165,7 @@ export class CommandManager {
             );
         }
 
-        this.spawnBlock(position, blockId);
+        this.spawnBlock(position, blockDef.id);
     }
 
     private async handleClear(): Promise<void> {

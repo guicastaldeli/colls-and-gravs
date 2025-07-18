@@ -1,6 +1,7 @@
 [
     {
         "id": "1",
+        "id_attr": "smile_block",
         "modelPath": "./assets/env/obj/smile.obj",
         "texPath": "./assets/env/textures/smile.png",
         "needsUpdate": true,
@@ -22,6 +23,7 @@
     },
     {
         "id": "2",
+        "id_attr": "blue_rex",
         "modelPath": "./assets/env/obj/rex.obj",
         "texPath": "./assets/env/textures/rex.png",
         "needsUpdate": true,
@@ -43,6 +45,7 @@
     },
     {
         "id": "3",
+        "id_attr": "earth",
         "modelPath": "./assets/env/obj/earth.obj",
         "texPath": "./assets/env/textures/earth.png",
         "needsUpdate": true,

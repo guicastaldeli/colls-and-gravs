@@ -140,6 +140,7 @@ let RandomBlocks = class RandomBlocks {
                 throw new Error('err');
             const newBlock = {
                 id: `block-${this.blockIdCounter++}`,
+                id_attr: this.currentItem.id_attr,
                 modelMatrix,
                 position: vec3.clone(position),
                 vertex: sharedResource.vertex,

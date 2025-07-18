@@ -102,10 +102,12 @@ export class CommandManager {
         }
     }
     async handleSpawn(args) {
-        const blockId = args[0];
-        const blockDef = ListData.find(item => item.id === blockId.toString());
+        const id = args[0];
+        let blockDef = ListData.find(item => item.id === id);
+        if (!blockDef)
+            blockDef = ListData.find(item => item.id_attr === id);
         if (!blockDef) {
-            console.log(`Block ID ${blockId} not found`);
+            console.log(`Block with ID or attribute '${id}' not found`);
             return;
         }
         let position;
@@ -117,7 +119,7 @@ export class CommandManager {
         else {
             position = vec3.fromValues(playerPos[0] + forward[0] * 3, playerPos[1] + forward[1] * 3, playerPos[2] + forward[2] * 3);
         }
-        this.spawnBlock(position, blockId);
+        this.spawnBlock(position, blockDef.id);
     }
     async handleClear() {
         console.log('Cleaning all blocks...');

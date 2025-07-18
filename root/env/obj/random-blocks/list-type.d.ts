@@ -1,5 +1,6 @@
 export declare interface ListType {
     id: string;
+    id_attr: string;
     modelPath: string;
     texPath: string;
     needsUpdate?: boolean;
