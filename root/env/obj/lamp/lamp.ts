@@ -23,7 +23,7 @@ export class Lamp {
     private shaderLoader: ShaderLoader;
     private modelMatrix: mat4;
 
-    private emissiveStrength: number = 2.5;
+    private emissiveStrength: number = 15.0;
     private windManager: WindManager;
     public wire: Wire;
     private lightningManager: LightningManager;
@@ -129,8 +129,10 @@ export class Lamp {
                 this.lightningManager.addPointLight('point', light);
                 this.lightningManager.updatePointLightBuffer();
 
-                const uniformData = new Float32Array(20);
                 const mvpMatrix = mat4.create();
+                mat4.multiply(mvpMatrix, viewProjectionMatrix, this.buffers.modelMatrix);
+
+                const uniformData = new Float32Array(20);
                 uniformData.set(mvpMatrix, 0);
                 uniformData[16] = this.emissiveStrength;
                 uniformData.set([0, 0, 0], 17);
@@ -224,7 +226,7 @@ export class Lamp {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back'
+                cullMode: 'none'
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -240,7 +242,7 @@ export class Lamp {
             size: uniformData.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
-        
+
         this.bindGroup = this.device.createBindGroup({
             layout: bindGroupLayout,
             entries: [

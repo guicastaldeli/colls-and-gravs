@@ -15,6 +15,7 @@ struct VertexOutput {
     @location(2) worldPos: vec3<f32>
 }
 
+/*
 @fragment
 fn main(input: VertexOutput) -> @location(0) vec4<f32> {
     let texColor = textureSample(lampTex, lampSampler, input.uv).rgb;
@@ -22,4 +23,10 @@ fn main(input: VertexOutput) -> @location(0) vec4<f32> {
     let glowColor = texColor + emissiveColor * uniforms.emissiveStrength;
     let finalColor = glowColor / (glowColor + vec3(2.0));
     return vec4(finalColor, 1.0);
+}
+*/
+
+@fragment
+fn main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4(1.0, 0.0, 0.0, 1.0);
 }

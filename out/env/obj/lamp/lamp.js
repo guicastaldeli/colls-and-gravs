@@ -23,7 +23,7 @@ let Lamp = class Lamp {
     buffers;
     shaderLoader;
     modelMatrix;
-    emissiveStrength = 2.5;
+    emissiveStrength = 15.0;
     windManager;
     wire;
     lightningManager;
@@ -96,8 +96,9 @@ let Lamp = class Lamp {
             const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 0.8, 8.0);
             this.lightningManager.addPointLight('point', light);
             this.lightningManager.updatePointLightBuffer();
-            const uniformData = new Float32Array(20);
             const mvpMatrix = mat4.create();
+            mat4.multiply(mvpMatrix, viewProjectionMatrix, this.buffers.modelMatrix);
+            const uniformData = new Float32Array(20);
             uniformData.set(mvpMatrix, 0);
             uniformData[16] = this.emissiveStrength;
             uniformData.set([0, 0, 0], 17);
@@ -185,7 +186,7 @@ let Lamp = class Lamp {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back'
+                cullMode: 'none'
             },
             depthStencil: {
                 depthWriteEnabled: true,
