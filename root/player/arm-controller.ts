@@ -232,16 +232,12 @@ export class ArmController {
         const normalMatrix = mat3.create();
         mat3.normalFromMat4(normalMatrix, armMatrix);
 
-        const uniformData = new Float32Array(16 + 16 + 12);
+        const uniformData = new Float32Array(16 + 16 + 12 + 4);
         uniformData.set(mvp, 0);
         uniformData.set(armMatrix, 16);
         uniformData.set(normalMatrix, 32);
-
-        device.queue.writeBuffer(
-            this.armUniformBuffer,
-            0,
-            uniformData
-        );
+        uniformData.set([1.0, 1.0, 1.0], 44);
+        device.queue.writeBuffer(this.armUniformBuffer, 0, uniformData);
 
         const armTextureBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(1),

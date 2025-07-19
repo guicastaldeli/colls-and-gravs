@@ -66,35 +66,35 @@ async function initVertexBuffer(device: GPUDevice): Promise<GPUBuffer> {
     const depth = 0.25;
     
     const vertices = new Float32Array([
-        -width, -height,  depth,
-        width, -height,  depth,
-        width,  0,       depth,
-        -width,  0,       depth,
+        -width, -height, depth,
+        width, -height, depth,
+        width, 0, depth,
+        -width, 0, depth,
         
         -width, -height, -depth,
-        -width,  0,      -depth,
-        width,  0,      -depth,
+        -width, 0, -depth,
+        width, 0, -depth,
         width, -height, -depth,
         
-        -width,  0,      -depth,
-        -width,  0,       depth,
-        width,  0,       depth,
-        width,  0,      -depth,
+        -width, 0, -depth,
+        -width, 0, depth,
+        width, 0, depth,
+        width, 0, -depth,
         
         -width, -height, -depth,
         width, -height, -depth,
-        width, -height,  depth,
-        -width, -height,  depth,
+        width, -height, depth,
+        -width, -height, depth,
         
         width, -height, -depth,
-        width,  0,      -depth,
-        width,  0,       depth,
-        width, -height,  depth,
+        width, 0, -depth,
+        width, 0, depth,
+        width, -height, depth,
         
         -width, -height, -depth,
-        -width, -height,  depth,
-        -width,  0,       depth,
-        -width,  0,      -depth,
+        -width, -height, depth,
+        -width, 0, depth,
+        -width, 0, -depth,
     ]);
 
     const vertexBuffer = device.createBuffer({

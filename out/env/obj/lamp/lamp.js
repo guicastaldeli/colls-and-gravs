@@ -18,26 +18,20 @@ import { PointLight } from "../../../lightning/point-light.js";
 import { parseColor } from "../../../render.js";
 let Lamp = class Lamp {
     device;
-    passEncoder;
     loader;
     buffers;
     shaderLoader;
     modelMatrix;
-    emissiveStrength = 15.0;
     windManager;
     wire;
     lightningManager;
-    pipeline;
-    uniformBuffer;
-    bindGroup;
     size = {
         w: 0.2,
         h: 0.2,
         d: 0.2
     };
-    constructor(device, passEncoder, loader, shaderLoader, windManager, lightningManager) {
+    constructor(device, loader, shaderLoader, windManager, lightningManager) {
         this.device = device;
-        this.passEncoder = passEncoder;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.modelMatrix = mat4.create();
@@ -71,7 +65,7 @@ let Lamp = class Lamp {
             throw err;
         }
     }
-    async createLamp(passEncoder, viewProjectionMatrix) {
+    async createLamp() {
         try {
             if (!this.buffers)
                 return;
@@ -94,144 +88,12 @@ let Lamp = class Lamp {
             const ly = y;
             const lz = z;
             const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 0.8, 8.0);
-            this.lightningManager.addPointLight('point', light);
-            this.lightningManager.updatePointLightBuffer();
-            const mvpMatrix = mat4.create();
-            mat4.multiply(mvpMatrix, viewProjectionMatrix, this.buffers.modelMatrix);
-            const uniformData = new Float32Array(20);
-            uniformData.set(mvpMatrix, 0);
-            uniformData[16] = this.emissiveStrength;
-            uniformData.set([0, 0, 0], 17);
-            this.uniformBuffer = this.device.createBuffer({
-                size: uniformData.byteLength,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-            this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
-            passEncoder.setPipeline(this.pipeline);
-            passEncoder.setBindGroup(0, this.bindGroup);
-            passEncoder.setVertexBuffer(0, this.buffers.vertex);
-            passEncoder.setIndexBuffer(this.buffers.index, 'uint32');
-            passEncoder.drawIndexed(this.buffers.indexCount);
+            //this.lightningManager.addPointLight('point', light);
+            //this.lightningManager.updatePointLightBuffer();
             //
         }
         catch (err) {
             console.error(err);
-            throw err;
-        }
-    }
-    async createPipeline() {
-        const shaders = await this.initShaders();
-        const bindGroupLayout = this.device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
-        });
-        const pipelineLayout = this.device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout]
-        });
-        const vertexBuffers = [{
-                arrayStride: 5 * 4,
-                attributes: [
-                    {
-                        shaderLocation: 0,
-                        offset: 0,
-                        format: 'float32x3'
-                    },
-                    {
-                        shaderLocation: 1,
-                        offset: 3 * 4,
-                        format: 'float32x2'
-                    }
-                ]
-            }];
-        this.pipeline = this.device.createRenderPipeline({
-            layout: pipelineLayout,
-            vertex: {
-                module: shaders.vertexShader,
-                entryPoint: 'main',
-                buffers: vertexBuffers
-            },
-            fragment: {
-                module: shaders.fragShader,
-                entryPoint: 'main',
-                targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat(),
-                        blend: {
-                            color: {
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha',
-                                operation: 'add'
-                            },
-                            alpha: {
-                                srcFactor: 'one',
-                                dstFactor: 'one-minus-src-alpha',
-                                operation: 'add'
-                            }
-                        }
-                    }]
-            },
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: 'none'
-            },
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: 'less',
-                format: 'depth24plus'
-            }
-        });
-        if (!this.buffers)
-            return;
-        const uniformData = new Float32Array(20);
-        this.uniformBuffer = this.device.createBuffer({
-            size: uniformData.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-        this.bindGroup = this.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this.uniformBuffer }
-                },
-                {
-                    binding: 1,
-                    resource: this.buffers.texture.createView()
-                },
-                {
-                    binding: 2,
-                    resource: this.buffers.sampler
-                }
-            ]
-        });
-    }
-    async initShaders() {
-        try {
-            const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./env/obj/lamp/shaders/vertex.wgsl'),
-                this.shaderLoader.loader('./env/obj/lamp/shaders/frag.wgsl'),
-            ]);
-            return {
-                vertexShader,
-                fragShader
-            };
-        }
-        catch (err) {
-            console.log(err);
             throw err;
         }
     }
@@ -244,23 +106,18 @@ let Lamp = class Lamp {
             buffers.push(...wireBuffers);
         return buffers;
     }
-    async update(deltaTime, passEncoder, viewProjectionMatrix) {
-        if (!passEncoder || !viewProjectionMatrix)
-            throw new Error('err');
+    async update(deltaTime) {
         await this.wire.update(this.device, deltaTime);
     }
-    async init(passEncoder, viewProjectionMatrix) {
-        await this.initShaders();
+    async init() {
         this.buffers = await this.loadAssets();
-        await this.createPipeline();
-        this.createLamp(passEncoder, viewProjectionMatrix);
+        this.createLamp();
         await this.wire.init();
     }
 };
 Lamp = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [GPUDevice,
-        GPURenderPassEncoder,
         Loader,
         ShaderLoader,
         WindManager,

@@ -56,10 +56,11 @@ async function initShaders() {
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
-            shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl')
+            shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -156,14 +157,19 @@ async function initShaders() {
                         ]
                     },
                     {
-                        arrayStride: 3 * 4,
+                        arrayStride: 6 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
                                 offset: 0,
                                 format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 4,
+                                offset: 3 * 4,
+                                format: 'float32x3'
                             }
-                        ]
+                        ],
                     }
                 ]
             },
@@ -212,14 +218,19 @@ async function initShaders() {
                         ]
                     },
                     {
-                        arrayStride: 3 * 4,
+                        arrayStride: 6 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
                                 offset: 0,
                                 format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 4,
+                                offset: 3 * 4,
+                                format: 'float32x3'
                             }
-                        ]
+                        ],
                     }
                 ]
             },
@@ -299,14 +310,16 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     for (let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
         const offset = 512 * i;
-        const normalMatrix = mat3.create();
-        mat3.normalFromMat4(normalMatrix, data.modelMatrix);
-        const uniformData = new Float32Array(16 + 16 + 12);
         const mvp = mat4.create();
         mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
+        const normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, data.modelMatrix);
+        const uniformData = new Float32Array(48);
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
+        const isLamp = data.isLamp ? 1.0 : 0.0;
+        uniformData[44] = isLamp;
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {
@@ -374,7 +387,7 @@ export function parseColor(rgb) {
 async function ambientLight() {
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);
-    const light = new AmbientLight(colorArray, 0.3);
+    const light = new AmbientLight(colorArray, 1.0);
     lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }
@@ -394,10 +407,10 @@ async function directionalLight() {
     lightningManager.updateLightBuffer('directional');
 }
 //
-async function renderEnv(deltaTime, passEncoder, viewProjectionMatrix) {
+async function renderEnv(deltaTime) {
     if (!envRenderer) {
         envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
-        await envRenderer.render(deltaTime, passEncoder, viewProjectionMatrix);
+        await envRenderer.render(deltaTime);
         objectManager.deps.ground = envRenderer.ground;
     }
 }
@@ -479,13 +492,14 @@ export async function render(canvas) {
                 format,
                 hud: null,
                 windManager,
-                viewProjectionMatrix
+                viewProjectionMatrix,
+                pipeline
             };
             if (!objectManager) {
                 objectManager = new ObjectManager(deps);
                 await objectManager.ready();
             }
-            await renderEnv(deltaTime, passEncoder, viewProjectionMatrix);
+            await renderEnv(deltaTime);
         }
         //
         //Random Blocks

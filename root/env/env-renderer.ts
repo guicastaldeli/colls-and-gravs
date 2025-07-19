@@ -139,10 +139,7 @@ export class EnvRenderer {
         return renderers;
     }
 
-    public async render(
-        deltaTime: number, 
-        passEncoder: GPURenderPassEncoder, 
-        viewProjectionMatrix: mat4): Promise<void> {
+    public async render(deltaTime: number): Promise<void> {
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         
@@ -151,7 +148,7 @@ export class EnvRenderer {
 
         if(this.objectManager) {
             this.lamp = await this.objectManager.createObject('lamp');
-            (await this.objectManager.getObject('lamp')).update(deltaTime, passEncoder, viewProjectionMatrix);
+            (await this.objectManager.getObject('lamp')).update(deltaTime);
         }
     }
 }

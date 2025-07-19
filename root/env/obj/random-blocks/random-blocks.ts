@@ -647,11 +647,12 @@ export class RandomBlocks implements ICollidable {
     }
 
     public async init(
-        canvas: HTMLCanvasElement, 
-        playerController: PlayerController,
-        format: GPUTextureFormat,
-        hud: Hud,
+        canvas?: HTMLCanvasElement, 
+        playerController?: PlayerController,
+        format?: GPUTextureFormat,
+        hud?: Hud,
     ): Promise<void> {
+        if(!canvas || !playerController || !format || !hud) throw new Error('err')
         await this.renderOutline(canvas, this.device, format);
         this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);

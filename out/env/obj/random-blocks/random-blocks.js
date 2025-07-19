@@ -487,6 +487,8 @@ let RandomBlocks = class RandomBlocks {
         }
     }
     async init(canvas, playerController, format, hud) {
+        if (!canvas || !playerController || !format || !hud)
+            throw new Error('err');
         await this.renderOutline(canvas, this.device, format);
         this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);

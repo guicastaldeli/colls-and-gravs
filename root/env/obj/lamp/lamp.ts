@@ -9,28 +9,17 @@ import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
 import { parseColor } from "../../../render.js";
 
-interface Shaders {
-    vertexShader: GPUShaderModule;
-    fragShader: GPUShaderModule
-}
-
 @Injectable()
 export class Lamp {
     private device: GPUDevice;
-    private passEncoder: GPURenderPassEncoder;
     private loader: Loader;
     private buffers?: EnvBufferData;
     private shaderLoader: ShaderLoader;
     private modelMatrix: mat4;
 
-    private emissiveStrength: number = 15.0;
     private windManager: WindManager;
     public wire: Wire;
     private lightningManager: LightningManager;
-
-    private pipeline!: GPURenderPipeline;
-    private uniformBuffer!: GPUBuffer;
-    private bindGroup!: GPUBindGroup;
 
     size = {
         w: 0.2,
@@ -40,17 +29,15 @@ export class Lamp {
 
     constructor(
         device: GPUDevice,
-        passEncoder: GPURenderPassEncoder,
         loader: Loader,
         shaderLoader: ShaderLoader,
         windManager: WindManager,
         lightningManager: LightningManager
     ) {
         this.device = device;
-        this.passEncoder = passEncoder;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-
+        
         this.modelMatrix = mat4.create();
         
         this.windManager = windManager;
@@ -87,7 +74,7 @@ export class Lamp {
         }
     }
 
-    private async createLamp(passEncoder: GPURenderPassEncoder, viewProjectionMatrix: mat4): Promise<void> {
+    private async createLamp(): Promise<void> {
         try {
             if(!this.buffers) return;
 
@@ -126,155 +113,11 @@ export class Lamp {
                     8.0
                 );
 
-                this.lightningManager.addPointLight('point', light);
-                this.lightningManager.updatePointLightBuffer();
-
-                const mvpMatrix = mat4.create();
-                mat4.multiply(mvpMatrix, viewProjectionMatrix, this.buffers.modelMatrix);
-
-                const uniformData = new Float32Array(20);
-                uniformData.set(mvpMatrix, 0);
-                uniformData[16] = this.emissiveStrength;
-                uniformData.set([0, 0, 0], 17);
-
-                this.uniformBuffer = this.device.createBuffer({
-                    size: uniformData.byteLength,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                });
-
-                this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
-                passEncoder.setPipeline(this.pipeline);
-                passEncoder.setBindGroup(0, this.bindGroup);
-                passEncoder.setVertexBuffer(0, this.buffers.vertex);
-                passEncoder.setIndexBuffer(this.buffers.index, 'uint32');
-                passEncoder.drawIndexed(this.buffers.indexCount);
+                //this.lightningManager.addPointLight('point', light);
+                //this.lightningManager.updatePointLightBuffer();
             //
         } catch(err) {
             console.error(err);
-            throw err;
-        }
-    }
-
-    private async createPipeline(): Promise<void> {
-        const shaders = await this.initShaders();
-
-        const bindGroupLayout = this.device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
-        });
-
-        const pipelineLayout = this.device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout]
-        });
-
-        const vertexBuffers: GPUVertexBufferLayout[] = [{
-            arrayStride: 5 * 4,
-            attributes: [
-                {
-                    shaderLocation: 0,
-                    offset: 0,
-                    format: 'float32x3'
-                },
-                {
-                    shaderLocation: 1,
-                    offset: 3 * 4,
-                    format: 'float32x2'
-                }
-            ]
-        }];
-
-        this.pipeline = this.device.createRenderPipeline({
-            layout: pipelineLayout,
-            vertex: {
-                module: shaders.vertexShader,
-                entryPoint: 'main',
-                buffers: vertexBuffers
-            },
-            fragment: {
-                module: shaders.fragShader,
-                entryPoint: 'main',
-                targets: [{
-                    format: navigator.gpu.getPreferredCanvasFormat(),
-                    blend: {
-                        color: {
-                            srcFactor: 'src-alpha',
-                            dstFactor: 'one-minus-src-alpha',
-                            operation: 'add'
-                        },
-                        alpha: {
-                            srcFactor: 'one',
-                            dstFactor: 'one-minus-src-alpha',
-                            operation: 'add'
-                        }
-                    }
-                }]
-            },
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: 'none'
-            },
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: 'less',
-                format: 'depth24plus'
-            }
-        });
-
-        if(!this.buffers) return;
-
-        const uniformData = new Float32Array(20);
-        this.uniformBuffer = this.device.createBuffer({
-            size: uniformData.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-
-        this.bindGroup = this.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: { buffer: this.uniformBuffer }
-                },
-                {
-                    binding: 1,
-                    resource: this.buffers.texture.createView()
-                },
-                {
-                    binding: 2,
-                    resource: this.buffers.sampler
-                }
-            ]
-        });
-    }
-
-    private async initShaders(): Promise<Shaders> {
-        try {
-            const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./env/obj/lamp/shaders/vertex.wgsl'),
-                this.shaderLoader.loader('./env/obj/lamp/shaders/frag.wgsl'),
-            ]);
-
-            return {
-                vertexShader,
-                fragShader
-            }
-        } catch(err) {
-            console.log(err);
             throw err;
         }
     }
@@ -287,20 +130,13 @@ export class Lamp {
         return buffers;
     }
 
-    public async update(
-        deltaTime: number,
-        passEncoder?: GPURenderPassEncoder,
-        viewProjectionMatrix?: mat4
-    ): Promise<void> {
-        if(!passEncoder || !viewProjectionMatrix) throw new Error('err');
+    public async update(deltaTime: number,): Promise<void> {
         await this.wire.update(this.device, deltaTime);
     }
 
-    public async init(passEncoder: GPURenderPassEncoder, viewProjectionMatrix: mat4): Promise<void> {
-        await this.initShaders();
+    public async init(): Promise<void> {
         this.buffers = await this.loadAssets();
-        await this.createPipeline();
-        this.createLamp(passEncoder, viewProjectionMatrix);
+        this.createLamp();
         await this.wire.init();
     }
 }
