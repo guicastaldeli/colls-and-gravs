@@ -22,7 +22,7 @@ export class LightningManager {
             const bufferSize = {
                 'ambient': 16,
                 'directional': 32,
-                'point': 56
+                'point': 64
             };
             this.lightBuffers.set(id, this.device.createBuffer({
                 size: bufferSize[type],
@@ -80,7 +80,7 @@ export class LightningManager {
     resizePointLightBuffer(capacity) {
         this.pointStorageBuffer?.destroy();
         this.pointStorageBuffer = this.device.createBuffer({
-            size: 56 * capacity,
+            size: 64 * capacity,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
     }
@@ -103,7 +103,7 @@ export class LightningManager {
             console.error('Point light buffers err');
             return;
         }
-        const reqSize = 56 * count;
+        const reqSize = 64 * count;
         const currentCapacity = this.pointStorageBuffer.size;
         if (reqSize > currentCapacity) {
             const newCapacity = Math.max(4, Math.ceil(count * 1.5));

@@ -84,11 +84,11 @@ async function initShaders(): Promise<void> {
         ]);
 
         const combinedFragCode = await shaderComposer.combineShader(
-            glowSrc,
             fragSrc,
             ambientLightSrc,
             directionalLightSrc,
             pointLightSrc,
+            glowSrc
         );
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
@@ -157,14 +157,14 @@ async function initShaders(): Promise<void> {
                     buffer: { type: 'read-only-storage' }
                 }
             ]
-        })
+        });
 
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
                 bindGroupLayout, 
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
-                pointLightBindGroupLayout
+                pointLightBindGroupLayout,
             ]
         });
 
@@ -460,7 +460,7 @@ export function parseColor(rgb: string): [number, number, number] {
         const color = 'rgb(255, 255, 255)';
         const colorArray = parseColor(color);
 
-        const light = new AmbientLight(colorArray, 1.0);
+        const light = new AmbientLight(colorArray, 0.3);
         lightningManager.addAmbientLight('ambient', light);
         lightningManager.updateLightBuffer('ambient');
     }

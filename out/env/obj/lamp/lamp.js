@@ -90,8 +90,8 @@ let Lamp = class Lamp {
             const ly = y;
             const lz = z;
             const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 0.8, 8.0);
-            //this.lightningManager.addPointLight('point', light);
-            //this.lightningManager.updatePointLightBuffer();
+            this.lightningManager.addPointLight('point', light);
+            this.lightningManager.updatePointLightBuffer();
             //
         }
         catch (err) {

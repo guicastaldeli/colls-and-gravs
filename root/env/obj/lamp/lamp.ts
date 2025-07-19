@@ -115,8 +115,8 @@ export class Lamp {
                     8.0
                 );
 
-                //this.lightningManager.addPointLight('point', light);
-                //this.lightningManager.updatePointLightBuffer();
+                this.lightningManager.addPointLight('point', light);
+                this.lightningManager.updatePointLightBuffer();
             //
         } catch(err) {
             console.error(err);

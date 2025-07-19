@@ -59,7 +59,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
-        const combinedFragCode = await shaderComposer.combineShader(glowSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
+        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
@@ -128,7 +128,7 @@ async function initShaders() {
                 bindGroupLayout,
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
-                pointLightBindGroupLayout
+                pointLightBindGroupLayout,
             ]
         });
         pipeline = device.createRenderPipeline({
@@ -394,7 +394,7 @@ export function parseColor(rgb) {
 async function ambientLight() {
     const color = 'rgb(255, 255, 255)';
     const colorArray = parseColor(color);
-    const light = new AmbientLight(colorArray, 1.0);
+    const light = new AmbientLight(colorArray, 0.3);
     lightningManager.addAmbientLight('ambient', light);
     lightningManager.updateLightBuffer('ambient');
 }

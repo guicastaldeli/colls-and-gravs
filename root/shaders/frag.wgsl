@@ -22,19 +22,26 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {
+        let light = pointLights[i];
+        
         finalColor += applyPointLight(
             baseColor,
             calculatedNormal,
             worldPos,
             pointLights[i]
         );
+
+        if(input.isLamp > 0.5) {
+            finalColor += applyGlow(
+                baseColor,
+                worldPos,
+                calculatedNormal,
+                input.isLamp,
+                light
+            );
+        }
     }
 
-    
     finalColor = max(finalColor, vec3f(0.0));
-    if (input.isLamp > 0.5) {
-        return vec4f(1.0, 0.0, 0.0, 1.0);
-    } else {
-         return vec4f(finalColor, texColor.a);
-    }
+    return vec4f(finalColor, texColor.a);
 }
