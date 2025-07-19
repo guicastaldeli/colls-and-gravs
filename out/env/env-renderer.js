@@ -1,4 +1,4 @@
-import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
 export class EnvRenderer {
@@ -11,7 +11,6 @@ export class EnvRenderer {
     ground;
     //Objects
     objectManager;
-    lamp;
     constructor(device, loader, shaderLoader, windManager, objectManager) {
         this.device = device;
         this.loader = loader;
@@ -42,7 +41,6 @@ export class EnvRenderer {
         if (this.objectManager) {
             const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if (lampBuffers) {
-                let offsetCounter = 1;
                 for (const buffer of lampBuffers) {
                     const num = 256;
                     const offset = num;
@@ -55,7 +53,13 @@ export class EnvRenderer {
     async drawObject(passEncoder, buffers, uniformBuffer, viewProjectionMatrix, bindGroup, offset) {
         const mvpMatrix = mat4.create();
         mat4.multiply(mvpMatrix, viewProjectionMatrix, buffers.modelMatrix);
-        this.device.queue.writeBuffer(uniformBuffer, offset, mvpMatrix);
+        const normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, buffers.modelMatrix);
+        const uniformData = new Float32Array(16 + 16 + 12 + 4);
+        uniformData.set(mvpMatrix, 0);
+        uniformData.set(buffers.modelMatrix, 16);
+        uniformData.set(normalMatrix, 32);
+        this.device.queue.writeBuffer(uniformBuffer, offset, uniformData);
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
         passEncoder.setIndexBuffer(buffers.index, 'uint16');
@@ -80,7 +84,7 @@ export class EnvRenderer {
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
         if (this.objectManager) {
-            this.lamp = await this.objectManager.createObject('lamp');
+            await this.objectManager.createObject('lamp');
             (await this.objectManager.getObject('lamp')).update(deltaTime);
         }
     }

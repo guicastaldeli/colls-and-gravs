@@ -202,7 +202,8 @@ export class Loader {
             normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
-            indexData: new Uint16Array(this.objIndices)
+            indexData: new Uint16Array(this.objIndices),
+            isLamp: [0.0, 0.0, 0.0]
         };
     }
 }

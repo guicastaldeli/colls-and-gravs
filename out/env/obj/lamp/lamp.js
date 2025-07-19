@@ -56,8 +56,10 @@ let Lamp = class Lamp {
                 modelMatrix: mat4.create(),
                 normalMatrix: mat3.create(),
                 texture: tex,
-                sampler: this.loader.createSampler()
+                sampler: this.loader.createSampler(),
+                isLamp: [1.0, 1.0, 1.0]
             };
+            console.log(lamp.isLamp);
             return lamp;
         }
         catch (err) {

@@ -72,20 +72,23 @@ async function initShaders(): Promise<void> {
             fragSrc,
             ambientLightSrc,
             directionalLightSrc,
-            pointLightSrc
+            pointLightSrc,
+            glowSrc
         ] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
+            shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
 
         const combinedFragCode = await shaderComposer.combineShader(
+            glowSrc,
             fragSrc,
             ambientLightSrc,
             directionalLightSrc,
-            pointLightSrc
+            pointLightSrc,
         );
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
@@ -368,9 +371,15 @@ async function setBuffers(
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
-        
-        const isLamp = data.isLamp ? 1.0 : 0.0;
-        uniformData[44] = isLamp;
+
+        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
+        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44)
+
+        if(isLamp) {
+            uniformData.set([1.0, 1.0, 1.0], 44);
+        } else {
+            uniformData.set([0.0, 0.0, 0.0], 44);
+        }
         
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }

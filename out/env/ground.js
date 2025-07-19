@@ -1,6 +1,7 @@
 import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { BoxCollider, CollisionResponse } from "../collision/collider.js";
 export class Ground {
+    renderer;
     device;
     loader;
     blocks;
@@ -17,9 +18,10 @@ export class Ground {
         h: 0.05,
         d: 0.05
     };
-    constructor(device, loader) {
+    constructor(device, loader, renderer) {
         this.device = device;
         this.loader = loader;
+        this.renderer = renderer;
         this.blocks = [];
     }
     async createGround() {
@@ -36,7 +38,8 @@ export class Ground {
                     modelMatrix: mat4.create(),
                     normalMatrix: mat3.create(),
                     texture: texture,
-                    sampler: sampler
+                    sampler: sampler,
+                    isLamp: [0.0, 0.0, 0.0]
                 };
                 const position = vec3.fromValues((this.pos.x + x) * this.pos.gap(), this.pos.y, (this.pos.z + z) * this.pos.gap());
                 mat4.identity(block.modelMatrix);

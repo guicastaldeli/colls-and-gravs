@@ -1,4 +1,4 @@
-import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 
 import { EnvBufferData } from "./env-buffers.js";
 import { PlayerController } from "../player/player-controller.js";
@@ -22,7 +22,6 @@ export class EnvRenderer {
 
     //Objects
     public objectManager?: ObjectManager;
-    private lamp!: number;
 
     constructor(
         device: GPUDevice, 
@@ -87,7 +86,6 @@ export class EnvRenderer {
                 const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
     
                 if(lampBuffers) {
-                    let offsetCounter = 1;
                     for(const buffer of lampBuffers) {
                         const num = 256;
                         const offset = num;
@@ -116,7 +114,15 @@ export class EnvRenderer {
     ): Promise<void> {
         const mvpMatrix = mat4.create();
         mat4.multiply(mvpMatrix, viewProjectionMatrix, buffers.modelMatrix);
-        this.device.queue.writeBuffer(uniformBuffer, offset, mvpMatrix as ArrayBuffer);
+
+        const normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, buffers.modelMatrix);
+
+        const uniformData = new Float32Array(16 + 16 + 12 + 4);
+        uniformData.set(mvpMatrix, 0);
+        uniformData.set(buffers.modelMatrix, 16);
+        uniformData.set(normalMatrix, 32);
+        this.device.queue.writeBuffer(uniformBuffer, offset, uniformData);
 
         passEncoder.setVertexBuffer(0, buffers.vertex);
         passEncoder.setVertexBuffer(1, buffers.color);
@@ -147,7 +153,7 @@ export class EnvRenderer {
         await this.walls.init();
 
         if(this.objectManager) {
-            this.lamp = await this.objectManager.createObject('lamp');
+            await this.objectManager.createObject('lamp');
             (await this.objectManager.getObject('lamp')).update(deltaTime);
         }
     }

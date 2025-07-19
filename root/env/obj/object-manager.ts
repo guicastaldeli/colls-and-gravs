@@ -31,12 +31,12 @@ interface Dependencies {
     shaderLoader: ShaderLoader;
     ground: Ground;
     lightningManager: LightningManager;
-    canvas: HTMLCanvasElement, 
-    playerController: PlayerController | null,
-    format: GPUTextureFormat,
-    hud: Hud | null,
-    windManager: WindManager,
-    viewProjectionMatrix: mat4
+    canvas: HTMLCanvasElement;
+    playerController: PlayerController | null;
+    format: GPUTextureFormat;
+    hud: Hud | null;
+    windManager: WindManager;
+    viewProjectionMatrix: mat4;
 }
 
 const dependenciesMap = new Map<Function, keyof Dependencies>([

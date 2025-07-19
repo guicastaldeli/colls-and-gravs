@@ -236,7 +236,7 @@ export class ArmController {
         uniformData.set(mvp, 0);
         uniformData.set(armMatrix, 16);
         uniformData.set(normalMatrix, 32);
-        uniformData.set([1.0, 1.0, 1.0], 44);
+        uniformData.set([0.0, 0.0, 0.0], 44);
         device.queue.writeBuffer(this.armUniformBuffer, 0, uniformData);
 
         const armTextureBindGroup = device.createBindGroup({

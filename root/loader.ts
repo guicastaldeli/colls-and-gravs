@@ -181,9 +181,10 @@ export class Loader {
             const texture = this.device.createTexture({
                 size: [imgBitmap.width, imgBitmap.height],
                 format: 'rgba8unorm',
-                usage: GPUTextureUsage.TEXTURE_BINDING |
-                        GPUTextureUsage.COPY_DST |
-                        GPUTextureUsage.RENDER_ATTACHMENT
+                usage: 
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT
             });
 
             this.device.queue.copyExternalImageToTexture(
@@ -283,7 +284,8 @@ export class Loader {
             normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
-            indexData: new Uint16Array(this.objIndices)
+            indexData: new Uint16Array(this.objIndices),
+            isLamp: [0.0, 0.0, 0.0]
         }
     }
 }

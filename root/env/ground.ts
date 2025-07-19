@@ -2,8 +2,10 @@ import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
 import { Loader } from "../loader.js";
 import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
+import { EnvRenderer } from "./env-renderer.js";
 
 export class Ground implements ICollidable {
+    private renderer?: EnvRenderer;
     private device: GPUDevice;
     private loader: Loader;
 
@@ -25,9 +27,10 @@ export class Ground implements ICollidable {
         d: 0.05
     }
 
-    constructor(device: GPUDevice, loader: Loader) {
+    constructor(device: GPUDevice, loader: Loader, renderer?: EnvRenderer) {
         this.device = device;
         this.loader = loader;
+        this.renderer = renderer;
         this.blocks = [];
     }
 
@@ -46,7 +49,8 @@ export class Ground implements ICollidable {
                     modelMatrix: mat4.create(),
                     normalMatrix: mat3.create(),
                     texture: texture,
-                    sampler: sampler
+                    sampler: sampler,
+                    isLamp: [0.0, 0.0, 0.0]
                 }
 
                 const position = vec3.fromValues(

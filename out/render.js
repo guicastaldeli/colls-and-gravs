@@ -51,14 +51,15 @@ async function toggleWireframe() {
 toggleWireframe();
 async function initShaders() {
     try {
-        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc] = await Promise.all([
+        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
+            shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
-        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
+        const combinedFragCode = await shaderComposer.combineShader(glowSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
         console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
@@ -318,8 +319,14 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
-        const isLamp = data.isLamp ? 1.0 : 0.0;
-        uniformData[44] = isLamp;
+        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
+        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
+        if (isLamp) {
+            uniformData.set([1.0, 1.0, 1.0], 44);
+        }
+        else {
+            uniformData.set([0.0, 0.0, 0.0], 44);
+        }
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {

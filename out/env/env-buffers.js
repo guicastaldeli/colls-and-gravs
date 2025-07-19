@@ -29,7 +29,7 @@ export async function initEnvBuffers(device) {
             normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
-            isLamp: true
+            isLamp: [1.0, 1.0, 1.0]
         };
     }
     catch (err) {
