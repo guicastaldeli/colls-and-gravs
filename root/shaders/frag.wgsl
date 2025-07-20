@@ -20,7 +20,8 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     let worldPos = input.worldPos;
     let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
     let cameraPos = input.cameraPos;
-    
+    //let calculatedNormal = normalize(worldPos);
+
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {
@@ -47,4 +48,5 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     finalColor = max(finalColor, vec3f(0.0));
     return vec4f(finalColor, texColor.a);
+    //return vec4f(calculatedNormal * 0.5 + 0.5, 1.0);
 }
