@@ -11,6 +11,8 @@ struct PointLight {
 
 @group(3) @binding(0) var<uniform> pointLightCount: u32;
 @group(3) @binding(1) var<storage, read> pointLights: array<PointLight>;
+@group(3) @binding(2) var pointShadowMap: texture_depth_cube;
+@group(3) @binding(3) var pointShadowSampler: sampler_comparison;
 
 fn calculateAttenuation(
     distance: f32,
@@ -23,6 +25,22 @@ fn calculateAttenuation(
         linear * distance +
         quadratic * distance * 
         distance 
+    );
+}
+
+fn samplePointShadowMap(
+    worldPos: vec3f,
+    lightPos: vec3f,
+    farPlane: f32
+) -> f32 {
+    let fragToLight = worldPos - lightPos;
+    let currentDepth = length(fragToLight);
+
+    return textureSampleCompare(
+        pointShadowMap,
+        pointShadowSampler,
+        fragToLight,
+        currentDepth - 0.05
     );
 }
 
@@ -57,6 +75,7 @@ fn applyPointLight(
         distance
     );
 
-    let result = baseColor * diffuse * rangeFactor;
+    let shadow = samplePointShadowMap(worldPos, light.position.xyz, light.range);
+    let result = baseColor * diffuse * rangeFactor * shadow;
     return result;
 }
