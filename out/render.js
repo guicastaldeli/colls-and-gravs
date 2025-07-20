@@ -158,7 +158,7 @@ async function initShaders() {
                         ]
                     },
                     {
-                        arrayStride: 6 * 4,
+                        arrayStride: 8 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
@@ -168,6 +168,11 @@ async function initShaders() {
                             {
                                 shaderLocation: 4,
                                 offset: 3 * 4,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 5,
+                                offset: 5 * 4,
                                 format: 'float32x3'
                             }
                         ],
@@ -219,7 +224,7 @@ async function initShaders() {
                         ]
                     },
                     {
-                        arrayStride: 6 * 4,
+                        arrayStride: 8 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
@@ -229,6 +234,11 @@ async function initShaders() {
                             {
                                 shaderLocation: 4,
                                 offset: 3 * 4,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 5,
+                                offset: 5 * 4,
                                 format: 'float32x3'
                             }
                         ],
@@ -315,7 +325,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
         const normalMatrix = mat3.create();
         mat3.normalFromMat4(normalMatrix, data.modelMatrix);
-        const uniformData = new Float32Array(48);
+        const uniformData = new Float32Array(53);
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
@@ -327,6 +337,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         else {
             uniformData.set([0.0, 0.0, 0.0], 44);
         }
+        const cameraPos = camera.playerController.getCameraPosition();
+        uniformData.set(cameraPos, 48);
+        uniformData.set([currentTime / 1000], 51);
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {

@@ -3,7 +3,9 @@ struct Uniforms {
     modelMatrix: mat4x4<f32>,
     normalMatrix: mat3x3f,
     padding: f32,
-    isLamp: f32
+    isLamp: f32,
+    cameraPos: vec3f,
+    time: f32
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -13,7 +15,8 @@ struct VertexInput {
     @location(1) texCoord: vec2f,
     @location(2) normal: vec3f,
     @location(3) color: vec3f,
-    @location(4) isLamp: f32
+    @location(4) isLamp: f32,
+    @location(5) viewDir: vec3f
 }
 
 struct VertexOutput {
@@ -22,7 +25,8 @@ struct VertexOutput {
     @location(1) color: vec3f,
     @location(2) normal: vec3f,
     @location(3) worldPos: vec3f,
-    @location(4) isLamp: f32
+    @location(4) isLamp: f32,
+    @location(5) viewDir: vec3f
 }
 
 @vertex
@@ -36,5 +40,6 @@ fn main(input: VertexInput) -> VertexOutput {
     output.color = input.color;
     output.texCoord = input.texCoord;
     output.isLamp = uniforms.isLamp;
+    output.viewDir = uniforms.cameraPos - output.worldPos;
     return output;
 }
