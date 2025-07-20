@@ -7,7 +7,8 @@ struct FragmentInput {
     @location(2) normal: vec3f,
     @location(3) worldPos: vec3f,
     @location(4) isLamp: f32,
-    @location(5) cameraPos: vec3f
+    @location(5) cameraPos: vec3f,
+    @location(6) normalType: f32
 }
 
 @fragment
@@ -18,9 +19,12 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     let dFdxPos = dpdx(input.worldPos);
     let dFdyPos = dpdy(input.worldPos);
     let worldPos = input.worldPos;
-    let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
     let cameraPos = input.cameraPos;
-    //let calculatedNormal = normalize(worldPos);
+    let calculatedNormal = select(
+        normalize(cross(dFdxPos, dFdyPos)), 
+        normalize(worldPos),
+        input.normalType == 2.0
+    );
 
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);

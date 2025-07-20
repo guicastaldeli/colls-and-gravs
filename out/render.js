@@ -17,6 +17,7 @@ import { ObjectManager } from "./env/obj/object-manager.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
+import { NormalType } from "./env/obj/random-blocks/random-blocks.js";
 let pipeline;
 let buffers;
 let depthTexture = null;
@@ -61,7 +62,7 @@ async function initShaders() {
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        //console.log(combinedFragCode.toString())
+        console.log(combinedFragCode.toString());
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -340,6 +341,13 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         const cameraPos = camera.playerController.getCameraPosition();
         uniformData.set(cameraPos, 48);
         uniformData.set([currentTime / 1000], 51);
+        const normalTypeMap = {
+            [NormalType.Vertex]: 0.0,
+            [NormalType.Cubic]: 1.0,
+            [NormalType.Spherical]: 2.0
+        };
+        const normalTypeDef = normalTypeMap[data.normalType];
+        uniformData.set([normalTypeDef], 52);
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {

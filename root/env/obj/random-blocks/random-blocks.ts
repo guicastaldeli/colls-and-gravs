@@ -18,7 +18,11 @@ import { ListData, getRandomItem } from "./list.js";
 import { ListType } from "./list-type.js";
 import { Ground } from "../../ground.js";
 
-type NormalType = 'vertex' | 'cubic' | 'spherical';
+export enum NormalType {
+    Vertex = 'vertex',
+    Cubic = 'cubic',
+    Spherical = 'spherical'
+}
 
 interface BlockData {
     id: string,
@@ -211,6 +215,7 @@ export class RandomBlocks implements ICollidable {
                 modelDef: this.currentItem,
                 normalType: this.determineNormalType(itemId)
             }
+            console.log(this.determineNormalType(itemId));
 
             const initialOrientaton = quat.create();
             if(faceNormal) {
@@ -264,9 +269,8 @@ export class RandomBlocks implements ICollidable {
 
     private determineNormalType(id: string): NormalType {
         const itemDef = ListData.find(item => item.id === id);
-        if(itemDef?.normalType) return itemDef.normalType;
-        console.log(itemDef?.normalType);
-        return 'vertex';
+        if(!itemDef) return NormalType.Vertex;
+        return itemDef.normalType;
     }
 
     private updateRaycasterCollider(): void {

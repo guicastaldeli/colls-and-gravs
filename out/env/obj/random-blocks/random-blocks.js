@@ -22,6 +22,12 @@ import { PhysicsObject } from "../../../physics/physics-object.js";
 import { PhysicsGrid } from "../../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
 import { Ground } from "../../ground.js";
+export var NormalType;
+(function (NormalType) {
+    NormalType["Vertex"] = "vertex";
+    NormalType["Cubic"] = "cubic";
+    NormalType["Spherical"] = "spherical";
+})(NormalType || (NormalType = {}));
 let RandomBlocks = class RandomBlocks {
     tick;
     device;
@@ -153,6 +159,7 @@ let RandomBlocks = class RandomBlocks {
                 modelDef: this.currentItem,
                 normalType: this.determineNormalType(itemId)
             };
+            console.log(this.determineNormalType(itemId));
             const initialOrientaton = quat.create();
             if (faceNormal) {
                 const up = vec3.fromValues(0, 1, 0);
@@ -193,10 +200,9 @@ let RandomBlocks = class RandomBlocks {
     }
     determineNormalType(id) {
         const itemDef = ListData.find(item => item.id === id);
-        if (itemDef?.normalType)
-            return itemDef.normalType;
-        console.log(itemDef?.normalType);
-        return 'vertex';
+        if (!itemDef)
+            return NormalType.Vertex;
+        return itemDef.normalType;
     }
     updateRaycasterCollider() {
         const size = this.currentItem.size;
