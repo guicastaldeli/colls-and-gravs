@@ -7,8 +7,7 @@ struct FragmentInput {
     @location(2) normal: vec3f,
     @location(3) worldPos: vec3f,
     @location(4) isLamp: f32,
-    @location(5) cameraPos: vec3f,
-    @location(6) normalType: f32
+    @location(5) cameraPos: vec3f
 }
 
 @fragment
@@ -16,16 +15,12 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
     let baseColor = mix(texColor.rgb, input.color, 0.1);
 
-    let dFdxPos = dpdx(input.worldPos);
-    let dFdyPos = dpdy(input.worldPos);
     let worldPos = input.worldPos;
     let cameraPos = input.cameraPos;
-    let calculatedNormal = select(
-        normalize(cross(dFdxPos, dFdyPos)), 
-        normalize(worldPos),
-        input.normalType == 2.0
-    );
-
+    let dFdxPos = dpdx(input.worldPos);
+    let dFdyPos = dpdy(input.worldPos);
+    let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
+    
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {
@@ -52,5 +47,4 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     finalColor = max(finalColor, vec3f(0.0));
     return vec4f(finalColor, texColor.a);
-    //return vec4f(calculatedNormal * 0.5 + 0.5, 1.0);
 }

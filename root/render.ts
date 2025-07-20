@@ -26,7 +26,6 @@ import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
 import { PointLight } from "./lightning/point-light.js";
 import { Hud } from "./hud.js";
-import { NormalType } from "./env/obj/random-blocks/random-blocks.js";
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -395,14 +394,6 @@ async function setBuffers(
         const cameraPos = camera.playerController.getCameraPosition();
         uniformData.set(cameraPos, 48);
         uniformData.set([currentTime / 1000], 51);
-
-        const normalTypeMap = {
-            [NormalType.Vertex]: 0.0,
-            [NormalType.Cubic]: 1.0,
-            [NormalType.Spherical]: 2.0
-        }
-        const normalTypeDef = normalTypeMap[data.normalType];
-        uniformData.set([normalTypeDef], 52);
         
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }

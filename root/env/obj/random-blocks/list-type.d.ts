@@ -1,5 +1,3 @@
-import { NormalType } from "./random-blocks.js";
-
 export declare interface ListType {
     id: string;
     id_attr: string;
@@ -20,6 +18,5 @@ export declare interface ListType {
         w: number;
         h: number;
         d: number;
-    },
-    normalType: NormalType
+    }
 }
