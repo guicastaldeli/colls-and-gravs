@@ -18,5 +18,6 @@ export declare interface ListType {
         w: number;
         h: number;
         d: number;
-    }
+    },
+    normalType: 'vertex' | 'cubic' | 'spherical'
 }

@@ -67,7 +67,6 @@ export class Lamp {
                 sampler: this.loader.createSampler(),
                 isLamp: [1.0, 1.0, 1.0]
             }
-            console.log(lamp.isLamp)
 
             return lamp;
         } catch(err) {

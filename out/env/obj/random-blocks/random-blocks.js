@@ -150,7 +150,8 @@ let RandomBlocks = class RandomBlocks {
                 texture: sharedResource.texture,
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId,
-                modelDef: this.currentItem
+                modelDef: this.currentItem,
+                normalType: this.determineNormalType(itemId)
             };
             const initialOrientaton = quat.create();
             if (faceNormal) {
@@ -189,6 +190,13 @@ let RandomBlocks = class RandomBlocks {
             console.log(err);
             throw err;
         }
+    }
+    determineNormalType(id) {
+        const itemDef = ListData.find(item => item.id === id);
+        if (itemDef?.normalType)
+            return itemDef.normalType;
+        console.log(itemDef?.normalType);
+        return 'vertex';
     }
     updateRaycasterCollider() {
         const size = this.currentItem.size;
