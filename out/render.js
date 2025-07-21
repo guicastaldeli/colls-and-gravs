@@ -382,14 +382,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
-        //Shadows
-        const pointLights = lightningManager.getPointLights();
-        const shadowPipeline = shadowPipelineManager.shadowPipeline;
-        for (const pointLight of pointLights) {
-            if (!pointLight._shadowMapView)
-                continue;
-            await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
-        }
     }
     const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
     for (const obj of randomBlocksObj) {
@@ -409,6 +401,14 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
                 passEncoder.drawIndexed(outline.indexCount);
             }
         }
+    }
+    //Shadows
+    const pointLights = lightningManager.getPointLights();
+    const shadowPipeline = shadowPipelineManager.shadowPipeline;
+    for (const pointLight of pointLights) {
+        if (!pointLight._shadowMapView)
+            continue;
+        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
     }
 }
 //Color Parser

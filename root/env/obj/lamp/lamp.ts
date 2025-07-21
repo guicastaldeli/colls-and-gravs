@@ -114,6 +114,7 @@ export class Lamp {
                     8.0
                 );
 
+                light.initShadowResources(this.device);
                 this.lightningManager.addPointLight('point', light);
                 this.lightningManager.updatePointLightBuffer();
             //

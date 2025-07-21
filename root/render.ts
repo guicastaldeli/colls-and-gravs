@@ -442,22 +442,6 @@ async function setBuffers(
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
-
-        //Shadows
-        const pointLights = lightningManager.getPointLights();
-        const shadowPipeline = shadowPipelineManager.shadowPipeline;
-
-        for(const pointLight of pointLights) {
-            if(!pointLight._shadowMapView) continue;
-
-            await pointLight.renderPointLightShadowPass(
-                device, 
-                pointLight, 
-                renderBuffers, 
-                commandEncoder,
-                shadowPipeline
-            );
-        }
     }
     
     const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
@@ -482,6 +466,22 @@ async function setBuffers(
                 passEncoder.drawIndexed(outline.indexCount);
             }
         }
+    }
+
+    //Shadows
+    const pointLights = lightningManager.getPointLights();
+    const shadowPipeline = shadowPipelineManager.shadowPipeline;
+
+    for(const pointLight of pointLights) {
+        if(!pointLight._shadowMapView) continue;
+
+        await pointLight.renderPointLightShadowPass(
+            device, 
+            pointLight, 
+            renderBuffers, 
+            commandEncoder,
+            shadowPipeline
+        );
     }
 }
 
