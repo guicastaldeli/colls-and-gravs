@@ -474,9 +474,6 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initShaders();
-        //Shadows
-        if (!shadowPipelineManager)
-            shadowPipelineManager = new ShadowPipelineManager();
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {
@@ -517,6 +514,11 @@ export async function render(canvas) {
             lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
+        //Shadows
+        if (!shadowPipelineManager) {
+            shadowPipelineManager = new ShadowPipelineManager();
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(0));
+        }
         //Wind
         if (!windManager)
             windManager = new WindManager(tick);

@@ -3,7 +3,7 @@ export class ShadowPipelineManager {
 
     private async initShaders(device: GPUDevice): Promise<GPUShaderModule> {
         try {
-            const shaderCode = await fetch('./lightning/shaders/shadow.wgsl').then(res => res.text());
+            const shaderCode = await fetch('./lightning/shaders/shadows.wgsl').then(res => res.text());
             const shaderModule = device.createShaderModule({ code: shaderCode });
             return shaderModule;
         } catch(err) {
@@ -12,9 +12,12 @@ export class ShadowPipelineManager {
         }
     }
 
-    public async init(device: GPUDevice, pipelineLayout: GPUPipelineLayout): Promise<void> {
+    public async init(device: GPUDevice, bindGroupLayout: GPUBindGroupLayout): Promise<void> {
         try {
             const module = await this.initShaders(device);
+            const pipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [bindGroupLayout]
+            });
 
             this._shadowPipeline = device.createRenderPipeline({
                 layout: pipelineLayout,
@@ -47,7 +50,7 @@ export class ShadowPipelineManager {
     }
 
     get shadowPipeline(): GPURenderPipeline {
-        if(!this.shadowPipeline) throw new Error('Shadow pipeline err');
+        if(!this._shadowPipeline) throw new Error('Shadow pipeline err');
         return this._shadowPipeline;
     }
 }

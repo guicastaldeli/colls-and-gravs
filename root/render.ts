@@ -554,9 +554,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initShaders();
 
-        //Shadows
-        if(!shadowPipelineManager) shadowPipelineManager = new ShadowPipelineManager();
-
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
             depthTextureHeight !== canvas.height)
@@ -591,7 +588,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             }
         }
 
-
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -603,6 +599,12 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!lightningManager) lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
+
+        //Shadows
+        if(!shadowPipelineManager) {
+            shadowPipelineManager = new ShadowPipelineManager();
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(0));
+        }
 
         //Wind
         if(!windManager) windManager = new WindManager(tick);
