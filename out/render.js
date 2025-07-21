@@ -74,6 +74,15 @@ async function initShaders() {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
                 }
             ]
         });
@@ -122,18 +131,17 @@ async function initShaders() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                }
-            ]
-        });
-        const shadowBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
                 },
                 {
-                    binding: 1,
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: 'depth',
+                        viewDimension: 'cube'
+                    }
+                },
+                {
+                    binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: { type: 'comparison' }
                 },
@@ -144,8 +152,7 @@ async function initShaders() {
                 bindGroupLayout,
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
-                pointLightBindGroupLayout,
-                shadowBindGroupLayout
+                pointLightBindGroupLayout
             ]
         });
         pipeline = device.createRenderPipeline({
@@ -307,7 +314,15 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
                     offset: 0,
                     size: 256
                 }
-            }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 256,
+                    size: 256
+                }
+            },
         ]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
@@ -321,9 +336,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
     if (!pointLightBindGroup)
         throw new Error('Point light err');
-    const shadowBindGroup = lightningManager.getShadowBindGroup(pipeline);
-    if (!shadowBindGroup)
-        throw new Error('Shadow err');
     const lightningBindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(2),
         entries: [
@@ -385,11 +397,10 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        passEncoder.setBindGroup(0, bindGroup, [offset]);
+        passEncoder.setBindGroup(0, bindGroup, [offset, offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
-        passEncoder.setBindGroup(4, shadowBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
@@ -415,9 +426,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const pointLights = lightningManager.getPointLights();
     const shadowPipeline = shadowPipelineManager.shadowPipeline;
     for (const pointLight of pointLights) {
-        if (!pointLight.shadowMapView)
+        if (!pointLight.shadowMapView) {
+            console.log('err');
             continue;
-        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
+        }
+        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, shadowPipeline);
     }
 }
 //Color Parser
@@ -467,6 +480,9 @@ export async function render(canvas) {
     try {
         device.pushErrorScope('validation');
         await device.queue.onSubmittedWorkDone();
+        const pipelineError = await device.popErrorScope();
+        if (pipelineError)
+            console.error('Pipeline error:', pipelineError);
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();
@@ -526,7 +542,7 @@ export async function render(canvas) {
         //Shadows
         if (!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(4));
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(3));
         }
         //Wind
         if (!windManager)

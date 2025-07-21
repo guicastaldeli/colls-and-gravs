@@ -25,7 +25,6 @@ import { ShadowPipelineManager } from "./lightning/shadow-pipeline-manager.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
-import { PointLight } from "./lightning/point-light.js";
 import { Hud } from "./hud.js";
 
 let pipeline: GPURenderPipeline;
@@ -106,6 +105,15 @@ async function initShaders(): Promise<void> {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { 
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
                 }
             ]  
         });
@@ -157,19 +165,17 @@ async function initShaders(): Promise<void> {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                }
-            ]
-        });
-
-        const shadowBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
                 },
                 {
-                    binding: 1,
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { 
+                        sampleType: 'depth',
+                        viewDimension: 'cube'
+                    }
+                },
+                {
+                    binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: { type: 'comparison' }
                 },
@@ -181,8 +187,7 @@ async function initShaders(): Promise<void> {
                 bindGroupLayout, 
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
-                pointLightBindGroupLayout,
-                shadowBindGroupLayout
+                pointLightBindGroupLayout
             ]
         });
 
@@ -355,7 +360,15 @@ async function setBuffers(
                     offset: 0,
                     size: 256
                 }
-            } 
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 256,
+                    size: 256
+                }
+            },
         ]
     });
 
@@ -370,9 +383,6 @@ async function setBuffers(
 
         const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
         if(!pointLightBindGroup) throw new Error('Point light err');
-
-        const shadowBindGroup = lightningManager.getShadowBindGroup(pipeline);
-        if(!shadowBindGroup) throw new Error('Shadow err');
         
         const lightningBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(2),
@@ -446,11 +456,10 @@ async function setBuffers(
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        passEncoder.setBindGroup(0, bindGroup, [offset]);
+        passEncoder.setBindGroup(0, bindGroup, [offset, offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
-        passEncoder.setBindGroup(4, shadowBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     
@@ -483,13 +492,15 @@ async function setBuffers(
     const shadowPipeline = shadowPipelineManager.shadowPipeline;
 
     for(const pointLight of pointLights) {
-        if(!pointLight.shadowMapView) continue;
+        if(!pointLight.shadowMapView) {
+            console.log('err')
+            continue;
+        }
 
         await pointLight.renderPointLightShadowPass(
             device,
             pointLight,
             renderBuffers,
-            commandEncoder,
             shadowPipeline
         );
     }
@@ -550,6 +561,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         device.pushErrorScope('validation');
         await device.queue.onSubmittedWorkDone();
+        const pipelineError = await device.popErrorScope();
+        if (pipelineError) console.error('Pipeline error:', pipelineError);
 
         const currentTime = performance.now();
         if(!tick) tick = new Tick();
@@ -613,7 +626,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Shadows
         if(!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(4));
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(3));
         }
 
         //Wind

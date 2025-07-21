@@ -57,7 +57,6 @@ fn applyPointLight(
         distance
     );
 
-    //let shadow = samplePointShadowMap(worldPos, light.position.xyz, light.range);
     let result = baseColor * diffuse * rangeFactor;
     return result;
 }

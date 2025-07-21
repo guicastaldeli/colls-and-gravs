@@ -80,8 +80,11 @@ export class PointLight {
         data[13] = 0.0;
         return data;
     }
-
+    
+    //Shadow Functions
     public initShadowResources(device: GPUDevice): void {
+        if(this._shadowMap) this._shadowMap.destroy();
+
         this._shadowMap = device.createTexture({
             size: {
                 width: this._shadowMapSize, 
@@ -104,7 +107,6 @@ export class PointLight {
         });
     }
 
-    //Shadow Functions
     public getFaceMatrices(): mat4[] {
         const matrices: mat4[] = [];
         const projectionMatrix = mat4.perspective(mat4.create(), Math.PI / 2, 1.0, 0.1, this._range);
@@ -144,21 +146,23 @@ export class PointLight {
         device: GPUDevice,
         light: PointLight,
         renderBuffers: any[],
-        commandEncoder: GPUCommandEncoder,
         shadowPipeline: GPURenderPipeline
     ): Promise<void> {
         if(!this._shadowMapView) return;
+
+        const commandEncoder = device.createCommandEncoder();
         const faceMatrices = this.getFaceMatrices();
 
-        for(let face = 0; face < 5; face++) {
-            if(!this._shadowMap) return;
+        for(let face = 0; face < 6; face++) {
+            if(!this._shadowMap) throw new Error('err');
 
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
                     view: this._shadowMap.createView({
                         baseArrayLayer: face,
-                        arrayLayerCount: 1
+                        arrayLayerCount: 1,
+                        dimension: '2d'
                     }),
                     depthClearValue: 1.0,
                     depthLoadOp: 'clear',
@@ -178,6 +182,8 @@ export class PointLight {
 
             shadowPass.end();
         }
+
+        device.queue.submit([commandEncoder.finish()]);
     }
 
     get shadowMapView(): GPUTextureView {

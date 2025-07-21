@@ -55,9 +55,7 @@ export class ShadowPipelineManager {
                 fragment: {
                     module: fragShader,
                     entryPoint: 'main',
-                    targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat()
-                    }]
+                    targets: []
                 },
                 primitive: {
                     topology: 'triangle-list',

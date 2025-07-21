@@ -63,7 +63,10 @@ export class PointLight {
         data[13] = 0.0;
         return data;
     }
+    //Shadow Functions
     initShadowResources(device) {
+        if (this._shadowMap)
+            this._shadowMap.destroy();
         this._shadowMap = device.createTexture({
             size: {
                 width: this._shadowMapSize,
@@ -83,7 +86,6 @@ export class PointLight {
             minFilter: 'linear'
         });
     }
-    //Shadow Functions
     getFaceMatrices() {
         const matrices = [];
         const projectionMatrix = mat4.perspective(mat4.create(), Math.PI / 2, 1.0, 0.1, this._range);
@@ -109,19 +111,21 @@ export class PointLight {
         }
         return matrices;
     }
-    async renderPointLightShadowPass(device, light, renderBuffers, commandEncoder, shadowPipeline) {
+    async renderPointLightShadowPass(device, light, renderBuffers, shadowPipeline) {
         if (!this._shadowMapView)
             return;
+        const commandEncoder = device.createCommandEncoder();
         const faceMatrices = this.getFaceMatrices();
-        for (let face = 0; face < 5; face++) {
+        for (let face = 0; face < 6; face++) {
             if (!this._shadowMap)
-                return;
+                throw new Error('err');
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
                     view: this._shadowMap.createView({
                         baseArrayLayer: face,
-                        arrayLayerCount: 1
+                        arrayLayerCount: 1,
+                        dimension: '2d'
                     }),
                     depthClearValue: 1.0,
                     depthLoadOp: 'clear',
@@ -138,6 +142,7 @@ export class PointLight {
             }
             shadowPass.end();
         }
+        device.queue.submit([commandEncoder.finish()]);
     }
     get shadowMapView() {
         return this._shadowMapView;

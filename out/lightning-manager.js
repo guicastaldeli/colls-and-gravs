@@ -125,6 +125,13 @@ export class LightningManager {
         if (!this.pointStorageBuffer || !this.pointCountBuffer)
             return null;
         const layout = pipeline.getBindGroupLayout(3);
+        const pointLights = this.getPointLights();
+        const shadowLight = pointLights.find(light => light.shadowMapView && light.shadowSampler) ?? (() => {
+            console.warn('No point light shadows!');
+            const temp = new PointLight();
+            temp.initShadowResources(this.device);
+            return temp;
+        })();
         return this.device.createBindGroup({
             layout,
             entries: [
@@ -135,6 +142,14 @@ export class LightningManager {
                 {
                     binding: 1,
                     resource: { buffer: this.pointStorageBuffer }
+                },
+                {
+                    binding: 2,
+                    resource: shadowLight.shadowMapView
+                },
+                {
+                    binding: 3,
+                    resource: shadowLight.shadowSampler
                 }
             ]
         });
@@ -150,31 +165,5 @@ export class LightningManager {
     }
     addPointLight(id, light) {
         this.addLight(id, 'point', light);
-    }
-    //Shadows
-    getShadowBindGroup(pipeline) {
-        if (!this.pointStorageBuffer || !this.pointCountBuffer)
-            return null;
-        const layout = pipeline.getBindGroupLayout(4);
-        const pointLights = this.getPointLights();
-        const shadowLight = pointLights.find(light => light.shadowMapView && light.shadowSampler) ?? (() => {
-            console.warn('No point light shadows!');
-            const temp = new PointLight();
-            temp.initShadowResources(this.device);
-            return temp;
-        })();
-        return this.device.createBindGroup({
-            layout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: shadowLight.shadowMapView
-                },
-                {
-                    binding: 1,
-                    resource: shadowLight.shadowSampler
-                }
-            ]
-        });
     }
 }
