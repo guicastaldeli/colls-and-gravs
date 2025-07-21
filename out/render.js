@@ -14,6 +14,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
+import { ShadowPipelineManager } from "./lightning/shadow-pipeline-manager.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -33,12 +34,13 @@ let playerController;
 let envRenderer;
 let getColliders;
 let hud;
-let wireframeMode = false;
-let wireframePipeline = null;
+let skybox;
 let lightningManager;
 let windManager;
 let objectManager;
-let skybox;
+let shadowPipelineManager;
+let wireframeMode = false;
+let wireframePipeline = null;
 async function toggleWireframe() {
     document.addEventListener('keydown', async (e) => {
         if (e.key.toLowerCase() === 't') {
@@ -268,7 +270,7 @@ async function initShaders() {
         throw err;
     }
 }
-async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
+async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
@@ -370,6 +372,14 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
         passEncoder.drawIndexed(data.indexCount);
+        //Shadows
+        const pointLights = lightningManager.getPointLights();
+        const shadowPipeline = shadowPipelineManager.shadowPipeline;
+        for (const pointLight of pointLights) {
+            if (!pointLight._shadowMapView)
+                continue;
+            await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
+        }
     }
     const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
     for (const obj of randomBlocksObj) {
@@ -454,6 +464,9 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initShaders();
+        //Shadows
+        if (!shadowPipelineManager)
+            shadowPipelineManager = new ShadowPipelineManager();
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {
@@ -484,10 +497,6 @@ export async function render(canvas) {
                 depthStoreOp: 'store',
             }
         };
-        const pointLights = lightningManager.getPointLights();
-        for (const pointLight of pointLights) {
-            await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
-        }
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -565,7 +574,7 @@ export async function render(canvas) {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime);
         //Late Renderers
         //Skybox
         if (!skybox) {

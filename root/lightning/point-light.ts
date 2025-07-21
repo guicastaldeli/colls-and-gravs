@@ -10,7 +10,7 @@ export class PointLight {
     private _quadratic: number;
 
     private _shadowMap: GPUTexture | null = null;
-    private _shadowMapView: GPUTextureView | null = null;
+    public _shadowMapView: GPUTextureView | null = null;
     private _shadowSampler: GPUSampler | null = null;
     private _shadowMapSize: number = 1024;
     
@@ -149,10 +149,12 @@ export class PointLight {
         const faceMatrices = this.getFaceMatrices();
 
         for(let face = 0; face < 5; face++) {
+            if(!this._shadowMap) return;
+            
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
-                    view: this._shadowMap?.createView({
+                    view: this._shadowMap.createView({
                         baseArrayLayer: face,
                         arrayLayerCount: 1
                     }),

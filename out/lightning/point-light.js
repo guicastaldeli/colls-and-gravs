@@ -112,10 +112,12 @@ export class PointLight {
             return;
         const faceMatrices = this.getFaceMatrices();
         for (let face = 0; face < 5; face++) {
+            if (!this._shadowMap)
+                return;
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
-                    view: this._shadowMap?.createView({
+                    view: this._shadowMap.createView({
                         baseArrayLayer: face,
                         arrayLayerCount: 1
                     }),
