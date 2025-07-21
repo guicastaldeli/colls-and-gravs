@@ -168,23 +168,7 @@ export class LightningManager {
 
         public getPointLightBindGroup(pipeline: GPURenderPipeline): GPUBindGroup | null {
             if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
-
             const layout = pipeline.getBindGroupLayout(3);
-            const pointLights = this.getPointLights();
-            let shadowMapView: GPUTextureView | null = null;
-            let shadowSampler: GPUSampler | null = null;
-            const shadowLight = pointLights.find(light => light._shadowMapView && light._shadowSampler);
-
-            if(shadowLight) {
-                shadowMapView = shadowLight._shadowMapView;
-                shadowSampler = shadowLight._shadowSampler
-            } else {
-                console.warn('No point light shadows!');
-                const tempLight = new PointLight();
-                tempLight.initShadowResources(this.device);
-                shadowMapView = tempLight._shadowMapView;
-                shadowSampler = tempLight._shadowSampler;
-            }
 
             return this.device.createBindGroup({
                 layout,
@@ -196,17 +180,9 @@ export class LightningManager {
                     {
                         binding: 1,
                         resource: { buffer: this.pointStorageBuffer }
-                    },
-                    {
-                        binding: 2,
-                        resource: shadowMapView!
-                    },
-                    {
-                        binding: 3,
-                        resource: shadowSampler!
                     }
                 ]
-            })
+            });
         }
 
         public getPointLights(): PointLight[] {
@@ -223,5 +199,42 @@ export class LightningManager {
         public addPointLight(id: string, light: PointLight): void {
             this.addLight(id, 'point', light);
         }
+
+        //Shadows
+            public getShadowBindGroup(pipeline: GPURenderPipeline): GPUBindGroup | null {
+                if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
+
+                const layout = pipeline.getBindGroupLayout(4);
+                const pointLights = this.getPointLights();
+                let shadowMapView: GPUTextureView | null = null;
+                let shadowSampler: GPUSampler | null = null;
+                const shadowLight = pointLights.find(light => light._shadowMapView && light._shadowSampler);
+
+                if(shadowLight) {
+                    shadowMapView = shadowLight._shadowMapView;
+                    shadowSampler = shadowLight._shadowSampler
+                } else {
+                    console.warn('No point light shadows!');
+                    const tempLight = new PointLight();
+                    tempLight.initShadowResources(this.device);
+                    shadowMapView = tempLight._shadowMapView;
+                    shadowSampler = tempLight._shadowSampler;
+                }
+
+                return this.device.createBindGroup({
+                    layout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: shadowMapView!
+                        },
+                        {
+                            binding: 1,
+                            resource: shadowSampler!
+                        }
+                    ]
+                });
+            }
+        //
     //
 }

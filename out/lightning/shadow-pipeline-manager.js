@@ -1,10 +1,19 @@
 export class ShadowPipelineManager {
     _shadowPipeline;
+    shaderLoader;
+    constructor(shaderLoader) {
+        this.shaderLoader = shaderLoader;
+    }
     async initShaders(device) {
         try {
-            const shaderCode = await fetch('./lightning/shaders/shadows.wgsl').then(res => res.text());
-            const shaderModule = device.createShaderModule({ code: shaderCode });
-            return shaderModule;
+            const [vertexShader, fragShader] = await Promise.all([
+                this.shaderLoader.loader('./lightning/shaders/shadows-vertex.wgsl'),
+                this.shaderLoader.loader('./lightning/shaders/shadows-frag.wgsl')
+            ]);
+            return {
+                vertexShader,
+                fragShader
+            };
         }
         catch (err) {
             console.log(err);
@@ -13,14 +22,15 @@ export class ShadowPipelineManager {
     }
     async init(device, bindGroupLayout) {
         try {
-            const module = await this.initShaders(device);
+            const { vertexShader, fragShader } = await this.initShaders(device);
             const pipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             });
             this._shadowPipeline = device.createRenderPipeline({
                 layout: pipelineLayout,
                 vertex: {
-                    module,
+                    module: vertexShader,
+                    entryPoint: 'main',
                     buffers: [{
                             arrayStride: 3 * 4,
                             attributes: [{
@@ -30,7 +40,11 @@ export class ShadowPipelineManager {
                                 }]
                         }]
                 },
-                fragment: undefined,
+                fragment: {
+                    module: fragShader,
+                    entryPoint: 'main',
+                    targets: []
+                },
                 primitive: {
                     topology: 'triangle-list',
                     cullMode: 'back'

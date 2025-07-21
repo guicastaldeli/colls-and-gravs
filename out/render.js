@@ -63,7 +63,7 @@ async function initShaders() {
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        console.log(combinedFragCode.toString());
+        //console.log(combinedFragCode.toString())
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -122,14 +122,18 @@ async function initShaders() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                },
+                }
+            ]
+        });
+        const shadowBindGroupLayout = device.createBindGroupLayout({
+            entries: [
                 {
-                    binding: 2,
+                    binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: 'depth' }
                 },
                 {
-                    binding: 3,
+                    binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: { type: 'comparison' }
                 },
@@ -141,6 +145,7 @@ async function initShaders() {
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
                 pointLightBindGroupLayout,
+                shadowBindGroupLayout
             ]
         });
         pipeline = device.createRenderPipeline({
@@ -316,6 +321,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
     if (!pointLightBindGroup)
         throw new Error('Point light err');
+    const shadowBindGroup = lightningManager.getShadowBindGroup(pipeline);
+    if (!shadowBindGroup)
+        throw new Error('Shadow err');
     const lightningBindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(2),
         entries: [
@@ -381,6 +389,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
+        passEncoder.setBindGroup(4, shadowBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     const randomBlocksObj = objectManager.getAllOfType('randomBlocks');
@@ -516,8 +525,8 @@ export async function render(canvas) {
         await directionalLight();
         //Shadows
         if (!shadowPipelineManager) {
-            shadowPipelineManager = new ShadowPipelineManager();
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(0));
+            shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(4));
         }
         //Wind
         if (!windManager)

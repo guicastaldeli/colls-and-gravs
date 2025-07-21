@@ -125,6 +125,37 @@ export class LightningManager {
         if (!this.pointStorageBuffer || !this.pointCountBuffer)
             return null;
         const layout = pipeline.getBindGroupLayout(3);
+        return this.device.createBindGroup({
+            layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.pointCountBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.pointStorageBuffer }
+                }
+            ]
+        });
+    }
+    getPointLights() {
+        const pointLights = [];
+        this.lights.forEach((value) => {
+            if (value.type === 'point') {
+                pointLights.push(value.light);
+            }
+        });
+        return pointLights;
+    }
+    addPointLight(id, light) {
+        this.addLight(id, 'point', light);
+    }
+    //Shadows
+    getShadowBindGroup(pipeline) {
+        if (!this.pointStorageBuffer || !this.pointCountBuffer)
+            return null;
+        const layout = pipeline.getBindGroupLayout(4);
         const pointLights = this.getPointLights();
         let shadowMapView = null;
         let shadowSampler = null;
@@ -145,33 +176,13 @@ export class LightningManager {
             entries: [
                 {
                     binding: 0,
-                    resource: { buffer: this.pointCountBuffer }
-                },
-                {
-                    binding: 1,
-                    resource: { buffer: this.pointStorageBuffer }
-                },
-                {
-                    binding: 2,
                     resource: shadowMapView
                 },
                 {
-                    binding: 3,
+                    binding: 1,
                     resource: shadowSampler
                 }
             ]
         });
-    }
-    getPointLights() {
-        const pointLights = [];
-        this.lights.forEach((value) => {
-            if (value.type === 'point') {
-                pointLights.push(value.light);
-            }
-        });
-        return pointLights;
-    }
-    addPointLight(id, light) {
-        this.addLight(id, 'point', light);
     }
 }

@@ -95,7 +95,7 @@ async function initShaders(): Promise<void> {
 
         const fragShader = shaderComposer.createShaderModule(combinedFragCode);
 
-        console.log(combinedFragCode.toString())
+        //console.log(combinedFragCode.toString())
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -157,14 +157,19 @@ async function initShaders(): Promise<void> {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                },
+                }
+            ]
+        });
+
+        const shadowBindGroupLayout = device.createBindGroupLayout({
+            entries: [
                 {
-                    binding: 2,
+                    binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: { sampleType: 'depth' }
                 },
                 {
-                    binding: 3,
+                    binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: { type: 'comparison' }
                 },
@@ -177,6 +182,7 @@ async function initShaders(): Promise<void> {
                 textureBindGroupLayout,
                 lightningBindGroupLayout,
                 pointLightBindGroupLayout,
+                shadowBindGroupLayout
             ]
         });
 
@@ -364,6 +370,9 @@ async function setBuffers(
 
         const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
         if(!pointLightBindGroup) throw new Error('Point light err');
+
+        const shadowBindGroup = lightningManager.getShadowBindGroup(pipeline);
+        if(!shadowBindGroup) throw new Error('Shadow err');
         
         const lightningBindGroup = device.createBindGroup({
             layout: pipeline.getBindGroupLayout(2),
@@ -441,6 +450,7 @@ async function setBuffers(
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
+        passEncoder.setBindGroup(4, shadowBindGroup);
         passEncoder.drawIndexed(data.indexCount);
     }
     
@@ -476,9 +486,9 @@ async function setBuffers(
         if(!pointLight._shadowMapView) continue;
 
         await pointLight.renderPointLightShadowPass(
-            device, 
-            pointLight, 
-            renderBuffers, 
+            device,
+            pointLight,
+            renderBuffers,
             commandEncoder,
             shadowPipeline
         );
@@ -602,8 +612,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Shadows
         if(!shadowPipelineManager) {
-            shadowPipelineManager = new ShadowPipelineManager();
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(0));
+            shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
+            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(4));
         }
 
         //Wind

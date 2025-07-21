@@ -1,11 +1,29 @@
+import { ShaderLoader } from "../shader-loader.js";
+
+interface Shaders {
+    vertexShader: GPUShaderModule;
+    fragShader: GPUShaderModule;
+}
+
 export class ShadowPipelineManager {
     private _shadowPipeline!: GPURenderPipeline;
+    private shaderLoader: ShaderLoader;
 
-    private async initShaders(device: GPUDevice): Promise<GPUShaderModule> {
+    constructor(shaderLoader: ShaderLoader) {
+        this.shaderLoader = shaderLoader;
+    }
+
+    private async initShaders(device: GPUDevice): Promise<Shaders> {
         try {
-            const shaderCode = await fetch('./lightning/shaders/shadows.wgsl').then(res => res.text());
-            const shaderModule = device.createShaderModule({ code: shaderCode });
-            return shaderModule;
+            const [vertexShader, fragShader] = await Promise.all([
+                this.shaderLoader.loader('./lightning/shaders/shadows-vertex.wgsl'),
+                this.shaderLoader.loader('./lightning/shaders/shadows-frag.wgsl')
+            ]);
+
+            return {
+                vertexShader,
+                fragShader
+            }
         } catch(err) {
             console.log(err);
             throw err;
@@ -14,7 +32,8 @@ export class ShadowPipelineManager {
 
     public async init(device: GPUDevice, bindGroupLayout: GPUBindGroupLayout): Promise<void> {
         try {
-            const module = await this.initShaders(device);
+            const { vertexShader, fragShader } = await this.initShaders(device);
+
             const pipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             });
@@ -22,7 +41,8 @@ export class ShadowPipelineManager {
             this._shadowPipeline = device.createRenderPipeline({
                 layout: pipelineLayout,
                 vertex: {
-                    module,
+                    module: vertexShader,
+                    entryPoint: 'main',
                     buffers: [{
                         arrayStride: 3 * 4,
                         attributes: [{
@@ -32,7 +52,11 @@ export class ShadowPipelineManager {
                         }]
                     }]
                 },
-                fragment: undefined,
+                fragment: {
+                    module: fragShader,
+                    entryPoint: 'main',
+                    targets: []
+                },
                 primitive: {
                     topology: 'triangle-list',
                     cullMode: 'back'
