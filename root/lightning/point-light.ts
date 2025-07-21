@@ -9,9 +9,10 @@ export class PointLight {
     private _linear: number;
     private _quadratic: number;
 
+    //Shadows
     private _shadowMap: GPUTexture | null = null;
-    public _shadowMapView: GPUTextureView | null = null;
-    public _shadowSampler: GPUSampler | null = null;
+    private _shadowMapView!: GPUTextureView;
+    private _shadowSampler!: GPUSampler;
     private _shadowMapSize: number = 1024;
     
     constructor(
@@ -103,6 +104,7 @@ export class PointLight {
         });
     }
 
+    //Shadow Functions
     public getFaceMatrices(): mat4[] {
         const matrices: mat4[] = [];
         const projectionMatrix = mat4.perspective(mat4.create(), Math.PI / 2, 1.0, 0.1, this._range);
@@ -176,5 +178,13 @@ export class PointLight {
 
             shadowPass.end();
         }
+    }
+
+    get shadowMapView(): GPUTextureView {
+        return this._shadowMapView;
+    }
+
+    get shadowSampler(): GPUSampler {
+        return this._shadowSampler;
     }
 }

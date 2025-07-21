@@ -16,8 +16,8 @@ export class ShadowPipelineManager {
     private async initShaders(device: GPUDevice): Promise<Shaders> {
         try {
             const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./lightning/shaders/shadows-vertex.wgsl'),
-                this.shaderLoader.loader('./lightning/shaders/shadows-frag.wgsl')
+                this.shaderLoader.loader('./lightning/shaders/shadow-vertex.wgsl'),
+                this.shaderLoader.loader('./lightning/shaders/shadow-frag.wgsl')
             ]);
 
             return {
@@ -55,7 +55,9 @@ export class ShadowPipelineManager {
                 fragment: {
                     module: fragShader,
                     entryPoint: 'main',
-                    targets: []
+                    targets: [{
+                        format: navigator.gpu.getPreferredCanvasFormat()
+                    }]
                 },
                 primitive: {
                     topology: 'triangle-list',

@@ -483,7 +483,7 @@ async function setBuffers(
     const shadowPipeline = shadowPipelineManager.shadowPipeline;
 
     for(const pointLight of pointLights) {
-        if(!pointLight._shadowMapView) continue;
+        if(!pointLight.shadowMapView) continue;
 
         await pointLight.renderPointLightShadowPass(
             device,

@@ -415,7 +415,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const pointLights = lightningManager.getPointLights();
     const shadowPipeline = shadowPipelineManager.shadowPipeline;
     for (const pointLight of pointLights) {
-        if (!pointLight._shadowMapView)
+        if (!pointLight.shadowMapView)
             continue;
         await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, commandEncoder, shadowPipeline);
     }

@@ -206,31 +206,25 @@ export class LightningManager {
 
                 const layout = pipeline.getBindGroupLayout(4);
                 const pointLights = this.getPointLights();
-                let shadowMapView: GPUTextureView | null = null;
-                let shadowSampler: GPUSampler | null = null;
-                const shadowLight = pointLights.find(light => light._shadowMapView && light._shadowSampler);
-
-                if(shadowLight) {
-                    shadowMapView = shadowLight._shadowMapView;
-                    shadowSampler = shadowLight._shadowSampler
-                } else {
+                const shadowLight = pointLights.find(
+                    light => light.shadowMapView && light.shadowSampler
+                ) ?? (() => {
                     console.warn('No point light shadows!');
-                    const tempLight = new PointLight();
-                    tempLight.initShadowResources(this.device);
-                    shadowMapView = tempLight._shadowMapView;
-                    shadowSampler = tempLight._shadowSampler;
-                }
+                    const temp = new PointLight();
+                    temp.initShadowResources(this.device);
+                    return temp;
+                })();
 
                 return this.device.createBindGroup({
                     layout,
                     entries: [
                         {
                             binding: 0,
-                            resource: shadowMapView!
+                            resource: shadowLight.shadowMapView
                         },
                         {
                             binding: 1,
-                            resource: shadowSampler!
+                            resource: shadowLight.shadowSampler
                         }
                     ]
                 });

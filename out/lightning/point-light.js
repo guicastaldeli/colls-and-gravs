@@ -7,9 +7,10 @@ export class PointLight {
     _constant;
     _linear;
     _quadratic;
+    //Shadows
     _shadowMap = null;
-    _shadowMapView = null;
-    _shadowSampler = null;
+    _shadowMapView;
+    _shadowSampler;
     _shadowMapSize = 1024;
     constructor(position = vec3.fromValues(0.0, 0.0, 0.0), color = vec3.fromValues(1.0, 1.0, 1.0), intensity = 1.0, range = 10.0) {
         this._position = position;
@@ -82,6 +83,7 @@ export class PointLight {
             minFilter: 'linear'
         });
     }
+    //Shadow Functions
     getFaceMatrices() {
         const matrices = [];
         const projectionMatrix = mat4.perspective(mat4.create(), Math.PI / 2, 1.0, 0.1, this._range);
@@ -136,5 +138,11 @@ export class PointLight {
             }
             shadowPass.end();
         }
+    }
+    get shadowMapView() {
+        return this._shadowMapView;
+    }
+    get shadowSampler() {
+        return this._shadowSampler;
     }
 }
