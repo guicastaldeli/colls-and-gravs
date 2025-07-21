@@ -122,7 +122,17 @@ async function initShaders() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                },
             ]
         });
         const pipelineLayout = device.createPipelineLayout({

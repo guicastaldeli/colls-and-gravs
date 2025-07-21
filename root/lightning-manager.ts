@@ -168,7 +168,16 @@ export class LightningManager {
 
         public getPointLightBindGroup(pipeline: GPURenderPipeline): GPUBindGroup | null {
             if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
+
             const layout = pipeline.getBindGroupLayout(3);
+
+            const pointLightShadows = this.getPointLights().find(light =>
+                light._shadowMapView && light._shadowSampler
+            );
+            if(!pointLightShadows) {
+                console.warn('No point light shadows!');
+                return null;
+            }
 
             return this.device.createBindGroup({
                 layout,
@@ -180,6 +189,14 @@ export class LightningManager {
                     {
                         binding: 1,
                         resource: { buffer: this.pointStorageBuffer }
+                    },
+                    {
+                        binding: 2,
+                        resource: pointLightShadows._shadowMapView!
+                    },
+                    {
+                        binding: 3,
+                        resource: pointLightShadows._shadowSampler!
                     }
                 ]
             })
