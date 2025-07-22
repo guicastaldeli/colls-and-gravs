@@ -1,8 +1,6 @@
 export class ShadowPipelineManager {
     _shadowPipeline;
     shaderLoader;
-    _bindGroupLayout;
-    _textureBindGroupLayout;
     constructor(shaderLoader) {
         this.shaderLoader = shaderLoader;
     }
@@ -22,74 +20,13 @@ export class ShadowPipelineManager {
             throw err;
         }
     }
-    async setBindGroups(device) {
-        try {
-            //Shadow Group
-            this._bindGroupLayout = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    },
-                    {
-                        binding: 2,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    },
-                    {
-                        binding: 3,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    },
-                    {
-                        binding: 4,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: { type: 'uniform' }
-                    }
-                ]
-            });
-            //Texture Group
-            this._textureBindGroupLayout = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {
-                            sampleType: 'depth',
-                            viewDimension: 'cube'
-                        }
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {
-                            type: 'comparison'
-                        }
-                    }
-                ]
-            });
-        }
-        catch (err) {
-            console.log(err);
-            throw err;
-        }
-    }
     async init(device, shadowBindGroupLayout, textureBindGroupLayout) {
         try {
             const { vertexShader, fragShader } = await this.initShaders(device);
-            await this.setBindGroups(device);
-            this._bindGroupLayout = shadowBindGroupLayout;
-            this._textureBindGroupLayout = textureBindGroupLayout;
             const pipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [
-                    this._bindGroupLayout,
-                    this._textureBindGroupLayout
+                    shadowBindGroupLayout,
+                    textureBindGroupLayout
                 ]
             });
             this._shadowPipeline = device.createRenderPipeline({

@@ -114,43 +114,7 @@ async function setBindGroups(): Promise<BindGroupResources> {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { 
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { 
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { 
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { 
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
+                }
             ]  
         });
 
@@ -408,11 +372,16 @@ async function initPipeline(): Promise<void> {
     toggleWireframe();
 //
 
+async function getPipeline(passEncoder: GPURenderPassEncoder): Promise<void> {
+    const currentPipeline = wireframeMode ? wireframePipeline! : pipeline;
+    if(!currentPipeline) console.error('err pipeline');
+    passEncoder.setPipeline(currentPipeline);
+}
+
 async function setBuffers(
     passEncoder: GPURenderPassEncoder,
     viewProjectionMatrix: mat4,
     modelMatrix: mat4,
-    commandEncoder: GPUCommandEncoder,
     currentTime: number
 ) {
     buffers = await initBuffers(device);
@@ -430,7 +399,7 @@ async function setBuffers(
 
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: bufferSize * 4,
+        size: bufferSize * 5,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
@@ -444,43 +413,12 @@ async function setBuffers(
                     offset: 0,
                     size: 256
                 }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 256,
-                    size: 256
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 512,
-                    size: 256
-                }
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 768,
-                    size: 256
-                }
-            },
-            {
-                binding: 4,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 1024,
-                    size: 256
-                }
             }
         ]
     });
 
-    passEncoder.setPipeline(wireframeMode ? wireframePipeline! : pipeline);
+    //Pipeline
+    await getPipeline(passEncoder);
 
     //Lightning
         const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
@@ -523,7 +461,7 @@ async function setBuffers(
         uniformData.set(normalMatrix, 32);
 
         const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
-        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44)
+        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
 
         if(isLamp) {
             uniformData.set([1.0, 1.0, 1.0], 44);
@@ -564,9 +502,7 @@ async function setBuffers(
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        
-        const dynamicOffsets = [offset, offset, offset, offset, offset];
-        passEncoder.setBindGroup(0, bindGroup, dynamicOffsets);
+        passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
@@ -829,7 +765,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
 
         //Late Renderers
             //Skybox

@@ -75,43 +75,7 @@ async function setBindGroups() {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        hasDynamicOffset: true,
-                        minBindingSize: 256
-                    }
-                },
+                }
             ]
         });
         const textureBindGroupLayout = device.createBindGroupLayout({
@@ -354,7 +318,13 @@ async function toggleWireframe() {
 }
 toggleWireframe();
 //
-async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime) {
+async function getPipeline(passEncoder) {
+    const currentPipeline = wireframeMode ? wireframePipeline : pipeline;
+    if (!currentPipeline)
+        console.error('err pipeline');
+    passEncoder.setPipeline(currentPipeline);
+}
+async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
@@ -363,7 +333,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: bufferSize * 4,
+        size: bufferSize * 5,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     const bindGroup = device.createBindGroup({
@@ -376,42 +346,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
                     offset: 0,
                     size: 256
                 }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 256,
-                    size: 256
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 512,
-                    size: 256
-                }
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 768,
-                    size: 256
-                }
-            },
-            {
-                binding: 4,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 1024,
-                    size: 256
-                }
             }
         ]
     });
-    passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
+    //Pipeline
+    await getPipeline(passEncoder);
     //Lightning
     const ambientLightBuffer = lightningManager.getLightBuffer('ambient');
     if (!ambientLightBuffer)
@@ -483,8 +422,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        const dynamicOffsets = [offset, offset, offset, offset, offset];
-        passEncoder.setBindGroup(0, bindGroup, dynamicOffsets);
+        passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
@@ -699,7 +637,7 @@ export async function render(canvas) {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         //Late Renderers
         //Skybox
         if (!skybox) {
