@@ -1,5 +1,5 @@
-@group(1) @binding(2) var pointShadowMap: texture_depth_cube;
-@group(1) @binding(3) var pointShadowSampler: sampler_comparison;
+@group(3) @binding(2) var pointShadowMap: texture_depth_cube;
+@group(3) @binding(3) var pointShadowSampler: sampler_comparison;
 
 struct FragmentInput {
     @builtin(position) position: vec4f,

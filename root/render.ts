@@ -1,7 +1,7 @@
 import { mat3, mat4, vec3 } from "../node_modules/gl-matrix/esm/index.js";
 
 import { context, device } from "./init.js";
-import { initBuffers, drawBuffers } from "./buffers.js";
+import { initBuffers } from "./buffers.js";
 import { BufferData } from "./buffers.js";
 
 import { Tick } from "./tick.js";
@@ -12,10 +12,8 @@ import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
 import { ShaderComposer } from "./shader-composer.js";
 import { PlayerController } from "./player/player-controller.js";
-import { ArmController } from "./player/arm-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
-import { ICollidable } from "./collision/collider.js";
 
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
@@ -26,6 +24,18 @@ import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
 import { Hud } from "./hud.js";
+
+interface Shaders {
+    vertexCode: GPUShaderModule;
+    fragCode: string;
+}
+
+interface BindGroupResources {
+    bindGroupLayout: GPUBindGroupLayout;
+    textureBindGroupLayout: GPUBindGroupLayout;
+    lightningBindGroupLayout: GPUBindGroupLayout;
+    pointLightBindGroupLayout: GPUBindGroupLayout;
+}
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
@@ -52,24 +62,12 @@ let objectManager: ObjectManager;
 let shadowPipelineManager: ShadowPipelineManager;
 
 let wireframeMode = false;
-let wireframePipeline: GPURenderPipeline | null = null; 
+let wireframePipeline: GPURenderPipeline | null = null;
 
-async function toggleWireframe(): Promise<void> {
-    document.addEventListener('keydown', async (e) => {
-        if(e.key.toLowerCase() === 't') {
-            wireframeMode = !wireframeMode;
-            console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
-            await initShaders();
-        }
-    });
-}
-
-toggleWireframe();
-
-async function initShaders(): Promise<void> {
+async function initShaders(): Promise<Shaders> {
     try {
         const [
-            vertexShader, 
+            vertexSrc, 
             fragSrc,
             ambientLightSrc,
             directionalLightSrc,
@@ -92,9 +90,18 @@ async function initShaders(): Promise<void> {
             glowSrc
         );
 
-        const fragShader = shaderComposer.createShaderModule(combinedFragCode);
+        return {
+            vertexCode: vertexSrc,
+            fragCode: combinedFragCode
+        }
+    } catch(err) {
+        console.log(err);
+        throw err;
+    }
+}
 
-        //console.log(combinedFragCode.toString())
+async function setBindGroups(): Promise<BindGroupResources> {
+    try {
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -114,7 +121,34 @@ async function initShaders(): Promise<void> {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { 
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { 
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { 
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
             ]  
         });
 
@@ -182,6 +216,30 @@ async function initShaders(): Promise<void> {
             ]
         });
 
+        return {
+            bindGroupLayout, 
+            textureBindGroupLayout,
+            lightningBindGroupLayout,
+            pointLightBindGroupLayout
+        }
+    } catch(err) {
+        console.log(err);
+        throw err;
+    }
+}
+
+async function initPipeline(): Promise<void> {
+    try {
+        const { vertexCode, fragCode } = await initShaders();
+        const fragCodeSrc = shaderComposer.createShaderModule(fragCode);
+        
+        const {
+            bindGroupLayout, 
+            textureBindGroupLayout,
+            lightningBindGroupLayout,
+            pointLightBindGroupLayout
+        } = await setBindGroups();
+
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
                 bindGroupLayout, 
@@ -194,7 +252,7 @@ async function initShaders(): Promise<void> {
         pipeline = device.createRenderPipeline({
             layout: pipelineLayout,
             vertex: {
-                module: vertexShader,
+                module: vertexCode,
                 entryPoint: 'main',
                 buffers: [
                     {
@@ -240,7 +298,7 @@ async function initShaders(): Promise<void> {
                 ]
             },
             fragment: {
-                module: fragShader,
+                module: fragCodeSrc,
                 entryPoint: 'main',
                 targets: [{
                     format: navigator.gpu.getPreferredCanvasFormat()
@@ -261,7 +319,7 @@ async function initShaders(): Promise<void> {
         wireframePipeline = device.createRenderPipeline({
             layout: pipelineLayout,
             vertex: {
-                module: vertexShader,
+                module: vertexCode,
                 entryPoint: 'main',
                 buffers: [
                     {
@@ -307,7 +365,7 @@ async function initShaders(): Promise<void> {
                 ]
             },
             fragment: {
-                module: fragShader,
+                module: fragCodeSrc,
                 entryPoint: 'main',
                 targets: [{
                     format: navigator.gpu.getPreferredCanvasFormat()
@@ -329,6 +387,20 @@ async function initShaders(): Promise<void> {
     }
 }
 
+//Wireframe Mode
+    async function toggleWireframe(): Promise<void> {
+        document.addEventListener('keydown', async (e) => {
+            if(e.key.toLowerCase() === 't') {
+                wireframeMode = !wireframeMode;
+                console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
+                await initShaders();
+            }
+        });
+    }
+
+    toggleWireframe();
+//
+
 async function setBuffers(
     passEncoder: GPURenderPassEncoder,
     viewProjectionMatrix: mat4,
@@ -341,11 +413,11 @@ async function setBuffers(
     
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => (rb as any).getBlocks());
-
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
+
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: bufferSize,
+        size: bufferSize * 4,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
@@ -369,6 +441,30 @@ async function setBuffers(
                     size: 256
                 }
             },
+            {
+                binding: 2,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 512,
+                    size: 256
+                }
+            },
+            {
+                binding: 3,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 768,
+                    size: 256
+                }
+            },
+            {
+                binding: 4,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 1024,
+                    size: 256
+                }
+            }
         ]
     });
 
@@ -384,8 +480,9 @@ async function setBuffers(
         const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
         if(!pointLightBindGroup) throw new Error('Point light err');
         
+        const lightningBindGroupLayout = pipeline.getBindGroupLayout(2);
         const lightningBindGroup = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(2),
+            layout: lightningBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -439,8 +536,9 @@ async function setBuffers(
             continue;
         }
         
+        const textureBindGroupLayout = pipeline.getBindGroupLayout(1); 
         const textureBindGroup = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(1),
+            layout: textureBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -456,10 +554,13 @@ async function setBuffers(
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        passEncoder.setBindGroup(0, bindGroup, [offset, offset]);
+        
+        const dynamicOffsets = [offset, offset, offset, offset, offset];
+        passEncoder.setBindGroup(0, bindGroup, dynamicOffsets);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
+
         passEncoder.drawIndexed(data.indexCount);
     }
     
@@ -626,7 +727,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Shadows
         if(!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(3));
+            const bindGroupLayout = pipeline.getBindGroupLayout(0);
+            const texGroupLayout = pipeline.getBindGroupLayout(3);
+            await shadowPipelineManager.init(
+                device, 
+                bindGroupLayout,
+                texGroupLayout
+            );
         }
 
         //Wind

@@ -41,19 +41,9 @@ let objectManager;
 let shadowPipelineManager;
 let wireframeMode = false;
 let wireframePipeline = null;
-async function toggleWireframe() {
-    document.addEventListener('keydown', async (e) => {
-        if (e.key.toLowerCase() === 't') {
-            wireframeMode = !wireframeMode;
-            console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
-            await initShaders();
-        }
-    });
-}
-toggleWireframe();
 async function initShaders() {
     try {
-        const [vertexShader, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc] = await Promise.all([
+        const [vertexSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
@@ -62,8 +52,18 @@ async function initShaders() {
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
-        const fragShader = shaderComposer.createShaderModule(combinedFragCode);
-        //console.log(combinedFragCode.toString())
+        return {
+            vertexCode: vertexSrc,
+            fragCode: combinedFragCode
+        };
+    }
+    catch (err) {
+        console.log(err);
+        throw err;
+    }
+}
+async function setBindGroups() {
+    try {
         const bindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -83,7 +83,34 @@ async function initShaders() {
                         hasDynamicOffset: true,
                         minBindingSize: 256
                     }
-                }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        hasDynamicOffset: true,
+                        minBindingSize: 256
+                    }
+                },
             ]
         });
         const textureBindGroupLayout = device.createBindGroupLayout({
@@ -147,6 +174,23 @@ async function initShaders() {
                 },
             ]
         });
+        return {
+            bindGroupLayout,
+            textureBindGroupLayout,
+            lightningBindGroupLayout,
+            pointLightBindGroupLayout
+        };
+    }
+    catch (err) {
+        console.log(err);
+        throw err;
+    }
+}
+async function initPipeline() {
+    try {
+        const { vertexCode, fragCode } = await initShaders();
+        const fragCodeSrc = shaderComposer.createShaderModule(fragCode);
+        const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout, pointLightBindGroupLayout } = await setBindGroups();
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
                 bindGroupLayout,
@@ -158,7 +202,7 @@ async function initShaders() {
         pipeline = device.createRenderPipeline({
             layout: pipelineLayout,
             vertex: {
-                module: vertexShader,
+                module: vertexCode,
                 entryPoint: 'main',
                 buffers: [
                     {
@@ -204,7 +248,7 @@ async function initShaders() {
                 ]
             },
             fragment: {
-                module: fragShader,
+                module: fragCodeSrc,
                 entryPoint: 'main',
                 targets: [{
                         format: navigator.gpu.getPreferredCanvasFormat()
@@ -224,7 +268,7 @@ async function initShaders() {
         wireframePipeline = device.createRenderPipeline({
             layout: pipelineLayout,
             vertex: {
-                module: vertexShader,
+                module: vertexCode,
                 entryPoint: 'main',
                 buffers: [
                     {
@@ -270,7 +314,7 @@ async function initShaders() {
                 ]
             },
             fragment: {
-                module: fragShader,
+                module: fragCodeSrc,
                 entryPoint: 'main',
                 targets: [{
                         format: navigator.gpu.getPreferredCanvasFormat()
@@ -292,6 +336,18 @@ async function initShaders() {
         throw err;
     }
 }
+//Wireframe Mode
+async function toggleWireframe() {
+    document.addEventListener('keydown', async (e) => {
+        if (e.key.toLowerCase() === 't') {
+            wireframeMode = !wireframeMode;
+            console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
+            await initShaders();
+        }
+    });
+}
+toggleWireframe();
+//
 async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, commandEncoder, currentTime) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
@@ -300,7 +356,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
-        size: bufferSize,
+        size: bufferSize * 4,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     const bindGroupLayout = pipeline.getBindGroupLayout(0);
@@ -323,6 +379,30 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
                     size: 256
                 }
             },
+            {
+                binding: 2,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 512,
+                    size: 256
+                }
+            },
+            {
+                binding: 3,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 768,
+                    size: 256
+                }
+            },
+            {
+                binding: 4,
+                resource: {
+                    buffer: uniformBuffer,
+                    offset: 1024,
+                    size: 256
+                }
+            }
         ]
     });
     passEncoder.setPipeline(wireframeMode ? wireframePipeline : pipeline);
@@ -336,8 +416,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
     const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
     if (!pointLightBindGroup)
         throw new Error('Point light err');
+    const lightningBindGroupLayout = pipeline.getBindGroupLayout(2);
     const lightningBindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(2),
+        layout: lightningBindGroupLayout,
         entries: [
             {
                 binding: 0,
@@ -381,8 +462,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
             console.error('missing');
             continue;
         }
+        const textureBindGroupLayout = pipeline.getBindGroupLayout(1);
         const textureBindGroup = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(1),
+            layout: textureBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -397,7 +479,8 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, comman
         passEncoder.setVertexBuffer(0, data.vertex);
         passEncoder.setVertexBuffer(1, data.color);
         passEncoder.setIndexBuffer(data.index, 'uint16');
-        passEncoder.setBindGroup(0, bindGroup, [offset, offset]);
+        const dynamicOffsets = [offset, offset, offset, offset, offset];
+        passEncoder.setBindGroup(0, bindGroup, dynamicOffsets);
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
@@ -542,7 +625,9 @@ export async function render(canvas) {
         //Shadows
         if (!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            await shadowPipelineManager.init(device, pipeline.getBindGroupLayout(3));
+            const bindGroupLayout = pipeline.getBindGroupLayout(0);
+            const texGroupLayout = pipeline.getBindGroupLayout(3);
+            await shadowPipelineManager.init(device, bindGroupLayout, texGroupLayout);
         }
         //Wind
         if (!windManager)
