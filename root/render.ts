@@ -39,6 +39,8 @@ interface BindGroupResources {
 
 let pipeline: GPURenderPipeline;
 let buffers: BufferData;
+let cachedBindGroups: BindGroupResources | null = null;
+
 let depthTexture: GPUTexture | null = null;
 let depthTextureWidth = 0;
 let depthTextureHeight = 0;
@@ -228,6 +230,11 @@ async function setBindGroups(): Promise<BindGroupResources> {
     }
 }
 
+async function getBindGroups(): Promise<BindGroupResources> {
+    if(!cachedBindGroups) cachedBindGroups = await setBindGroups();
+    return cachedBindGroups;
+}
+
 async function initPipeline(): Promise<void> {
     try {
         const { vertexCode, fragCode } = await initShaders();
@@ -238,7 +245,7 @@ async function initPipeline(): Promise<void> {
             textureBindGroupLayout,
             lightningBindGroupLayout,
             pointLightBindGroupLayout
-        } = await setBindGroups();
+        } = await getBindGroups();
 
         const pipelineLayout = device.createPipelineLayout({
             bindGroupLayouts: [
@@ -393,7 +400,7 @@ async function initPipeline(): Promise<void> {
             if(e.key.toLowerCase() === 't') {
                 wireframeMode = !wireframeMode;
                 console.log(`Wireframe mode: ${wireframeMode ? 'ON' : 'OFF'}`);
-                await initShaders();
+                await initPipeline();
             }
         });
     }
@@ -410,6 +417,12 @@ async function setBuffers(
 ) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
+
+    const {
+        bindGroupLayout, 
+        textureBindGroupLayout,
+        lightningBindGroupLayout
+    } = await getBindGroups();
     
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => (rb as any).getBlocks());
@@ -421,7 +434,6 @@ async function setBuffers(
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
-    const bindGroupLayout = pipeline.getBindGroupLayout(0);
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
         entries: [
@@ -480,7 +492,6 @@ async function setBuffers(
         const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
         if(!pointLightBindGroup) throw new Error('Point light err');
         
-        const lightningBindGroupLayout = pipeline.getBindGroupLayout(2);
         const lightningBindGroup = device.createBindGroup({
             layout: lightningBindGroupLayout,
             entries: [
@@ -536,7 +547,6 @@ async function setBuffers(
             continue;
         }
         
-        const textureBindGroupLayout = pipeline.getBindGroupLayout(1); 
         const textureBindGroup = device.createBindGroup({
             layout: textureBindGroupLayout,
             entries: [
@@ -676,7 +686,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!loader) loader = new Loader(device);
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
-        if(!pipeline) await initShaders();
+        if(!pipeline) await initPipeline();
 
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
@@ -727,13 +737,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Shadows
         if(!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            const bindGroupLayout = pipeline.getBindGroupLayout(0);
-            const texGroupLayout = pipeline.getBindGroupLayout(3);
-            await shadowPipelineManager.init(
-                device, 
-                bindGroupLayout,
-                texGroupLayout
-            );
+            const { bindGroupLayout, textureBindGroupLayout } = await getBindGroups();
+            await shadowPipelineManager.init(device, bindGroupLayout, textureBindGroupLayout);
         }
 
         //Wind
