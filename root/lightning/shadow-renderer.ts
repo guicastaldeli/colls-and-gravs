@@ -44,7 +44,7 @@ export class ShadowRenderer {
             const { vertexShader, fragShader } = await this.initShaders(device);
             
             this._shadowMapTexture = device.createTexture({
-                size: [1048, 1048],
+                size: [100, 100],
                 format: 'depth24plus',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
@@ -85,7 +85,7 @@ export class ShadowRenderer {
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less-equal',
+                    depthCompare: 'less',
                     format: 'depth24plus'
                 }
             });

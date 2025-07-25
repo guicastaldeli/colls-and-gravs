@@ -92,8 +92,7 @@ async function initShaders(): Promise<Shaders> {
             pointLightSrc,
             glowSrc
         );
-        console.log(combinedFragCode)
-
+        
         return {
             vertexCode: vertexSrc,
             fragCode: combinedFragCode
@@ -183,7 +182,7 @@ async function setBindGroups(): Promise<BindGroupResources> {
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
                         minBindingSize: 4
@@ -578,7 +577,6 @@ async function setBuffers(
                 depthStoreOp: 'store'
             }
         }
-        
         const shadowPassEncoder = commandEncoder.beginRenderPass(shadowPassDescriptor);
         shadowPassEncoder.setPipeline(shadowRenderer.pipeline);
         shadowPassEncoder.setBindGroup(0, shadowRenderer.bindGroup);

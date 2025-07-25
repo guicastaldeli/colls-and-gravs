@@ -53,7 +53,6 @@ async function initShaders() {
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
-        console.log(combinedFragCode);
         return {
             vertexCode: vertexSrc,
             fragCode: combinedFragCode
@@ -139,7 +138,7 @@ async function setBindGroups() {
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
                         minBindingSize: 4
