@@ -111,7 +111,7 @@ export class PointLight {
         }
         return matrices;
     }
-    async renderPointLightShadowPass(device, light, renderBuffers, shadowPipeline) {
+    async renderPointLightShadowPass(device, light, renderBuffers, shadowPipeline, bindGroup, pointLightGroup) {
         if (!this._shadowMapView)
             return;
         const commandEncoder = device.createCommandEncoder();
@@ -119,6 +119,7 @@ export class PointLight {
         for (let face = 0; face < 6; face++) {
             if (!this._shadowMap)
                 throw new Error('err');
+            const offset = 512 * face;
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
@@ -133,6 +134,8 @@ export class PointLight {
                 }
             });
             shadowPass.setPipeline(shadowPipeline);
+            shadowPass.setBindGroup(0, bindGroup, [offset]);
+            shadowPass.setBindGroup(1, pointLightGroup);
             for (const data of renderBuffers) {
                 const mvp = mat4.create();
                 mat4.multiply(mvp, faceMatrices[face], data.modelMatrix);

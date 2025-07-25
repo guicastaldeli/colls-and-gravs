@@ -4,9 +4,7 @@ struct VertexInput {
 
 struct VertexOutput {
     @builtin(position) position: vec4f,
-    @location(0) worldPos: vec3f,
-    @location(1) lightPos: vec3f,
-    @location(2) farPlane: f32
+    @location(0) worldPos: vec3f
 }
 
 @group(0) @binding(0) var<uniform> lightViewProjections: mat4x4f;

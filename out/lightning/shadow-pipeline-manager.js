@@ -20,13 +20,13 @@ export class ShadowPipelineManager {
             throw err;
         }
     }
-    async init(device, shadowBindGroupLayout, textureBindGroupLayout) {
+    async init(device, shadowBindGroupLayout, pointLightBindGroupLayout) {
         try {
             const { vertexShader, fragShader } = await this.initShaders(device);
             const pipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [
                     shadowBindGroupLayout,
-                    textureBindGroupLayout
+                    pointLightBindGroupLayout
                 ]
             });
             this._shadowPipeline = device.createRenderPipeline({
@@ -50,11 +50,11 @@ export class ShadowPipelineManager {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'back'
+                    cullMode: 'front'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthCompare: 'less-equal',
                     format: 'depth32float'
                 }
             });

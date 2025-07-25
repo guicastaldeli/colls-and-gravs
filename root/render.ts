@@ -108,7 +108,7 @@ async function setBindGroups(): Promise<BindGroupResources> {
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { 
                         type: 'uniform',
                         hasDynamicOffset: true,
@@ -194,7 +194,7 @@ async function setBindGroups(): Promise<BindGroupResources> {
     }
 }
 
-async function getBindGroups(): Promise<BindGroupResources> {
+export async function getBindGroups(): Promise<BindGroupResources> {
     if(!cachedBindGroups) cachedBindGroups = await setBindGroups();
     return cachedBindGroups;
 }
@@ -506,7 +506,6 @@ async function setBuffers(
         passEncoder.setBindGroup(1, textureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
         passEncoder.setBindGroup(3, pointLightBindGroup);
-
         passEncoder.drawIndexed(data.indexCount);
     }
     
@@ -548,7 +547,9 @@ async function setBuffers(
             device,
             pointLight,
             renderBuffers,
-            shadowPipeline
+            shadowPipeline,
+            bindGroup,
+            pointLightBindGroup
         );
     }
 }
@@ -673,8 +674,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Shadows
         if(!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            const { bindGroupLayout, textureBindGroupLayout } = await getBindGroups();
-            await shadowPipelineManager.init(device, bindGroupLayout, textureBindGroupLayout);
+            const { bindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
+            await shadowPipelineManager.init(device, bindGroupLayout, pointLightBindGroupLayout);
         }
 
         //Wind
@@ -793,8 +794,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //
         
         passEncoder.end();    
-        device.queue.submit([ commandEncoder.finish() ]);
         requestAnimationFrame(() => render(canvas));
+        device.queue.submit([ commandEncoder.finish() ]);
     } catch(err) {
         console.log(err);
         throw err;

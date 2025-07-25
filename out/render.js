@@ -69,7 +69,7 @@ async function setBindGroups() {
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: {
                         type: 'uniform',
                         hasDynamicOffset: true,
@@ -151,7 +151,7 @@ async function setBindGroups() {
         throw err;
     }
 }
-async function getBindGroups() {
+export async function getBindGroups() {
     if (!cachedBindGroups)
         cachedBindGroups = await setBindGroups();
     return cachedBindGroups;
@@ -455,7 +455,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
             console.log('err');
             continue;
         }
-        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, shadowPipeline);
+        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, shadowPipeline, bindGroup, pointLightBindGroup);
     }
 }
 //Color Parser
@@ -567,8 +567,8 @@ export async function render(canvas) {
         //Shadows
         if (!shadowPipelineManager) {
             shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            const { bindGroupLayout, textureBindGroupLayout } = await getBindGroups();
-            await shadowPipelineManager.init(device, bindGroupLayout, textureBindGroupLayout);
+            const { bindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
+            await shadowPipelineManager.init(device, bindGroupLayout, pointLightBindGroupLayout);
         }
         //Wind
         if (!windManager)
@@ -656,8 +656,8 @@ export async function render(canvas) {
             randomBlocks.init(canvas, playerController, format, hud);
         //
         passEncoder.end();
-        device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));
+        device.queue.submit([commandEncoder.finish()]);
     }
     catch (err) {
         console.log(err);

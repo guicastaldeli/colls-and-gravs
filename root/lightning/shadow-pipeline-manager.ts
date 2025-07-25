@@ -33,7 +33,7 @@ export class ShadowPipelineManager {
     public async init(
         device: GPUDevice,
         shadowBindGroupLayout: GPUBindGroupLayout,
-        textureBindGroupLayout: GPUBindGroupLayout
+        pointLightBindGroupLayout: GPUBindGroupLayout
     ): Promise<void> {
         try {
             const { vertexShader, fragShader } = await this.initShaders(device);
@@ -41,7 +41,7 @@ export class ShadowPipelineManager {
             const pipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [
                     shadowBindGroupLayout,
-                    textureBindGroupLayout
+                    pointLightBindGroupLayout
                 ]
             });
 
@@ -66,11 +66,11 @@ export class ShadowPipelineManager {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'back'
+                    cullMode: 'front'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less',
+                    depthCompare: 'less-equal',
                     format: 'depth32float'
                 }
             });

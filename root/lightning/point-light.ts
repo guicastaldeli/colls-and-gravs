@@ -1,4 +1,6 @@
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { LightningManager } from "../lightning-manager.js";
+import { getBindGroups } from "../render.js";
 
 export class PointLight {
     private _position: vec3;
@@ -146,7 +148,9 @@ export class PointLight {
         device: GPUDevice,
         light: PointLight,
         renderBuffers: any[],
-        shadowPipeline: GPURenderPipeline
+        shadowPipeline: GPURenderPipeline,
+        bindGroup: GPUBindGroup,
+        pointLightGroup: GPUBindGroup
     ): Promise<void> {
         if(!this._shadowMapView) return;
 
@@ -155,6 +159,7 @@ export class PointLight {
 
         for(let face = 0; face < 6; face++) {
             if(!this._shadowMap) throw new Error('err');
+            const offset = 512 * face;
 
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
@@ -171,6 +176,8 @@ export class PointLight {
             });
 
             shadowPass.setPipeline(shadowPipeline);
+            shadowPass.setBindGroup(0, bindGroup, [offset]);
+            shadowPass.setBindGroup(1, pointLightGroup);
 
             for(const data of renderBuffers) {
                 const mvp = mat4.create();
