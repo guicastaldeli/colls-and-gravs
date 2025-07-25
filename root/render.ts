@@ -608,9 +608,11 @@ async function renderEnv(deltaTime: number): Promise<void> {
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         device.pushErrorScope('validation');
+        /*
         await device.queue.onSubmittedWorkDone();
         const pipelineError = await device.popErrorScope();
         if (pipelineError) console.error('Pipeline error:', pipelineError);
+        */
 
         const currentTime = performance.now();
         if(!tick) tick = new Tick();
@@ -794,8 +796,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //
         
         passEncoder.end();    
-        requestAnimationFrame(() => render(canvas));
         device.queue.submit([ commandEncoder.finish() ]);
+        requestAnimationFrame(() => render(canvas));
     } catch(err) {
         console.log(err);
         throw err;

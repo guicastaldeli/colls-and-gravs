@@ -85,7 +85,18 @@ export class PointLight {
     
     //Shadow Functions
     public initShadowResources(device: GPUDevice): void {
-        if(this._shadowMap) this._shadowMap.destroy();
+        if(this._shadowMap &&
+            this._shadowMap.width === this._shadowMapSize &&
+            this._shadowMap.height === this._shadowMapSize
+        ) {
+            return;
+        }
+
+        if(this._shadowMap) {
+            device.queue.onSubmittedWorkDone().then(() => {
+                this._shadowMap?.destroy();
+            });
+        }
 
         this._shadowMap = device.createTexture({
             size: {

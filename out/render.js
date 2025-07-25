@@ -504,10 +504,11 @@ async function renderEnv(deltaTime) {
 export async function render(canvas) {
     try {
         device.pushErrorScope('validation');
+        /*
         await device.queue.onSubmittedWorkDone();
         const pipelineError = await device.popErrorScope();
-        if (pipelineError)
-            console.error('Pipeline error:', pipelineError);
+        if (pipelineError) console.error('Pipeline error:', pipelineError);
+        */
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();
@@ -656,8 +657,8 @@ export async function render(canvas) {
             randomBlocks.init(canvas, playerController, format, hud);
         //
         passEncoder.end();
-        requestAnimationFrame(() => render(canvas));
         device.queue.submit([commandEncoder.finish()]);
+        requestAnimationFrame(() => render(canvas));
     }
     catch (err) {
         console.log(err);
