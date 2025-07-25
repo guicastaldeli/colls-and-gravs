@@ -159,7 +159,7 @@ export class PointLight {
 
         for(let face = 0; face < 6; face++) {
             if(!this._shadowMap) throw new Error('err');
-            const offset = 512 * face;
+            const offset = 256 * face;
 
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
@@ -189,8 +189,6 @@ export class PointLight {
 
             shadowPass.end();
         }
-
-        device.queue.submit([commandEncoder.finish()]);
     }
 
     get shadowMapView(): GPUTextureView {
