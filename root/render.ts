@@ -567,27 +567,13 @@ async function setBuffers(
         );
         
         shadowRenderer.updateUniforms(device, lightViewProjection);
-
-        const shadowPassDescriptor: GPURenderPassDescriptor = {
-            colorAttachments: [],
-            depthStencilAttachment: {
-                view: shadowRenderer.shadowMapTexture.createView(),
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store'
-            }
-        }
-        const shadowPassEncoder = commandEncoder.beginRenderPass(shadowPassDescriptor);
-        shadowPassEncoder.setPipeline(shadowRenderer.pipeline);
-        shadowPassEncoder.setBindGroup(0, shadowRenderer.bindGroup);
         
         for(const block of blockToCastShadows) {
-            shadowPassEncoder.setVertexBuffer(0, block.vertex);
-            shadowPassEncoder.setIndexBuffer(block.index, 'uint16');
-            shadowPassEncoder.drawIndexed(block.indexCount);
+            passEncoder.setVertexBuffer(0, block.vertex);
+            passEncoder.setIndexBuffer(block.index, 'uint16');
+            passEncoder.drawIndexed(block.indexCount);
         }
 
-        shadowPassEncoder.end();
     }
 }
 

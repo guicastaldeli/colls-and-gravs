@@ -9,7 +9,7 @@ export class ShadowRenderer {
     constructor(shaderLoader) {
         this.shaderLoader = shaderLoader;
     }
-    async initShaders(device) {
+    async initShaders() {
         try {
             const [vertexShader, fragShader] = await Promise.all([
                 this.shaderLoader.loader('./lightning/shaders/shadow-vertex.wgsl'),
@@ -30,7 +30,7 @@ export class ShadowRenderer {
             return;
         try {
             const { shadowBindGroupLayout } = await getBindGroups();
-            const { vertexShader, fragShader } = await this.initShaders(device);
+            const { vertexShader, fragShader } = await this.initShaders();
             this._shadowMapTexture = device.createTexture({
                 size: [100, 100],
                 format: 'depth24plus',

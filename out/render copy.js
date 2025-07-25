@@ -462,11 +462,18 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         const lightView = mat4.lookAt(mat4.create(), [0, 0, 0], [0, 0, 0], [0, 0, 1]);
         const lightViewProjection = mat4.multiply(mat4.create(), lightProjection, lightView);
         shadowRenderer.updateUniforms(device, lightViewProjection);
+        const shadowPassDescriptor = {
+            colorAttachments: [],
+        };
+        const shadowPassEncoder = commandEncoder.beginRenderPass(shadowPassDescriptor);
+        shadowPassEncoder.setPipeline(shadowRenderer.pipeline);
+        shadowPassEncoder.setBindGroup(0, shadowRenderer.bindGroup);
         for (const block of blockToCastShadows) {
-            passEncoder.setVertexBuffer(0, block.vertex);
-            passEncoder.setIndexBuffer(block.index, 'uint16');
-            passEncoder.drawIndexed(block.indexCount);
+            shadowPassEncoder.setVertexBuffer(0, block.vertex);
+            shadowPassEncoder.setIndexBuffer(block.index, 'uint16');
+            shadowPassEncoder.drawIndexed(block.indexCount);
         }
+        shadowPassEncoder.end();
     }
 }
 //Color Parser
