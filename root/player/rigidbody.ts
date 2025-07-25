@@ -4,7 +4,7 @@ export class Rigidbody {
     private _velocity: vec3 = vec3.create();
     private _acceleration: vec3 = vec3.create();
     private _isColliding: boolean = false;
-    private _gravity: vec3 = vec3.fromValues(0, -18, 0);
+    private _gravity: vec3 = vec3.fromValues(0.0, -18.0, 0.0);
     private _mass: number = 1.0;
     private _drag: number = 1.5;
 

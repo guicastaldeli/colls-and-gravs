@@ -1,4 +1,3 @@
-import { PointLight } from "./lightning/point-light.js";
 export class LightningManager {
     device;
     lights = new Map();
@@ -126,12 +125,6 @@ export class LightningManager {
             return null;
         const layout = pipeline.getBindGroupLayout(3);
         const pointLights = this.getPointLights();
-        const shadowLight = pointLights.find(light => light.shadowMapView && light.shadowSampler) ?? (() => {
-            console.warn('No point light shadows!');
-            const temp = new PointLight();
-            temp.initShadowResources(this.device);
-            return temp;
-        })();
         return this.device.createBindGroup({
             layout,
             entries: [
@@ -142,14 +135,6 @@ export class LightningManager {
                 {
                     binding: 1,
                     resource: { buffer: this.pointStorageBuffer }
-                },
-                {
-                    binding: 2,
-                    resource: shadowLight.shadowMapView
-                },
-                {
-                    binding: 3,
-                    resource: shadowLight.shadowSampler
                 }
             ]
         });

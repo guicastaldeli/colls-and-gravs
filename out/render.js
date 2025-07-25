@@ -14,7 +14,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowPipelineManager } from "./lightning/shadow-pipeline-manager.js";
+import { ShadowPipelineManager } from "./lightning/shadow-renderer.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -53,6 +53,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
+        console.log(combinedFragCode);
         return {
             vertexCode: vertexSrc,
             fragCode: combinedFragCode
@@ -123,20 +124,7 @@ async function setBindGroups() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: 'depth',
-                        viewDimension: 'cube'
-                    }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                },
+                }
             ]
         });
         return {
@@ -448,15 +436,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         }
     }
     //Shadows
-    const pointLights = lightningManager.getPointLights();
-    const shadowPipeline = shadowPipelineManager.shadowPipeline;
-    for (const pointLight of pointLights) {
-        if (!pointLight.shadowMapView) {
-            console.log('err');
-            continue;
-        }
-        await pointLight.renderPointLightShadowPass(device, pointLight, renderBuffers, shadowPipeline, bindGroup, pointLightBindGroup);
-    }
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -494,6 +473,12 @@ async function directionalLight() {
     lightningManager.updateLightBuffer('directional');
 }
 //
+async function errorHandler() {
+    await device.queue.onSubmittedWorkDone();
+    const pipelineError = await device.popErrorScope();
+    if (pipelineError)
+        console.error('Pipeline error:', pipelineError);
+}
 async function renderEnv(deltaTime) {
     if (!envRenderer) {
         envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
@@ -504,11 +489,7 @@ async function renderEnv(deltaTime) {
 export async function render(canvas) {
     try {
         device.pushErrorScope('validation');
-        /*
-        await device.queue.onSubmittedWorkDone();
-        const pipelineError = await device.popErrorScope();
-        if (pipelineError) console.error('Pipeline error:', pipelineError);
-        */
+        await errorHandler();
         const currentTime = performance.now();
         if (!tick)
             tick = new Tick();

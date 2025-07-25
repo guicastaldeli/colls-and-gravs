@@ -12,6 +12,7 @@ struct PointLight {
 @group(3) @binding(0) var<uniform> pointLightCount: u32;
 @group(3) @binding(1) var<storage, read> pointLights: array<PointLight>;
 
+
 fn calculateAttenuation(
     distance: f32,
     constant: f32,
