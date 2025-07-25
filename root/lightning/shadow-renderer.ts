@@ -1,13 +1,19 @@
+import { mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { ShaderLoader } from "../shader-loader.js";
+import { getBindGroups } from "../render.js";
 
 interface Shaders {
     vertexShader: GPUShaderModule;
     fragShader: GPUShaderModule;
 }
 
-export class ShadowPipelineManager {
-    private _shadowPipeline!: GPURenderPipeline;
+export class ShadowRenderer {
+    private isInit = false;
     private shaderLoader: ShaderLoader;
+    private _pipeline!: GPURenderPipeline;
+    private _bindGroup!: GPUBindGroup;
+    private _shadowMapTexture!: GPUTexture;
+    private uniformBuffers!: GPUBuffer[];
 
     constructor(shaderLoader: ShaderLoader) {
         this.shaderLoader = shaderLoader;
@@ -30,58 +36,121 @@ export class ShadowPipelineManager {
         }
     }
 
-    public async init(
-        device: GPUDevice,
-        shadowBindGroupLayout: GPUBindGroupLayout,
-        pointLightBindGroupLayout: GPUBindGroupLayout
-    ): Promise<void> {
-        try {
-            const { vertexShader, fragShader } = await this.initShaders(device);
+    public async init(device: GPUDevice): Promise<void> {
+        if(this.isInit) return;
 
-            const pipelineLayout = device.createPipelineLayout({
-                bindGroupLayouts: [
-                    shadowBindGroupLayout,
-                    pointLightBindGroupLayout
-                ]
+        try {
+            const { shadowBindGroupLayout } = await getBindGroups();
+            const { vertexShader, fragShader } = await this.initShaders(device);
+            
+            this._shadowMapTexture = device.createTexture({
+                size: [1048, 1048],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
 
-            this._shadowPipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+            this._pipeline = device.createRenderPipeline({
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [shadowBindGroupLayout]
+                }),
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
                     buffers: [{
-                        arrayStride: 3 * 4,
-                        attributes: [{
-                            shaderLocation: 0,
-                            offset: 0,
-                            format: 'float32x3'
-                        }]
+                        arrayStride: 8 * 4,
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 2,
+                                offset: 5 * 4,
+                                format: 'float32x3'
+                            }
+                        ]
                     }]
                 },
                 fragment: {
                     module: fragShader,
                     entryPoint: 'main',
-                    targets: []
+                    targets: [{
+                        format: navigator.gpu.getPreferredCanvasFormat()
+                    }]
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'front'
+                    cullMode: 'none'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less-equal',
-                    format: 'depth32float'
+                    format: 'depth24plus'
                 }
             });
+
+            this.uniformBuffers = [
+                device.createBuffer({
+                    size: 64,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                }),
+                device.createBuffer({
+                    size: 4,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                })
+            ]
+
+            this._bindGroup = device.createBindGroup({
+                layout: shadowBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: this.uniformBuffers[0] }
+                    },
+                    {
+                        binding: 1,
+                        resource: { buffer: this.uniformBuffers[1] }
+                    }
+                ]
+            });
+
+            this.isInit = true;
         } catch(err) {
             console.log(err);
             throw err;
         }
     }
 
-    get shadowPipeline(): GPURenderPipeline {
-        if(!this._shadowPipeline) throw new Error('Shadow pipeline err');
-        return this._shadowPipeline;
+    private groundLevel(): number {
+        return 0.0;
+    }
+    
+    public updateUniforms(
+        device: GPUDevice, 
+        lightViewProjection: mat4,
+    ) {
+        device.queue.writeBuffer(
+            this.uniformBuffers[0],
+            0,
+            lightViewProjection as Float32Array
+        );
+        device.queue.writeBuffer(
+            this.uniformBuffers[1],
+            0,
+            new Float32Array([this.groundLevel()])
+        );
+    }
+
+    get pipeline(): GPURenderPipeline {
+        return this._pipeline;
+    }
+
+    get bindGroup(): GPUBindGroup {
+        return this._bindGroup;
+    }
+
+    get shadowMapTexture(): GPUTexture {
+        return this._shadowMapTexture;
     }
 }

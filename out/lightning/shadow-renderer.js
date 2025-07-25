@@ -1,6 +1,11 @@
-export class ShadowPipelineManager {
-    _shadowPipeline;
+import { getBindGroups } from "../render.js";
+export class ShadowRenderer {
+    isInit = false;
     shaderLoader;
+    _pipeline;
+    _bindGroup;
+    _shadowMapTexture;
+    uniformBuffers;
     constructor(shaderLoader) {
         this.shaderLoader = shaderLoader;
     }
@@ -20,53 +25,101 @@ export class ShadowPipelineManager {
             throw err;
         }
     }
-    async init(device, shadowBindGroupLayout, pointLightBindGroupLayout) {
+    async init(device) {
+        if (this.isInit)
+            return;
         try {
+            const { shadowBindGroupLayout } = await getBindGroups();
             const { vertexShader, fragShader } = await this.initShaders(device);
-            const pipelineLayout = device.createPipelineLayout({
-                bindGroupLayouts: [
-                    shadowBindGroupLayout,
-                    pointLightBindGroupLayout
-                ]
+            this._shadowMapTexture = device.createTexture({
+                size: [1048, 1048],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
-            this._shadowPipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+            this._pipeline = device.createRenderPipeline({
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [shadowBindGroupLayout]
+                }),
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
                     buffers: [{
-                            arrayStride: 3 * 4,
-                            attributes: [{
+                            arrayStride: 8 * 4,
+                            attributes: [
+                                {
                                     shaderLocation: 0,
                                     offset: 0,
                                     format: 'float32x3'
-                                }]
+                                },
+                                {
+                                    shaderLocation: 2,
+                                    offset: 5 * 4,
+                                    format: 'float32x3'
+                                }
+                            ]
                         }]
                 },
                 fragment: {
                     module: fragShader,
                     entryPoint: 'main',
-                    targets: []
+                    targets: [{
+                            format: navigator.gpu.getPreferredCanvasFormat()
+                        }]
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'front'
+                    cullMode: 'none'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less-equal',
-                    format: 'depth32float'
+                    format: 'depth24plus'
                 }
             });
+            this.uniformBuffers = [
+                device.createBuffer({
+                    size: 64,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                }),
+                device.createBuffer({
+                    size: 4,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                })
+            ];
+            this._bindGroup = device.createBindGroup({
+                layout: shadowBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: this.uniformBuffers[0] }
+                    },
+                    {
+                        binding: 1,
+                        resource: { buffer: this.uniformBuffers[1] }
+                    }
+                ]
+            });
+            this.isInit = true;
         }
         catch (err) {
             console.log(err);
             throw err;
         }
     }
-    get shadowPipeline() {
-        if (!this._shadowPipeline)
-            throw new Error('Shadow pipeline err');
-        return this._shadowPipeline;
+    groundLevel() {
+        return 0.0;
+    }
+    updateUniforms(device, lightViewProjection) {
+        device.queue.writeBuffer(this.uniformBuffers[0], 0, lightViewProjection);
+        device.queue.writeBuffer(this.uniformBuffers[1], 0, new Float32Array([this.groundLevel()]));
+    }
+    get pipeline() {
+        return this._pipeline;
+    }
+    get bindGroup() {
+        return this._bindGroup;
+    }
+    get shadowMapTexture() {
+        return this._shadowMapTexture;
     }
 }

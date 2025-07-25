@@ -14,7 +14,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowPipelineManager } from "./lightning/shadow-renderer.js";
+import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -39,7 +39,7 @@ let skybox;
 let lightningManager;
 let windManager;
 let objectManager;
-let shadowPipelineManager;
+let shadowRenderer;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function initShaders() {
@@ -127,11 +127,32 @@ async function setBindGroups() {
                 }
             ]
         });
+        const shadowBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 64
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 4
+                    }
+                }
+            ]
+        });
         return {
             bindGroupLayout,
             textureBindGroupLayout,
             lightningBindGroupLayout,
-            pointLightBindGroupLayout
+            pointLightBindGroupLayout,
+            shadowBindGroupLayout
         };
     }
     catch (err) {
@@ -312,7 +333,7 @@ async function getPipeline(passEncoder) {
         console.error('err pipeline');
     passEncoder.setPipeline(currentPipeline);
 }
-async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
+async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
@@ -436,6 +457,31 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         }
     }
     //Shadows
+    const blockToCastShadows = randomBlocks.filter(block => block.position[1] > 0.1);
+    if (blockToCastShadows.length > 0) {
+        const lightProjection = mat4.ortho(mat4.create(), -10, 10, -10, 10, 0.1, 100);
+        const lightView = mat4.lookAt(mat4.create(), [0, 0, 0], [0, 0, 0], [0, 0, 1]);
+        const lightViewProjection = mat4.multiply(mat4.create(), lightProjection, lightView);
+        shadowRenderer.updateUniforms(device, lightViewProjection);
+        const shadowPassDescriptor = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: shadowRenderer.shadowMapTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            }
+        };
+        const shadowPassEncoder = commandEncoder.beginRenderPass(shadowPassDescriptor);
+        shadowPassEncoder.setPipeline(shadowRenderer.pipeline);
+        shadowPassEncoder.setBindGroup(0, shadowRenderer.bindGroup);
+        for (const block of blockToCastShadows) {
+            shadowPassEncoder.setVertexBuffer(0, block.vertex);
+            shadowPassEncoder.setIndexBuffer(block.index, 'uint16');
+            shadowPassEncoder.drawIndexed(block.indexCount);
+        }
+        shadowPassEncoder.end();
+    }
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -547,11 +593,9 @@ export async function render(canvas) {
         await ambientLight();
         await directionalLight();
         //Shadows
-        if (!shadowPipelineManager) {
-            shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            const { bindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
-            await shadowPipelineManager.init(device, bindGroupLayout, pointLightBindGroupLayout);
-        }
+        if (!shadowRenderer)
+            shadowRenderer = new ShadowRenderer(shaderLoader);
+        await shadowRenderer.init(device);
         //Wind
         if (!windManager)
             windManager = new WindManager(tick);
@@ -619,7 +663,7 @@ export async function render(canvas) {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder);
         //Late Renderers
         //Skybox
         if (!skybox) {

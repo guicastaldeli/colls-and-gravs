@@ -18,7 +18,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowPipelineManager } from "./lightning/shadow-renderer.js";
+import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -35,6 +35,7 @@ interface BindGroupResources {
     textureBindGroupLayout: GPUBindGroupLayout;
     lightningBindGroupLayout: GPUBindGroupLayout;
     pointLightBindGroupLayout: GPUBindGroupLayout;
+    shadowBindGroupLayout: GPUBindGroupLayout;
 }
 
 let pipeline: GPURenderPipeline;
@@ -61,7 +62,7 @@ let skybox: Skybox;
 let lightningManager: LightningManager;
 let windManager: WindManager;
 let objectManager: ObjectManager;
-let shadowPipelineManager: ShadowPipelineManager;
+let shadowRenderer: ShadowRenderer;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -170,11 +171,33 @@ async function setBindGroups(): Promise<BindGroupResources> {
             ]
         });
 
+        const shadowBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 64
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 4
+                    }
+                }
+            ]
+        });
+
         return {
             bindGroupLayout, 
             textureBindGroupLayout,
             lightningBindGroupLayout,
-            pointLightBindGroupLayout
+            pointLightBindGroupLayout,
+            shadowBindGroupLayout
         }
     } catch(err) {
         console.log(err);
@@ -370,7 +393,8 @@ async function setBuffers(
     passEncoder: GPURenderPassEncoder,
     viewProjectionMatrix: mat4,
     modelMatrix: mat4,
-    currentTime: number
+    currentTime: number,
+    commandEncoder: GPUCommandEncoder
 ) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
@@ -522,6 +546,51 @@ async function setBuffers(
     }
 
     //Shadows
+    const blockToCastShadows = randomBlocks.filter(block =>
+        block.position[1] > 0.1
+    );
+
+    if(blockToCastShadows.length > 0) {
+        const lightProjection = mat4.ortho(mat4.create(),
+            -10, 10,
+            -10, 10,
+            0.1, 100
+        );
+        const lightView = mat4.lookAt(mat4.create(),
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 1]
+        );
+        const lightViewProjection = mat4.multiply(
+            mat4.create(), 
+            lightProjection, 
+            lightView
+        );
+        
+        shadowRenderer.updateUniforms(device, lightViewProjection);
+
+        const shadowPassDescriptor: GPURenderPassDescriptor = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: shadowRenderer.shadowMapTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            }
+        }
+        
+        const shadowPassEncoder = commandEncoder.beginRenderPass(shadowPassDescriptor);
+        shadowPassEncoder.setPipeline(shadowRenderer.pipeline);
+        shadowPassEncoder.setBindGroup(0, shadowRenderer.bindGroup);
+        
+        for(const block of blockToCastShadows) {
+            shadowPassEncoder.setVertexBuffer(0, block.vertex);
+            shadowPassEncoder.setIndexBuffer(block.index, 'uint16');
+            shadowPassEncoder.drawIndexed(block.indexCount);
+        }
+
+        shadowPassEncoder.end();
+    }
 }
 
 //Color Parser
@@ -646,11 +715,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await directionalLight();
 
         //Shadows
-        if(!shadowPipelineManager) {
-            shadowPipelineManager = new ShadowPipelineManager(shaderLoader);
-            const { bindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
-            await shadowPipelineManager.init(device, bindGroupLayout, pointLightBindGroupLayout);
-        }
+        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
+        await shadowRenderer.init(device);
 
         //Wind
         if(!windManager) windManager = new WindManager(tick);
@@ -740,7 +806,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder);
 
         //Late Renderers
             //Skybox
