@@ -7,7 +7,7 @@ struct FragmentInput {
 
 @group(0) @binding(2) var<uniform> lightPos: vec3f;
 @group(0) @binding(3) var<uniform> shadowParams: vec4f;
-@group(1) @binding(0) var shadowSampler: sampler;
+@group(1) @binding(0) var shadowSampler: sampler_comparison;
 @group(1) @binding(1) var shadowMap: texture_depth_2d;
 
 fn pcfShadow(shadowCoord: vec3f, bias: f32) -> f32 {
@@ -18,12 +18,16 @@ fn pcfShadow(shadowCoord: vec3f, bias: f32) -> f32 {
     for(var x = -1; x < 1; x++) {
         for(var y = -1; y < 1; y++) {
             let sampleCoord = shadowCoord.xy + vec2f(f32(x), f32(y)) * texelSize;
-            let depth = textureSample(shadowMap, shadowSampler, sampleCoord);
-            shadow += select(0.0, 1.0, shadowCoord.z - bias < depth);
+            shadow += textureSampleCompare(
+                shadowMap,
+                shadowSampler,
+                sampleCoord,
+                shadowCoord.z - bias
+            );
         }
     }
 
-    return shadow / f32(samples);
+    return shadow / samples;
 }
 
 @fragment

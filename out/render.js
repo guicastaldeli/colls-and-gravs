@@ -130,24 +130,36 @@ async function setBindGroups() {
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 64
+                    }
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 4
+                    }
                 },
                 {
                     binding: 2,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 16
+                    }
                 },
                 {
                     binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                }
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 16
+                    }
+                },
             ]
         });
         const shadowMapBindGroupLayout = device.createBindGroupLayout({

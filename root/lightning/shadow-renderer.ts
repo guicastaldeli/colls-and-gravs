@@ -16,11 +16,20 @@ interface Map {
     mapFragShader: GPUShaderModule;
 }
 
+interface Buffers {
+    uniformBuffers: GPUBuffer[];
+    lightViewProjBuffer: GPUBuffer;
+    modelMatrixBuffer: GPUBuffer;
+}
+
 export class ShadowRenderer {
     private isInit = false;
     private shaderLoader: ShaderLoader;
     private uniformBuffers!: GPUBuffer[];
+
+    //Sampler
     private _shadowSampler!: GPUSampler;
+    private _shadowSamplerBindGroup!: GPUBindGroup;
 
     //Render
     private _shadowRenderPipeline!: GPURenderPipeline;
@@ -41,6 +50,42 @@ export class ShadowRenderer {
 
     constructor(shaderLoader: ShaderLoader) {
         this.shaderLoader = shaderLoader;
+    }
+
+    private setBuffers(device: GPUDevice): Buffers {
+        this.uniformBuffers = [
+            device.createBuffer({
+                size: 64,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 4,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            })
+        ];
+
+        const lightViewProjBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const modelMatrixBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        
+        return {
+            uniformBuffers: this.uniformBuffers,
+            lightViewProjBuffer: lightViewProjBuffer,
+            modelMatrixBuffer: modelMatrixBuffer
+        }
     }
 
     private async loadShaders(): Promise<Shaders> {
@@ -99,6 +144,12 @@ export class ShadowRenderer {
         if(this.isInit) return;
 
         try {
+            const {
+                uniformBuffers,
+                lightViewProjBuffer,
+                modelMatrixBuffer
+            } = this.setBuffers(device);
+
             const { 
                 shadowBindGroupLayout, 
                 shadowMapBindGroupLayout,
@@ -133,25 +184,6 @@ export class ShadowRenderer {
                 minFilter: 'linear',
                 compare: 'less'
             });
-
-            this.uniformBuffers = [
-                device.createBuffer({
-                    size: 64,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 4,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-            ];
 
             //Render
                 this._shadowRenderPipeline = device.createRenderPipeline({
@@ -231,6 +263,20 @@ export class ShadowRenderer {
                         }
                     ]
                 });
+
+                this._shadowSamplerBindGroup = device.createBindGroup({
+                    layout: shadowSamplerBindGroupLayout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: this._shadowSampler
+                        },
+                        {
+                            binding: 1,
+                            resource: this._shadowMapView
+                        }
+                    ]
+                })
             //
 
             //Map
@@ -276,11 +322,11 @@ export class ShadowRenderer {
                     entries: [
                         {
                             binding: 0,
-                            resource: this._shadowSampler
+                            resource: { buffer: lightViewProjBuffer }
                         },
                         {
                             binding: 1,
-                            resource: this._shadowMapView
+                            resource: { buffer: modelMatrixBuffer }
                         }
                     ]
                 });
@@ -339,8 +385,6 @@ export class ShadowRenderer {
         mainPassEncoder: GPURenderPassEncoder
     ): Promise<void> {
         try {
-            const { shadowBindGroupLayout } = await getBindGroups();
-    
             const shadowCasters = objects.filter(obj =>
                 obj.position && obj.position[1] > 0.1
             );
@@ -348,31 +392,9 @@ export class ShadowRenderer {
     
             this.updateUniforms(device, shadowCasters);
             mainPassEncoder.setPipeline(this._shadowRenderPipeline);
-    
-            const shadowBindGroup = device.createBindGroup({
-                layout: shadowBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: this.uniformBuffers[0] }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: this.uniformBuffers[1] }
-                    },
-                    {
-                        binding: 2,
-                        resource: { buffer: this.uniformBuffers[2] }
-                    },
-                    {
-                        binding: 3,
-                        resource: { buffer: this.uniformBuffers[3] }
-                    }
-                ] 
-            });
 
-            mainPassEncoder.setBindGroup(0, shadowBindGroup);
-            mainPassEncoder.setBindGroup(1, this._shadowMapBindGroup);
+            mainPassEncoder.setBindGroup(0, this._shadowRenderBindGroup);
+            mainPassEncoder.setBindGroup(1, this._shadowSamplerBindGroup);
 
             for(const obj of shadowCasters) {
                 if(obj.vertex && obj.index) {

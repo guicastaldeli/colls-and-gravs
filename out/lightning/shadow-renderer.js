@@ -4,7 +4,9 @@ export class ShadowRenderer {
     isInit = false;
     shaderLoader;
     uniformBuffers;
+    //Sampler
     _shadowSampler;
+    _shadowSamplerBindGroup;
     //Render
     _shadowRenderPipeline;
     _shadowRenderBindGroup;
@@ -21,6 +23,39 @@ export class ShadowRenderer {
     lightIntensity = 1.0;
     constructor(shaderLoader) {
         this.shaderLoader = shaderLoader;
+    }
+    setBuffers(device) {
+        this.uniformBuffers = [
+            device.createBuffer({
+                size: 64,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 4,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            }),
+            device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            })
+        ];
+        const lightViewProjBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const modelMatrixBuffer = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        return {
+            uniformBuffers: this.uniformBuffers,
+            lightViewProjBuffer: lightViewProjBuffer,
+            modelMatrixBuffer: modelMatrixBuffer
+        };
     }
     async loadShaders() {
         try {
@@ -65,6 +100,7 @@ export class ShadowRenderer {
         if (this.isInit)
             return;
         try {
+            const { uniformBuffers, lightViewProjBuffer, modelMatrixBuffer } = this.setBuffers(device);
             const { shadowBindGroupLayout, shadowMapBindGroupLayout, shadowSamplerBindGroupLayout } = await getBindGroups();
             const { renderVertexShader, renderFragShader, mapVertexShader, mapFragShader } = await this.createMapShaders(device);
             const renderShaders = {
@@ -86,24 +122,6 @@ export class ShadowRenderer {
                 minFilter: 'linear',
                 compare: 'less'
             });
-            this.uniformBuffers = [
-                device.createBuffer({
-                    size: 64,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 4,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-            ];
             //Render
             this._shadowRenderPipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
@@ -181,6 +199,19 @@ export class ShadowRenderer {
                     }
                 ]
             });
+            this._shadowSamplerBindGroup = device.createBindGroup({
+                layout: shadowSamplerBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this._shadowSampler
+                    },
+                    {
+                        binding: 1,
+                        resource: this._shadowMapView
+                    }
+                ]
+            });
             //
             //Map
             this._shadowMapPipeline = device.createRenderPipeline({
@@ -223,11 +254,11 @@ export class ShadowRenderer {
                 entries: [
                     {
                         binding: 0,
-                        resource: this._shadowSampler
+                        resource: { buffer: lightViewProjBuffer }
                     },
                     {
                         binding: 1,
-                        resource: this._shadowMapView
+                        resource: { buffer: modelMatrixBuffer }
                     }
                 ]
             });
@@ -263,35 +294,13 @@ export class ShadowRenderer {
     }
     async renderShadows(device, commandEncoder, objects, mainPassEncoder) {
         try {
-            const { shadowBindGroupLayout } = await getBindGroups();
             const shadowCasters = objects.filter(obj => obj.position && obj.position[1] > 0.1);
             if (shadowCasters.length === 0)
                 return;
             this.updateUniforms(device, shadowCasters);
             mainPassEncoder.setPipeline(this._shadowRenderPipeline);
-            const shadowBindGroup = device.createBindGroup({
-                layout: shadowBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: this.uniformBuffers[0] }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: this.uniformBuffers[1] }
-                    },
-                    {
-                        binding: 2,
-                        resource: { buffer: this.uniformBuffers[2] }
-                    },
-                    {
-                        binding: 3,
-                        resource: { buffer: this.uniformBuffers[3] }
-                    }
-                ]
-            });
-            mainPassEncoder.setBindGroup(0, shadowBindGroup);
-            mainPassEncoder.setBindGroup(1, this._shadowMapBindGroup);
+            mainPassEncoder.setBindGroup(0, this._shadowRenderBindGroup);
+            mainPassEncoder.setBindGroup(1, this._shadowSamplerBindGroup);
             for (const obj of shadowCasters) {
                 if (obj.vertex && obj.index) {
                     mainPassEncoder.setVertexBuffer(0, obj.vertex);
