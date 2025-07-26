@@ -18,7 +18,7 @@ fn main(input: VertexInput) -> VertexOutput {
 
     let shadowPos = vec3f(
         input.position.x,
-        groundLevel + 0.1,
+        groundLevel + 0.01,
         input.position.z
     );
 

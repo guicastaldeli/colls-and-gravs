@@ -57,16 +57,11 @@ export class ShadowRenderer {
                     module: vertexShader,
                     entryPoint: 'main',
                     buffers: [{
-                        arrayStride: 8 * 4,
+                        arrayStride: 3 * 4,
                         attributes: [
                             {
                                 shaderLocation: 0,
                                 offset: 0,
-                                format: 'float32x3'
-                            },
-                            {
-                                shaderLocation: 2,
-                                offset: 5 * 4,
                                 format: 'float32x3'
                             }
                         ]

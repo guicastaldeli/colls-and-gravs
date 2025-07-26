@@ -573,7 +573,6 @@ async function setBuffers(
             passEncoder.setIndexBuffer(block.index, 'uint16');
             passEncoder.drawIndexed(block.indexCount);
         }
-
     }
 }
 
