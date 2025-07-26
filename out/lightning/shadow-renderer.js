@@ -65,7 +65,7 @@ export class ShadowRenderer {
         if (this.isInit)
             return;
         try {
-            const { shadowBindGroupLayout, shadowMapBindGroupLayout } = await getBindGroups();
+            const { shadowBindGroupLayout, shadowMapBindGroupLayout, shadowSamplerBindGroupLayout } = await getBindGroups();
             const { renderVertexShader, renderFragShader, mapVertexShader, mapFragShader } = await this.createMapShaders(device);
             const renderShaders = {
                 renderVertexShader: renderVertexShader,
@@ -86,10 +86,31 @@ export class ShadowRenderer {
                 minFilter: 'linear',
                 compare: 'less'
             });
+            this.uniformBuffers = [
+                device.createBuffer({
+                    size: 64,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                }),
+                device.createBuffer({
+                    size: 4,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                }),
+                device.createBuffer({
+                    size: 16,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                }),
+                device.createBuffer({
+                    size: 16,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                })
+            ];
             //Render
             this._shadowRenderPipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowBindGroupLayout]
+                    bindGroupLayouts: [
+                        shadowBindGroupLayout,
+                        shadowSamplerBindGroupLayout
+                    ]
                 }),
                 vertex: {
                     module: renderShaders.renderVertexShader,
@@ -144,11 +165,19 @@ export class ShadowRenderer {
                 entries: [
                     {
                         binding: 0,
-                        resource: this._shadowSampler
+                        resource: { buffer: this.uniformBuffers[0] }
                     },
                     {
                         binding: 1,
-                        resource: this._shadowMapView
+                        resource: { buffer: this.uniformBuffers[1] }
+                    },
+                    {
+                        binding: 2,
+                        resource: { buffer: this.uniformBuffers[2] }
+                    },
+                    {
+                        binding: 3,
+                        resource: { buffer: this.uniformBuffers[3] }
                     }
                 ]
             });
@@ -190,37 +219,19 @@ export class ShadowRenderer {
                 }
             });
             this._shadowMapBindGroup = device.createBindGroup({
-                layout: shadowBindGroupLayout,
+                layout: shadowMapBindGroupLayout,
                 entries: [
                     {
                         binding: 0,
-                        resource: { buffer: this.uniformBuffers[0] }
+                        resource: this._shadowSampler
                     },
                     {
                         binding: 1,
-                        resource: { buffer: this.uniformBuffers[1] }
+                        resource: this._shadowMapView
                     }
                 ]
             });
             //
-            this.uniformBuffers = [
-                device.createBuffer({
-                    size: 64,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 4,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                }),
-                device.createBuffer({
-                    size: 16,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-            ];
             this.isInit = true;
         }
         catch (err) {
@@ -280,7 +291,7 @@ export class ShadowRenderer {
                 ]
             });
             mainPassEncoder.setBindGroup(0, shadowBindGroup);
-            mainPassEncoder.setBindGroup(1, this._shadowRenderBindGroup);
+            mainPassEncoder.setBindGroup(1, this._shadowMapBindGroup);
             for (const obj of shadowCasters) {
                 if (obj.vertex && obj.index) {
                     mainPassEncoder.setVertexBuffer(0, obj.vertex);

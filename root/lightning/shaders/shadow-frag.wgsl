@@ -5,7 +5,6 @@ struct FragmentInput {
     @location(3) distanceToGround: f32
 }
 
-@group(0) @binding(1) var<uniform> groundLevel: f32;
 @group(0) @binding(2) var<uniform> lightPos: vec3f;
 @group(0) @binding(3) var<uniform> shadowParams: vec4f;
 @group(1) @binding(0) var shadowSampler: sampler;

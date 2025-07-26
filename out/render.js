@@ -131,18 +131,22 @@ async function setBindGroups() {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        minBindingSize: 64
-                    }
+                    buffer: { type: 'uniform' }
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: {
-                        type: 'uniform',
-                        minBindingSize: 4
-                    }
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
                 }
             ]
         });
@@ -151,18 +155,26 @@ async function setBindGroups() {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'uniform',
-                        minBindingSize: 16
-                    }
+                    buffer: { type: 'uniform' }
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: {
-                        type: 'uniform',
-                        minBindingSize: 16
-                    }
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                }
+            ]
+        });
+        const shadowSamplerBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
                 }
             ]
         });
@@ -172,7 +184,8 @@ async function setBindGroups() {
             lightningBindGroupLayout,
             pointLightBindGroupLayout,
             shadowBindGroupLayout,
-            shadowMapBindGroupLayout
+            shadowMapBindGroupLayout,
+            shadowSamplerBindGroupLayout
         };
     }
     catch (err) {
