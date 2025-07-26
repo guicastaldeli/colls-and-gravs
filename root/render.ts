@@ -36,6 +36,7 @@ interface BindGroupResources {
     lightningBindGroupLayout: GPUBindGroupLayout;
     pointLightBindGroupLayout: GPUBindGroupLayout;
     shadowBindGroupLayout: GPUBindGroupLayout;
+    shadowMapBindGroupLayout: GPUBindGroupLayout;
 }
 
 let pipeline: GPURenderPipeline;
@@ -191,12 +192,34 @@ async function setBindGroups(): Promise<BindGroupResources> {
             ]
         });
 
+        const shadowMapBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 16
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'uniform',
+                        minBindingSize: 16
+                    }
+                }
+            ]
+        });
+
         return {
             bindGroupLayout, 
             textureBindGroupLayout,
             lightningBindGroupLayout,
             pointLightBindGroupLayout,
-            shadowBindGroupLayout
+            shadowBindGroupLayout,
+            shadowMapBindGroupLayout
         }
     } catch(err) {
         console.log(err);
@@ -545,35 +568,13 @@ async function setBuffers(
     }
 
     //Shadows
-    const blockToCastShadows = randomBlocks.filter(block =>
-        block.position[1] > 0.1
+    const shadowObjs = [...renderBuffers];
+    shadowRenderer.renderShadows(
+        device,
+        commandEncoder,
+        shadowObjs,
+        passEncoder
     );
-
-    if(blockToCastShadows.length > 0) {
-        const lightProjection = mat4.ortho(mat4.create(),
-            -10, 10,
-            -10, 10,
-            0.1, 100
-        );
-        const lightView = mat4.lookAt(mat4.create(),
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 1]
-        );
-        const lightViewProjection = mat4.multiply(
-            mat4.create(), 
-            lightProjection, 
-            lightView
-        );
-        
-        shadowRenderer.updateUniforms(device, lightViewProjection);
-        
-        for(const block of blockToCastShadows) {
-            passEncoder.setVertexBuffer(0, block.vertex);
-            passEncoder.setIndexBuffer(block.index, 'uint16');
-            passEncoder.drawIndexed(block.indexCount);
-        }
-    }
 }
 
 //Color Parser
@@ -698,8 +699,15 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await directionalLight();
 
         //Shadows
-        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
-        await shadowRenderer.init(device);
+        if(!shadowRenderer) {
+            shadowRenderer = new ShadowRenderer(shaderLoader);
+            await shadowRenderer.init(device);
+
+            const time = currentTime * 0.0005;
+            const lightX = Math.cos(time) * 15.0;
+            const lightZ = Math.sin(time) * 15.0;
+            shadowRenderer.updateLightPosition([lightX, 12.0, lightZ]);
+        }
 
         //Wind
         if(!windManager) windManager = new WindManager(tick);

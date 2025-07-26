@@ -20,7 +20,6 @@ export class ShadowRenderer {
     private isInit = false;
     private shaderLoader: ShaderLoader;
     private uniformBuffers!: GPUBuffer[];
-    private bindGroup!: GPUBindGroup;
     private _shadowSampler!: GPUSampler;
 
     //Render
@@ -100,7 +99,7 @@ export class ShadowRenderer {
         if(this.isInit) return;
 
         try {
-            const { shadowBindGroupLayout } = await getBindGroups();
+            const { shadowBindGroupLayout, shadowMapBindGroupLayout } = await getBindGroups();
 
             const {
                 renderVertexShader,
@@ -132,95 +131,126 @@ export class ShadowRenderer {
             });
 
             //Render
-            this._shadowRenderPipeline = device.createRenderPipeline({
-                layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowBindGroupLayout]
-                }),
-                vertex: {
-                    module: renderShaders.renderVertexShader,
-                    entryPoint: 'main',
-                    buffers: [{
-                        arrayStride: 8 * 4,
-                        attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3'
-                            },
-                            {
-                                shaderLocation: 2,
-                                offset: 5 * 4,
-                                format: 'float32x3'
+                this._shadowRenderPipeline = device.createRenderPipeline({
+                    layout: device.createPipelineLayout({
+                        bindGroupLayouts: [shadowBindGroupLayout]
+                    }),
+                    vertex: {
+                        module: renderShaders.renderVertexShader,
+                        entryPoint: 'main',
+                        buffers: [{
+                            arrayStride: 8 * 4,
+                            attributes: [
+                                {
+                                    shaderLocation: 0,
+                                    offset: 0,
+                                    format: 'float32x3'
+                                },
+                                {
+                                    shaderLocation: 2,
+                                    offset: 5 * 4,
+                                    format: 'float32x3'
+                                }
+                            ]
+                        }]
+                    },
+                    fragment: {
+                        module: renderShaders.renderFragShader,
+                        entryPoint: 'main',
+                        targets: [{
+                            format: navigator.gpu.getPreferredCanvasFormat(),
+                            blend: {
+                                color: {
+                                    srcFactor: 'src-alpha',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                },
+                                alpha: {
+                                    srcFactor: 'one',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                }
                             }
-                        ]
-                    }]
-                },
-                fragment: {
-                    module: renderShaders.renderFragShader,
-                    entryPoint: 'main',
-                    targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat(),
-                        blend: {
-                            color: {
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha',
-                                operation: 'add'
-                            },
-                            alpha: {
-                                srcFactor: 'one',
-                                dstFactor: 'one-minus-src-alpha',
-                                operation: 'add'
-                            }
+                        }]
+                    },
+                    primitive: {
+                        topology: 'triangle-list',
+                        cullMode: 'none'
+                    },
+                    depthStencil: {
+                        depthWriteEnabled: false,
+                        depthCompare: 'less-equal',
+                        format: 'depth24plus'
+                    }
+                });
+
+                this._shadowRenderBindGroup = device.createBindGroup({
+                    layout: shadowBindGroupLayout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: this._shadowSampler
+                        },
+                        {
+                            binding: 1,
+                            resource: this._shadowMapView
                         }
-                    }]
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                    cullMode: 'none'
-                },
-                depthStencil: {
-                    depthWriteEnabled: false,
-                    depthCompare: 'less-equal',
-                    format: 'depth24plus'
-                }
-            })
+                    ]
+                });
+            //
 
             //Map
-            this._shadowMapPipeline = device.createRenderPipeline({
-                layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowBindGroupLayout]
-                }),
-                vertex: {
-                    module: mapShaders.mapVertexShader,
-                    entryPoint: 'main',
-                    buffers: [{
-                        arrayStride: 3 * 4,
-                        attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3'
-                            }
-                        ]
-                    }]
-                },
-                fragment: {
-                    module: mapShaders.mapFragShader,
-                    entryPoint: 'main',
-                    targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat()
-                    }]
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                    cullMode: 'back'
-                },
-                depthStencil: {
-                    depthWriteEnabled: true,
-                    depthCompare: 'less',
-                    format: 'depth32float'
-                }
-            });
+                this._shadowMapPipeline = device.createRenderPipeline({
+                    layout: device.createPipelineLayout({
+                        bindGroupLayouts: [shadowMapBindGroupLayout]
+                    }),
+                    vertex: {
+                        module: mapShaders.mapVertexShader,
+                        entryPoint: 'main',
+                        buffers: [{
+                            arrayStride: 3 * 4,
+                            attributes: [
+                                {
+                                    shaderLocation: 0,
+                                    offset: 0,
+                                    format: 'float32x3'
+                                }
+                            ]
+                        }]
+                    },
+                    fragment: {
+                        module: mapShaders.mapFragShader,
+                        entryPoint: 'main',
+                        targets: [{
+                            format: navigator.gpu.getPreferredCanvasFormat()
+                        }]
+                    },
+                    primitive: {
+                        topology: 'triangle-list',
+                        cullMode: 'back'
+                    },
+                    depthStencil: {
+                        depthWriteEnabled: true,
+                        depthCompare: 'less',
+                        format: 'depth32float'
+                    }
+                });
+
+                
+                this._shadowMapBindGroup = device.createBindGroup({
+                    layout: shadowBindGroupLayout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: { buffer: this.uniformBuffers[0] }
+                        },
+                        {
+                            binding: 1,
+                            resource: { buffer: this.uniformBuffers[1] }
+                        }
+                    ]
+                });
+            //
 
             this.uniformBuffers = [
                 device.createBuffer({
@@ -241,37 +271,11 @@ export class ShadowRenderer {
                 })
             ];
 
-            this.bindGroup = device.createBindGroup({
-                layout: shadowBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: this.uniformBuffers[0] }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: this.uniformBuffers[1] }
-                    },
-                    {
-                        binding: 2,
-                        resource: this._shadowSampler
-                    },
-                    {
-                        binding: 3,
-                        resource: this._shadowMapView
-                    }
-                ]
-            });
-
             this.isInit = true;
         } catch(err) {
             console.log(err);
             throw err;
         }
-    }
-
-    private groundLevel(): number {
-        return 0.0;
     }
 
     public updateLightPosition(position: vec3): void {
@@ -373,7 +377,7 @@ export class ShadowRenderer {
     }
 
     get getBindGroup(): GPUBindGroup {
-        return this.bindGroup;
+        return this._shadowRenderBindGroup;
     }
 
     get shadowMapTexture(): GPUTexture {

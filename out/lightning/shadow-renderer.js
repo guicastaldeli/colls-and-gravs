@@ -4,7 +4,6 @@ export class ShadowRenderer {
     isInit = false;
     shaderLoader;
     uniformBuffers;
-    bindGroup;
     _shadowSampler;
     //Render
     _shadowRenderPipeline;
@@ -66,7 +65,7 @@ export class ShadowRenderer {
         if (this.isInit)
             return;
         try {
-            const { shadowBindGroupLayout } = await getBindGroups();
+            const { shadowBindGroupLayout, shadowMapBindGroupLayout } = await getBindGroups();
             const { renderVertexShader, renderFragShader, mapVertexShader, mapFragShader } = await this.createMapShaders(device);
             const renderShaders = {
                 renderVertexShader: renderVertexShader,
@@ -140,10 +139,24 @@ export class ShadowRenderer {
                     format: 'depth24plus'
                 }
             });
+            this._shadowRenderBindGroup = device.createBindGroup({
+                layout: shadowBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this._shadowSampler
+                    },
+                    {
+                        binding: 1,
+                        resource: this._shadowMapView
+                    }
+                ]
+            });
+            //
             //Map
             this._shadowMapPipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowBindGroupLayout]
+                    bindGroupLayouts: [shadowMapBindGroupLayout]
                 }),
                 vertex: {
                     module: mapShaders.mapVertexShader,
@@ -176,6 +189,20 @@ export class ShadowRenderer {
                     format: 'depth32float'
                 }
             });
+            this._shadowMapBindGroup = device.createBindGroup({
+                layout: shadowBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: { buffer: this.uniformBuffers[0] }
+                    },
+                    {
+                        binding: 1,
+                        resource: { buffer: this.uniformBuffers[1] }
+                    }
+                ]
+            });
+            //
             this.uniformBuffers = [
                 device.createBuffer({
                     size: 64,
@@ -194,36 +221,12 @@ export class ShadowRenderer {
                     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
                 })
             ];
-            this.bindGroup = device.createBindGroup({
-                layout: shadowBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: this.uniformBuffers[0] }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: this.uniformBuffers[1] }
-                    },
-                    {
-                        binding: 2,
-                        resource: this._shadowSampler
-                    },
-                    {
-                        binding: 3,
-                        resource: this._shadowMapView
-                    }
-                ]
-            });
             this.isInit = true;
         }
         catch (err) {
             console.log(err);
             throw err;
         }
-    }
-    groundLevel() {
-        return 0.0;
     }
     updateLightPosition(position) {
         vec3.copy(this.lightPosition, position);
@@ -295,7 +298,7 @@ export class ShadowRenderer {
         return this._shadowRenderPipeline;
     }
     get getBindGroup() {
-        return this.bindGroup;
+        return this._shadowRenderBindGroup;
     }
     get shadowMapTexture() {
         return this._shadowMapTexture;
