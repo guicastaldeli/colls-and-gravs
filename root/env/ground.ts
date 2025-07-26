@@ -11,7 +11,6 @@ export class Ground implements ICollidable {
 
     private blocks: EnvBufferData[];
     private count: number = 20;
-
     private _Collider: BoxCollider[] = [];
 
     pos = {

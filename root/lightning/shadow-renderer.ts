@@ -1,6 +1,7 @@
 import { vec3, mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { ShaderLoader } from "../shader-loader.js";
 import { getBindGroups } from "../render.js";
+import { RandomBlocks } from "../env/obj/random-blocks/random-blocks.js";
 
 interface Shaders {
     renderVertexShader: string;
@@ -26,6 +27,7 @@ export class ShadowRenderer {
     private isInit = false;
     private shaderLoader: ShaderLoader;
     private uniformBuffers!: GPUBuffer[];
+    private groundLevel: number = 0.3;
 
     //Sampler
     private _shadowSampler!: GPUSampler;
@@ -363,7 +365,7 @@ export class ShadowRenderer {
         );
 
         device.queue.writeBuffer(this.uniformBuffers[0], 0, lightViewProjection as Float32Array);
-        device.queue.writeBuffer(this.uniformBuffers[1], 0, new Float32Array([0.0]));
+        device.queue.writeBuffer(this.uniformBuffers[1], 0, new Float32Array([this.groundLevel]));
         device.queue.writeBuffer(this.uniformBuffers[2], 0, new Float32Array([
             this.lightPosition[0],
             this.lightPosition[1],
@@ -406,6 +408,13 @@ export class ShadowRenderer {
         } catch(err) {
             console.error(err);
             throw err;
+        }
+    }
+
+    public async updateGroundLevel(randomBlocks: RandomBlocks[]): Promise<void> {
+        for(const block of randomBlocks) {
+            const positions = await block.getPositions();
+            console.log(`Block position - X: ${positions.x}, Z: ${positions.z}`);
         }
     }
 

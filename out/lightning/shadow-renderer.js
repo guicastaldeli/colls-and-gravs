@@ -4,6 +4,7 @@ export class ShadowRenderer {
     isInit = false;
     shaderLoader;
     uniformBuffers;
+    groundLevel = 0.3;
     //Sampler
     _shadowSampler;
     _shadowSamplerBindGroup;
@@ -278,7 +279,7 @@ export class ShadowRenderer {
         const lightView = mat4.lookAt(mat4.create(), this.lightPosition, this.lightTarget, [0, 1, 0]);
         const lightViewProjection = mat4.multiply(mat4.create(), lightProjection, lightView);
         device.queue.writeBuffer(this.uniformBuffers[0], 0, lightViewProjection);
-        device.queue.writeBuffer(this.uniformBuffers[1], 0, new Float32Array([0.0]));
+        device.queue.writeBuffer(this.uniformBuffers[1], 0, new Float32Array([this.groundLevel]));
         device.queue.writeBuffer(this.uniformBuffers[2], 0, new Float32Array([
             this.lightPosition[0],
             this.lightPosition[1],
@@ -312,6 +313,12 @@ export class ShadowRenderer {
         catch (err) {
             console.error(err);
             throw err;
+        }
+    }
+    async updateGroundLevel(randomBlocks) {
+        for (const block of randomBlocks) {
+            const positions = await block.getPositions();
+            console.log(`Block position - X: ${positions.x}, Z: ${positions.z}`);
         }
     }
     get pipeline() {

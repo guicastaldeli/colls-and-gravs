@@ -503,7 +503,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     }
     //Shadows
     const shadowObjs = [...renderBuffers];
-    shadowRenderer.renderShadows(device, commandEncoder, shadowObjs, passEncoder);
+    if (shadowRenderer) {
+        shadowRenderer.updateUniforms(device, shadowObjs);
+        await shadowRenderer.updateGroundLevel(randomBlocks);
+        shadowRenderer.renderShadows(device, commandEncoder, shadowObjs, passEncoder);
+    }
 }
 //Color Parser
 export function parseColor(rgb) {

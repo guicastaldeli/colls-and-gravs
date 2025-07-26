@@ -456,8 +456,8 @@ async function setBuffers(
     
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => (rb as any).getBlocks());
+    
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
-
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
         size: bufferSize * 5,
@@ -596,12 +596,16 @@ async function setBuffers(
 
     //Shadows
     const shadowObjs = [...renderBuffers];
-    shadowRenderer.renderShadows(
-        device,
-        commandEncoder,
-        shadowObjs,
-        passEncoder
-    );
+    if(shadowRenderer) {
+        shadowRenderer.updateUniforms(device, shadowObjs);
+        await shadowRenderer.updateGroundLevel(randomBlocks);
+        shadowRenderer.renderShadows(
+            device,
+            commandEncoder,
+            shadowObjs,
+            passEncoder
+        );
+    }
 }
 
 //Color Parser
