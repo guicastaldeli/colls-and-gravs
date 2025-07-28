@@ -17,8 +17,8 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
 
     let worldPos = input.worldPos;
     let cameraPos = input.cameraPos;
-    let dFdxPos = dpdx(input.worldPos);
-    let dFdyPos = dpdy(input.worldPos);
+    let dFdxPos = dpdx(worldPos);
+    let dFdyPos = dpdy(worldPos);
     let calculatedNormal = normalize(cross(dFdxPos, dFdyPos));
     
     var finalColor = applyAmbientLight(baseColor);
