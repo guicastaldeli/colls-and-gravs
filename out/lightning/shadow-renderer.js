@@ -315,12 +315,6 @@ export class ShadowRenderer {
             throw err;
         }
     }
-    async updateGroundLevel(randomBlocks) {
-        for (const block of randomBlocks) {
-            const positions = await block.getPositions();
-            console.log(`Block position - X: ${positions.x}, Z: ${positions.z}`);
-        }
-    }
     get pipeline() {
         return this._shadowRenderPipeline;
     }

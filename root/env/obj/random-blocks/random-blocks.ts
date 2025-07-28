@@ -43,11 +43,6 @@ interface SharedResource {
     referenceCount: number;
 }
 
-interface Positions {
-    x: number;
-    z: number
-}
-
 @Injectable()
 export class RandomBlocks implements ICollidable {
     private tick: Tick;
@@ -527,14 +522,6 @@ export class RandomBlocks implements ICollidable {
 
     public getPosition(): vec3 {
         return vec3.fromValues(0, 0, 0);
-    }
-
-    public async getPositions(): Promise<Positions> {
-        if(this.blocks.length === 0) return { x: 0, z: 0 }
-        return {
-            x: this.blocks[0].position[0],
-            z: this.blocks[0].position[2]
-        }
     }
 
     public getCollider(): Collider {

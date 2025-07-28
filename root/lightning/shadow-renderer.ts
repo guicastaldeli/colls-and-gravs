@@ -411,13 +411,6 @@ export class ShadowRenderer {
         }
     }
 
-    public async updateGroundLevel(randomBlocks: RandomBlocks[]): Promise<void> {
-        for(const block of randomBlocks) {
-            const positions = await block.getPositions();
-            console.log(`Block position - X: ${positions.x}, Z: ${positions.z}`);
-        }
-    }
-
     get pipeline(): GPURenderPipeline {
         return this._shadowRenderPipeline;
     }

@@ -396,14 +396,6 @@ let RandomBlocks = class RandomBlocks {
     getPosition() {
         return vec3.fromValues(0, 0, 0);
     }
-    async getPositions() {
-        if (this.blocks.length === 0)
-            return { x: 0, z: 0 };
-        return {
-            x: this.blocks[0].position[0],
-            z: this.blocks[0].position[2]
-        };
-    }
     getCollider() {
         throw new Error('.');
     }

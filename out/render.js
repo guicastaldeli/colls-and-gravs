@@ -505,7 +505,6 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     const shadowObjs = [...renderBuffers];
     if (shadowRenderer) {
         shadowRenderer.updateUniforms(device, shadowObjs);
-        await shadowRenderer.updateGroundLevel(randomBlocks);
         shadowRenderer.renderShadows(device, commandEncoder, shadowObjs, passEncoder);
     }
 }
@@ -618,15 +617,6 @@ export async function render(canvas) {
             lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
-        //Shadows
-        if (!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(shaderLoader);
-            await shadowRenderer.init(device);
-            const time = currentTime * 0.0005;
-            const lightX = Math.cos(time) * 15.0;
-            const lightZ = Math.sin(time) * 15.0;
-            shadowRenderer.updateLightPosition([lightX, 12.0, lightZ]);
-        }
         //Wind
         if (!windManager)
             windManager = new WindManager(tick);
@@ -712,6 +702,15 @@ export async function render(canvas) {
         if (randomBlocks)
             randomBlocks.init(canvas, playerController, format, hud);
         //
+        //Shadows
+        if (!shadowRenderer) {
+            shadowRenderer = new ShadowRenderer(shaderLoader);
+            await shadowRenderer.init(device);
+            const time = currentTime * 0.0005;
+            const lightX = Math.cos(time) * 15.0;
+            const lightZ = Math.sin(time) * 15.0;
+            shadowRenderer.updateLightPosition([lightX, 12.0, lightZ]);
+        }
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));
