@@ -151,7 +151,7 @@ export class ShadowRenderer {
                 format: 'depth24plus',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
-            const { vertexShader, fragShader, depthShader } = await this.loadShaders();
+            const { vertexShader, fragShader, depthVertexShader, depthFragShader } = await this.loadShaders();
             const { shadowMapBindGroupLayout, depthBindGroupLayout } = await getBindGroups();
             //Shape
             const shapePipeline = device.createRenderPipeline({
@@ -201,7 +201,7 @@ export class ShadowRenderer {
                     bindGroupLayouts: [shadowMapBindGroupLayout]
                 }),
                 vertex: {
-                    module: depthShader,
+                    module: depthVertexShader,
                     entryPoint: 'main',
                     buffers: [
                         {
@@ -220,6 +220,14 @@ export class ShadowRenderer {
                             ]
                         }
                     ]
+                },
+                fragment: {
+                    module: depthFragShader,
+                    entryPoint: 'main',
+                    targets: [{
+                            format: navigator.gpu.getPreferredCanvasFormat(),
+                            writeMask: 0
+                        }]
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
@@ -241,15 +249,17 @@ export class ShadowRenderer {
     }
     async loadShaders() {
         try {
-            const [vertexSrc, fragSrc, depthSrc] = await Promise.all([
+            const [vertexSrc, fragSrc, depthVertexSrc, depthFragSrc] = await Promise.all([
                 this.shaderLoader.loader('./lightning/shaders/shadow-vertex.wgsl'),
                 this.shaderLoader.loader('./lightning/shaders/shadow-frag.wgsl'),
-                this.shaderLoader.loader('./lightning/shaders/shadow-depth.wgsl')
+                this.shaderLoader.loader('./lightning/shaders/shadow-depth-vertex.wgsl'),
+                this.shaderLoader.loader('./lightning/shaders/shadow-depth-frag.wgsl')
             ]);
             return {
                 vertexShader: vertexSrc,
                 fragShader: fragSrc,
-                depthShader: depthSrc
+                depthVertexShader: depthVertexSrc,
+                depthFragShader: depthFragSrc
             };
         }
         catch (err) {
@@ -257,7 +267,7 @@ export class ShadowRenderer {
             throw err;
         }
     }
-    async draw(commandEncoder, device, objects) {
+    async draw(commandEncoder, device, passEncoder, objects) {
         if (!this.isInit || !this.pipelines || !this.buffers || !this.depthTexture || !this.bindGroups) {
             throw new Error('Shadow Renderer not initalized!');
         }
@@ -266,10 +276,6 @@ export class ShadowRenderer {
             obj.indexBuffer &&
             obj.indexCount > 0 &&
             obj.modelMatrix);
-        if (validObjects.length === 0) {
-            console.warn('No valid objects!');
-            return;
-        }
         const modelMatrices = validObjects.flatMap(obj => {
             if (!obj.modelMatrix) {
                 console.warn('Object missing modelMatrix', obj);
@@ -291,23 +297,13 @@ export class ShadowRenderer {
             const normalArray = new Float32Array(normalMatrices);
             device.queue.writeBuffer(this.buffers.modelBuffer, 0, modelArray.buffer, modelArray.byteOffset, modelArray.byteLength);
             device.queue.writeBuffer(this.buffers.normalBuffer, 0, normalArray.buffer, normalArray.byteOffset, normalArray.byteLength);
-            const shadowPass = commandEncoder.beginRenderPass({
-                colorAttachments: [],
-                depthStencilAttachment: {
-                    view: this.depthTexture.createView(),
-                    depthClearValue: 1.0,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store'
-                }
-            });
-            shadowPass.setPipeline(this.pipelines.depthPipeline);
-            shadowPass.setBindGroup(0, this.bindGroups.shadow);
+            passEncoder.setPipeline(this.pipelines.depthPipeline);
+            passEncoder.setBindGroup(0, this.bindGroups.shadow);
             for (const obj of validObjects) {
-                shadowPass.setVertexBuffer(0, obj.vertexBuffer);
-                shadowPass.setIndexBuffer(obj.indexBuffer, 'uint16');
-                shadowPass.drawIndexed(obj.indexCount);
+                passEncoder.setVertexBuffer(4, obj.vertexBuffer);
+                passEncoder.setIndexBuffer(obj.indexBuffer, 'uint16');
+                passEncoder.drawIndexed(obj.indexCount);
             }
-            shadowPass.end();
         }
         catch (err) {
             console.error(err);

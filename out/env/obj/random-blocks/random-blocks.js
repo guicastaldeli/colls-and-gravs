@@ -407,12 +407,22 @@ let RandomBlocks = class RandomBlocks {
         }));
     }
     async getShadowData() {
-        return this.blocks.map(block => ({
-            vertex: block.vertex,
-            index: block.index,
-            indexCount: block.indexCount,
-            modelMatrix: block.modelMatrix
-        }));
+        return this.blocks.map(block => {
+            if (!block.vertex || !block.index || !block.modelMatrix) {
+                console.warn('Invalid data', block);
+                return null;
+            }
+            const normalMatrix = mat4.create();
+            mat4.invert(normalMatrix, block.modelMatrix);
+            mat4.transpose(normalMatrix, normalMatrix);
+            return {
+                vertex: block.vertex,
+                index: block.index,
+                indexCount: block.indexCount,
+                modelMatrix: block.modelMatrix,
+                normalMatrix: normalMatrix
+            };
+        }).filter((item) => item !== null);
     }
     updatePhysicsCollidables(playerController) {
         const getColliders = new GetColliders(undefined, this);

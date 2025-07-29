@@ -33,7 +33,8 @@ interface BindGroups {
 interface Shaders {
     vertexShader: GPUShaderModule;
     fragShader: GPUShaderModule;
-    depthShader: GPUShaderModule;
+    depthVertexShader: GPUShaderModule;
+    depthFragShader: GPUShaderModule;
 }
 
 export class ShadowRenderer {
@@ -199,8 +200,11 @@ export class ShadowRenderer {
                 format: 'depth24plus',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
-
-            const { vertexShader, fragShader, depthShader } = await this.loadShaders();
+            const { vertexShader, 
+                fragShader, 
+                depthVertexShader,
+                depthFragShader 
+            } = await this.loadShaders();
             const { shadowMapBindGroupLayout, depthBindGroupLayout } = await getBindGroups();
 
             //Shape
@@ -252,7 +256,7 @@ export class ShadowRenderer {
                     bindGroupLayouts: [shadowMapBindGroupLayout]
                 }),
                 vertex: {
-                    module: depthShader,
+                    module: depthVertexShader,
                     entryPoint: 'main',
                     buffers: [
                         {
@@ -271,6 +275,14 @@ export class ShadowRenderer {
                             ]
                         }
                     ]
+                },
+                fragment: {
+                    module: depthFragShader,
+                    entryPoint: 'main',
+                    targets: [{
+                        format: navigator.gpu.getPreferredCanvasFormat(),
+                        writeMask: 0
+                    }]
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
@@ -296,17 +308,20 @@ export class ShadowRenderer {
             const [
                 vertexSrc, 
                 fragSrc, 
-                depthSrc
+                depthVertexSrc,
+                depthFragSrc
             ] = await Promise.all([
                 this.shaderLoader.loader('./lightning/shaders/shadow-vertex.wgsl'),
                 this.shaderLoader.loader('./lightning/shaders/shadow-frag.wgsl'),
-                this.shaderLoader.loader('./lightning/shaders/shadow-depth.wgsl')
+                this.shaderLoader.loader('./lightning/shaders/shadow-depth-vertex.wgsl'),
+                this.shaderLoader.loader('./lightning/shaders/shadow-depth-frag.wgsl')
             ]);
 
             return {
                 vertexShader: vertexSrc,
                 fragShader: fragSrc,
-                depthShader: depthSrc
+                depthVertexShader: depthVertexSrc,
+                depthFragShader: depthFragSrc
             }
         } catch(err) {
             console.log(err);
@@ -317,6 +332,7 @@ export class ShadowRenderer {
     public async draw(
         commandEncoder: GPUCommandEncoder,
         device: GPUDevice,
+        passEncoder: GPURenderPassEncoder,
         objects: Renderable[]
     ): Promise<void> {
         if(!this.isInit || !this.pipelines || !this.buffers || !this.depthTexture || !this.bindGroups) {
@@ -330,11 +346,6 @@ export class ShadowRenderer {
             obj.indexCount > 0 &&
             obj.modelMatrix
         );
-        if(validObjects.length === 0) {
-            console.warn('No valid objects!');
-            return;
-        }
-
         const modelMatrices = validObjects.flatMap(obj => {
             if(!obj.modelMatrix) {
                 console.warn('Object missing modelMatrix', obj);
@@ -342,7 +353,6 @@ export class ShadowRenderer {
             }
             return Array.from(obj.modelMatrix) as number[]
         });
-
         const normalMatrices = validObjects.flatMap(obj => {
             if(!obj.normalMatrix) {
                 const normal = mat4.create();
@@ -372,26 +382,14 @@ export class ShadowRenderer {
                 normalArray.byteLength
             );
 
-            const shadowPass = commandEncoder.beginRenderPass({
-                colorAttachments: [],
-                depthStencilAttachment: {
-                    view: this.depthTexture.createView(),
-                    depthClearValue: 1.0,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store'
-                }
-            });
-
-            shadowPass.setPipeline(this.pipelines.depthPipeline);
-            shadowPass.setBindGroup(0, this.bindGroups.shadow);
+            passEncoder.setPipeline(this.pipelines.depthPipeline);
+            passEncoder.setBindGroup(0, this.bindGroups.shadow);
 
             for(const obj of validObjects) {
-                shadowPass.setVertexBuffer(0, obj.vertexBuffer);
-                shadowPass.setIndexBuffer(obj.indexBuffer, 'uint16');
-                shadowPass.drawIndexed(obj.indexCount);
+                passEncoder.setVertexBuffer(4, obj.vertexBuffer);
+                passEncoder.setIndexBuffer(obj.indexBuffer, 'uint16');
+                passEncoder.drawIndexed(obj.indexCount);
             }
-
-            shadowPass.end();
         } catch(err) {
             console.error(err);
             throw err;

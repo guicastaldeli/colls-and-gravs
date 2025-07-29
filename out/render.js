@@ -492,7 +492,7 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
     //Shadows
     if (shadowRenderer) {
         const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
-        await shadowRenderer.draw(commandEncoder, device, shadowData);
+        await shadowRenderer.draw(commandEncoder, device, passEncoder, shadowData);
     }
 }
 //Color Parser
