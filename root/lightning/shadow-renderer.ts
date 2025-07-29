@@ -82,11 +82,16 @@ export class ShadowRenderer {
     private async setBindGroups(
         device: GPUDevice,
         shapePipeline: GPURenderPipeline,
-        depthPipeline: GPURenderPipeline
+        depthPipeline: GPURenderPipeline,
+        data: any
     ): Promise<BindGroups> {
         try {
-            const depthTextureView = this.depthTexture?.createView();
             const sampler = device.createSampler({ compare: 'less' });
+            const depthTextureView = this.depthTexture?.createView();
+            
+            const vertexLayout = shapePipeline.getBindGroupLayout(0);
+            const fragLayout = shapePipeline.getBindGroupLayout(1);
+            const shadowLayout = depthPipeline.getBindGroupLayout(0);
 
             const {
                 vpUniformBuffer,
@@ -98,7 +103,7 @@ export class ShadowRenderer {
             } = await this.setBuffers(device);
 
             const vertexBindGroup = device.createBindGroup({
-                layout: shapePipeline.getBindGroupLayout(0),
+                layout: vertexLayout,
                 entries: [
                     {
                         binding: 0,
@@ -123,7 +128,7 @@ export class ShadowRenderer {
                 ]
             });
             const fragBindGroup = device.createBindGroup({
-                layout: shapePipeline.getBindGroupLayout(1),
+                layout: fragLayout,
                 entries: [
                     {
                         binding: 0,
@@ -144,7 +149,7 @@ export class ShadowRenderer {
                 ]
             });
             const shadowBindGroup = device.createBindGroup({
-                layout: depthPipeline.getBindGroupLayout(0),
+                layout: shadowLayout,
                 entries: [
                     {
                         binding: 0,
@@ -173,15 +178,25 @@ export class ShadowRenderer {
         device: GPUDevice
     ): Promise<Pipelines> {
         try {
+            //Tex
+            this.depthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            });
+
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
-            const { shadowMapBindGroupLayout } = await getBindGroups();
-            const pipelineLayout = device.createPipelineLayout({
+            const { shadowMapBindGroupLayout, depthBindGroupLayout } = await getBindGroups();
+            const shapePipelineLayout = device.createPipelineLayout({
+                bindGroupLayouts: [shadowMapBindGroupLayout, depthBindGroupLayout]
+            });
+            const depthPipelineLayout = device.createPipelineLayout({
                 bindGroupLayouts: [shadowMapBindGroupLayout]
             });
 
             //Shape
             const shapePipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+                layout: shapePipelineLayout,
                 vertex: {
                     module: vertexShader,
                     entryPoint: 'main',
@@ -224,7 +239,7 @@ export class ShadowRenderer {
 
             //Depth
             const depthPipeline = device.createRenderPipeline({
-                layout: pipelineLayout,
+                layout: depthPipelineLayout,
                 vertex: {
                     module: depthShader,
                     entryPoint: 'main',
@@ -245,14 +260,18 @@ export class ShadowRenderer {
                             ]
                         }
                     ]
+                },
+                fragment: undefined,
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus'
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: 'none',
+                    frontFace: 'ccw'
                 }
-            });
-
-            //Tex
-            this.depthTexture = device.createTexture({
-                size: [canvas.width, canvas.height],
-                format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
 
             return { shapePipeline, depthPipeline }
@@ -298,7 +317,7 @@ export class ShadowRenderer {
             const shapePipeline = (await pipeline).shapePipeline;
             const depthPipeline = (await pipeline).depthPipeline;
     
-            const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline);
+            const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline, shadowData);
             const shadowBindGroup = (await bindGroups).shadow;
     
             const passDescriptor: GPURenderPassDescriptor = {

@@ -36,6 +36,7 @@ interface BindGroupResources {
     lightningBindGroupLayout: GPUBindGroupLayout;
     pointLightBindGroupLayout: GPUBindGroupLayout;
     shadowMapBindGroupLayout: GPUBindGroupLayout;
+    depthBindGroupLayout: GPUBindGroupLayout;
 }
 
 let pipeline: GPURenderPipeline;
@@ -174,13 +175,53 @@ async function setBindGroups(): Promise<BindGroupResources> {
             entries: [
                 {
                     binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'storage' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'storage' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        });
+
+        const depthBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'uniform' }
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'read-only-storage' }
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -190,7 +231,8 @@ async function setBindGroups(): Promise<BindGroupResources> {
             textureBindGroupLayout,
             lightningBindGroupLayout,
             pointLightBindGroupLayout,
-            shadowMapBindGroupLayout
+            shadowMapBindGroupLayout,
+            depthBindGroupLayout
         }
     } catch(err) {
         console.log(err);
@@ -541,16 +583,17 @@ async function setBuffers(
     }
 
     //Shadows
-    const shadowData = getRandomBlocks.map(obj => (obj as any).getShadowData());
-
-    await shadowRenderer.draw(
-        commandEncoder,
-        pipeline,
-        canvas,
-        device,
-        textureView,
-        shadowData
-    );
+    if(shadowRenderer) {
+        const shadowData = getRandomBlocks.map(obj => (obj as any).getShadowData());
+        await shadowRenderer.draw(
+            commandEncoder,
+            pipeline,
+            canvas,
+            device,
+            textureView,
+            shadowData
+        );
+    }
 }
 
 //Color Parser
@@ -627,6 +670,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initPipeline();
+        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
 
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
@@ -796,9 +840,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             //Random Blocks
             if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
         //
-
-        //Shadows
-        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
         
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
