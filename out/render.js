@@ -136,12 +136,12 @@ async function setBindGroups() {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'storage' }
+                    buffer: { type: 'read-only-storage' }
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'storage' }
+                    buffer: { type: 'read-only-storage' }
                 },
                 {
                     binding: 3,
@@ -151,7 +151,7 @@ async function setBindGroups() {
                 {
                     binding: 4,
                     visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'storage' }
+                    buffer: { type: 'read-only-storage' }
                 }
             ]
         });
@@ -492,7 +492,7 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
     //Shadows
     if (shadowRenderer) {
         const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
-        await shadowRenderer.draw(commandEncoder, pipeline, canvas, device, textureView, shadowData);
+        await shadowRenderer.draw(commandEncoder, device, shadowData);
     }
 }
 //Color Parser
