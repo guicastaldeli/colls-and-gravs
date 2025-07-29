@@ -542,6 +542,7 @@ export class PhysicsSystem {
             const groundLevel = this.ground.getGroundLevelY(obj.position[0], obj.position[2]);
             const isStable = this.stabilityCom(obj, groundLevel);
             const sizeY = obj.getCollider().getSize()[1];
+            const bottom = obj.position[1] - sizeY / 2;
             obj.checkGroundContact(groundLevel, sizeY);
 
             if(obj.isOnGround) {

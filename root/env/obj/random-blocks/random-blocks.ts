@@ -595,7 +595,7 @@ export class RandomBlocks implements ICollidable {
 
                 if(lowestPoint < groundLevel) {
                     const correction = groundLevel - lowestPoint;
-                    physicsObj.position[1] += correction;
+                    physicsObj.position[1] -= correction;
                     physicsObj.velocity[1] = 0.0;
 
                     vec3.scale(physicsObj.velocity, physicsObj.velocity, 0.7);
