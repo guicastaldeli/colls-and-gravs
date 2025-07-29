@@ -540,33 +540,6 @@ export class RandomBlocks implements ICollidable {
         }));
     }
 
-    public async getShadowData(): Promise<{
-        vertex: GPUBuffer;
-        index: GPUBuffer;
-        indexCount: number;
-        modelMatrix: mat4;
-        normalMatrix: mat4;
-    }[]> {
-        return this.blocks.map(block => {
-            if(!block.vertex || !block.index || !block.modelMatrix) {
-                console.warn('Invalid data', block);
-                return null;
-            }
-
-            const normalMatrix = mat4.create();
-            mat4.invert(normalMatrix, block.modelMatrix);
-            mat4.transpose(normalMatrix, normalMatrix);
-
-            return {
-                vertex: block.vertex,
-                index: block.index,
-                indexCount: block.indexCount,
-                modelMatrix: block.modelMatrix,
-                normalMatrix: normalMatrix
-            }
-        }).filter((item): item is NonNullable<typeof item> => item !== null);
-    }
-
     public updatePhysicsCollidables(playerController: PlayerController): void {
         const getColliders = new GetColliders(undefined, this);
         this.physicsSystem.setCollidables(getColliders.getCollidables());

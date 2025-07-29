@@ -18,7 +18,6 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -35,8 +34,6 @@ interface BindGroupResources {
     textureBindGroupLayout: GPUBindGroupLayout;
     lightningBindGroupLayout: GPUBindGroupLayout;
     pointLightBindGroupLayout: GPUBindGroupLayout;
-    shadowMapBindGroupLayout: GPUBindGroupLayout;
-    depthBindGroupLayout: GPUBindGroupLayout;
 }
 
 let pipeline: GPURenderPipeline;
@@ -63,7 +60,6 @@ let skybox: Skybox;
 let lightningManager: LightningManager;
 let windManager: WindManager;
 let objectManager: ObjectManager;
-let shadowRenderer: ShadowRenderer;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -93,6 +89,7 @@ async function initShaders(): Promise<Shaders> {
             pointLightSrc,
             glowSrc
         );
+        console.log(combinedFragCode)
         
         return {
             vertexCode: vertexSrc,
@@ -171,68 +168,11 @@ async function setBindGroups(): Promise<BindGroupResources> {
             ]
         });
 
-        const shadowMapBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                }
-            ]
-        });
-
-        const depthBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                }
-            ]
-        });
-
         return {
             bindGroupLayout, 
             textureBindGroupLayout,
             lightningBindGroupLayout,
-            pointLightBindGroupLayout,
-            shadowMapBindGroupLayout,
-            depthBindGroupLayout
+            pointLightBindGroupLayout
         }
     } catch(err) {
         console.log(err);
@@ -581,12 +521,6 @@ async function setBuffers(
             }
         }
     }
-
-    //Shadows
-    if(shadowRenderer) {
-        const shadowData = getRandomBlocks.map(obj => (obj as any).getShadowData());
-        await shadowRenderer.draw(commandEncoder, device, passEncoder, shadowData);
-    }
 }
 
 //Color Parser
@@ -663,11 +597,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initPipeline();
-        if(!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(shaderLoader);
-            shadowRenderer.init(canvas, device);
-        }
-
+        
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
             depthTextureHeight !== canvas.height)

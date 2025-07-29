@@ -14,7 +14,6 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -39,7 +38,6 @@ let skybox;
 let lightningManager;
 let windManager;
 let objectManager;
-let shadowRenderer;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function initShaders() {
@@ -53,6 +51,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
+        console.log(combinedFragCode);
         return {
             vertexCode: vertexSrc,
             fragCode: combinedFragCode
@@ -126,66 +125,11 @@ async function setBindGroups() {
                 }
             ]
         });
-        const shadowMapBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'read-only-storage' }
-                }
-            ]
-        });
-        const depthBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                }
-            ]
-        });
         return {
             bindGroupLayout,
             textureBindGroupLayout,
             lightningBindGroupLayout,
-            pointLightBindGroupLayout,
-            shadowMapBindGroupLayout,
-            depthBindGroupLayout
+            pointLightBindGroupLayout
         };
     }
     catch (err) {
@@ -489,11 +433,6 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
             }
         }
     }
-    //Shadows
-    if (shadowRenderer) {
-        const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
-        await shadowRenderer.draw(commandEncoder, device, passEncoder, shadowData);
-    }
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -564,10 +503,6 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initPipeline();
-        if (!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(shaderLoader);
-            shadowRenderer.init(canvas, device);
-        }
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {
