@@ -326,7 +326,7 @@ async function getPipeline(passEncoder) {
         console.error('err pipeline');
     passEncoder.setPipeline(currentPipeline);
 }
-async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder) {
+async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
     const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
@@ -450,6 +450,8 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         }
     }
     //Shadows
+    const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
+    await shadowRenderer.draw(commandEncoder, pipeline, canvas, device, textureView, shadowData);
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -627,7 +629,7 @@ export async function render(canvas) {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder);
+        await setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView);
         //Late Renderers
         //Skybox
         if (!skybox) {
@@ -646,9 +648,8 @@ export async function render(canvas) {
             randomBlocks.init(canvas, playerController, format, hud);
         //
         //Shadows
-        if (!shadowRenderer) {
+        if (!shadowRenderer)
             shadowRenderer = new ShadowRenderer(shaderLoader);
-        }
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

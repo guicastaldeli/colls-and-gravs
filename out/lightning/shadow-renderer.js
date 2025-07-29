@@ -122,7 +122,7 @@ export class ShadowRenderer {
             throw err;
         }
     }
-    async createPipelines(canvas, device, data, objects) {
+    async createPipelines(canvas, device) {
         try {
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
             const { shadowMapBindGroupLayout } = await getBindGroups();
@@ -227,29 +227,31 @@ export class ShadowRenderer {
             throw err;
         }
     }
-    async draw(commandEncoder, pipelines, canvas, device, textureView, data, objects) {
-        const pipeline = this.createPipelines(canvas, device, data, objects);
-        const shapePipeline = (await pipeline).shapePipeline;
-        const depthPipeline = (await pipeline).depthPipeline;
-        const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline);
-        const shadowBindGroup = (await bindGroups).shadow;
-        const passDescriptor = {
-            colorAttachments: [{
-                    view: textureView,
-                    clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-                    loadOp: 'clear',
-                    storeOp: 'store'
-                }],
-            depthStencilAttachment: {
-                view: this.depthTexture.createView(),
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            }
-        };
-        const shadowPass = commandEncoder.beginRenderPass(passDescriptor);
-        shadowPass.setPipeline(depthPipeline);
-        shadowPass.setBindGroup(0, shadowBindGroup);
-        shadowPass.end();
+    async draw(commandEncoder, pipelines, canvas, device, textureView, objects) {
+        for (const shadowData of objects) {
+            const pipeline = this.createPipelines(canvas, device);
+            const shapePipeline = (await pipeline).shapePipeline;
+            const depthPipeline = (await pipeline).depthPipeline;
+            const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline);
+            const shadowBindGroup = (await bindGroups).shadow;
+            const passDescriptor = {
+                colorAttachments: [{
+                        view: textureView,
+                        clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }],
+                depthStencilAttachment: {
+                    view: this.depthTexture.createView(),
+                    depthClearValue: 1.0,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                }
+            };
+            const shadowPass = commandEncoder.beginRenderPass(passDescriptor);
+            shadowPass.setPipeline(depthPipeline);
+            shadowPass.setBindGroup(0, shadowBindGroup);
+            shadowPass.end();
+        }
     }
 }

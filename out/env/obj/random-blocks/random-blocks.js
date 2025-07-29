@@ -406,6 +406,14 @@ let RandomBlocks = class RandomBlocks {
             type: this.type
         }));
     }
+    async getShadowData() {
+        return this.blocks.map(block => ({
+            vertex: block.vertex,
+            index: block.index,
+            indexCount: block.indexCount,
+            modelMatrix: block.modelMatrix
+        }));
+    }
     updatePhysicsCollidables(playerController) {
         const getColliders = new GetColliders(undefined, this);
         this.physicsSystem.setCollidables(getColliders.getCollidables());

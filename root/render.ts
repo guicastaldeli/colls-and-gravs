@@ -383,11 +383,13 @@ async function getPipeline(passEncoder: GPURenderPassEncoder): Promise<void> {
 }
 
 async function setBuffers(
+    canvas: HTMLCanvasElement,
     passEncoder: GPURenderPassEncoder,
     viewProjectionMatrix: mat4,
     modelMatrix: mat4,
     currentTime: number,
-    commandEncoder: GPUCommandEncoder
+    commandEncoder: GPUCommandEncoder,
+    textureView: GPUTextureView
 ) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
@@ -539,7 +541,16 @@ async function setBuffers(
     }
 
     //Shadows
-    
+    const shadowData = getRandomBlocks.map(obj => (obj as any).getShadowData());
+
+    await shadowRenderer.draw(
+        commandEncoder,
+        pipeline,
+        canvas,
+        device,
+        textureView,
+        shadowData
+    );
 }
 
 //Color Parser
@@ -751,7 +762,15 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder);
+        await setBuffers(
+            canvas,
+            passEncoder, 
+            viewProjectionMatrix, 
+            modelMatrix, 
+            currentTime, 
+            commandEncoder,
+            textureView
+        );
 
         //Late Renderers
             //Skybox
@@ -779,10 +798,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //
 
         //Shadows
-        if(!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(shaderLoader);
-            
-        }
+        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
         
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);
