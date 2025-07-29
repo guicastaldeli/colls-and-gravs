@@ -1,54 +1,70 @@
-struct FragmentInput {
-    @location(0) worldPos: vec3f,
-    @location(1) shadowPos: vec4f,
-    @location(2) normal: vec3f,
-    @location(3) distanceToGround: f32
+struct LightUniforms {
+    lightPosition: vec4f,
+    eyePosition: vec4f,
+    specularColor: vec4f
 }
 
-@group(0) @binding(2) var<uniform> lightPos: vec3f;
-@group(0) @binding(3) var<uniform> shadowParams: vec4f;
-@group(1) @binding(0) var shadowSampler: sampler_comparison;
-@group(1) @binding(1) var shadowMap: texture_depth_2d;
+@group(1) @binding(0) var<uniform> light: LightUniforms;
 
-fn pcfShadow(shadowCoord: vec3f, bias: f32) -> f32 {
-    let texelSize = 1.0 / 1024.0;
-    var shadow = 0.0;
-    let samples = 9.0;
+struct MaterialUniforms {
+    ambient: f32,
+    diffuse: f32,
+    specular: f32,
+    shininess: f32
+}
 
-    for(var x = -1; x < 1; x++) {
-        for(var y = -1; y < 1; y++) {
-            let sampleCoord = shadowCoord.xy + vec2f(f32(x), f32(y)) * texelSize;
-            shadow += textureSampleCompare(
-                shadowMap,
+@group(1) @binding(1) var<uniform> material: MaterialUniforms;
+@group(1) @binding(2) var shadowTexture: texture_depth_2d;
+@group(2) @binding(3) var shadowSampler: sampler_comparison;
+
+struct Input {
+    @location(0) vPosition: vec4f,
+    @location(1) vNormal: vec4f,
+    @location(2) vShadowPos: vec4f,
+    @location(3) vColor: vec4f
+}
+
+fn blinnPhong(N: vec3f, L: vec3f, V: vec3f) -> vec2f {
+    let H = normalize(L + V);
+
+    var diffuse = material.diffuse * max(dot(N, L), 0.0);
+    diffuse += material.diffuse * max(dot(-N, L), 0.0);
+
+    var specular = material.specular * pow(max(dot(N, H), 0.0), material.shininess);
+    specular += material.specular * pow(max(dot(-N, H), 0.0), material.shininess);
+
+    return vec2(diffuse, specular);
+}
+
+fn pcfShadows(in: Input) -> f32 {
+    var visibility = 0.0;
+    let size = f32(textureDimensions(shadowTexture).x);
+    let oneOverSize = 1.0 / size;
+
+    for(var y: i32 = -1; y <= 1; y = y + 1) {
+        for(var x: i32 = -1; x <= 1; x = x + 1) {
+            let offset = vec2(f32(x) * oneOverSize, f32(y) * oneOverSize);
+            visibility += textureSampleCompare(
+                shadowTexture,
                 shadowSampler,
-                sampleCoord,
-                shadowCoord.z - bias
+                in.vShadowPos.xy + offset,
+                in.vShadowPos.z - 0.007
             );
         }
     }
 
-    return shadow / samples;
+    visibility /= 0.9;
+    return visibility;
 }
 
 @fragment
-fn main(input: FragmentInput) -> @location(0) vec4f {
-    if(input.distanceToGround < 0.1) {
-        discard;
-    }
+fn main(in: Input) -> @location(0) vec4f {
+    var N = normalize(in.vNormal.xyz);
+    let L = normalize(light.lightPosition.xyz - in.vPosition.xyz);
+    let V = normalize(light.eyePosition.xyz - in.vPosition.xyz);
+    let bp = blinnPhong(N, L, V);
 
-    let shadowParams = shadowParams;
-    let bias = shadowParams.x;
-    let radius = shadowParams.y;
-    let intensity = shadowParams.z;
-    let fadeDistance = shadowParams.w;
-
-    let distanceToLight = length(input.worldPos - lightPos);
-    let distanceFade = 1.0 - min(distanceToLight / fadeDistance, 1.0);
-    let heightFade = 1.0 - min(input.distanceToGround / 10.0, 0.8);
-    let centerDistance = length(input.worldPos.xz);
-    let edgeFade = 1.0 - smoothstep(radius * 0.7, radius, centerDistance);
-    
-    let finalAlpha = intensity * distanceFade * heightFade * edgeFade * 0.6;
-    let shadowColor = vec3f(0.1, 0.1, 0.15);
-    return vec4f(shadowColor, finalAlpha);
+    let pcf = pcfShadows(in);
+    let finalColor = in.vColor * (material.ambient + pcf * bp[0]) + light.specularColor * bp[1];
+    return vec4(finalColor.rgb, 1.0);
 }

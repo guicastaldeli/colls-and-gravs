@@ -35,9 +35,7 @@ interface BindGroupResources {
     textureBindGroupLayout: GPUBindGroupLayout;
     lightningBindGroupLayout: GPUBindGroupLayout;
     pointLightBindGroupLayout: GPUBindGroupLayout;
-    shadowBindGroupLayout: GPUBindGroupLayout;
     shadowMapBindGroupLayout: GPUBindGroupLayout;
-    shadowSamplerBindGroupLayout: GPUBindGroupLayout;
 }
 
 let pipeline: GPURenderPipeline;
@@ -172,69 +170,17 @@ async function setBindGroups(): Promise<BindGroupResources> {
             ]
         });
 
-        const shadowBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { 
-                        type: 'uniform',
-                        minBindingSize: 64
-                    }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { 
-                        type: 'uniform',
-                        minBindingSize: 4
-                    }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { 
-                        type: 'uniform',
-                        minBindingSize: 16
-                    }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { 
-                        type: 'uniform',
-                        minBindingSize: 16
-                    }
-                },
-            ]
-        });
-
         const shadowMapBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
+                    visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'uniform' }
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                }
-            ]
-        });
-
-        const shadowSamplerBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
+                    buffer: { type: 'read-only-storage' }
                 }
             ]
         });
@@ -244,9 +190,7 @@ async function setBindGroups(): Promise<BindGroupResources> {
             textureBindGroupLayout,
             lightningBindGroupLayout,
             pointLightBindGroupLayout,
-            shadowBindGroupLayout,
-            shadowMapBindGroupLayout,
-            shadowSamplerBindGroupLayout
+            shadowMapBindGroupLayout
         }
     } catch(err) {
         console.log(err);
@@ -595,16 +539,7 @@ async function setBuffers(
     }
 
     //Shadows
-    const shadowObjs = [...renderBuffers];
-    if(shadowRenderer) {
-        shadowRenderer.updateUniforms(device, shadowObjs);
-        shadowRenderer.renderShadows(
-            device,
-            commandEncoder,
-            shadowObjs,
-            passEncoder
-        );
-    }
+    
 }
 
 //Color Parser
@@ -698,7 +633,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 usage: GPUTextureUsage.RENDER_ATTACHMENT
             });
             depthTextureWidth = canvas.width;
-            depthTextureHeight = canvas.height
+            depthTextureHeight = canvas.height;
         }
         
         const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -846,12 +781,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         //Shadows
         if(!shadowRenderer) {
             shadowRenderer = new ShadowRenderer(shaderLoader);
-            await shadowRenderer.init(device);
-
-            const time = currentTime * 0.0005;
-            const lightX = Math.cos(time) * 15.0;
-            const lightZ = Math.sin(time) * 15.0;
-            shadowRenderer.updateLightPosition([lightX, 12.0, lightZ]);
+            
         }
         
         passEncoder.end();    
