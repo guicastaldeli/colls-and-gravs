@@ -564,8 +564,10 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initPipeline();
-        if (!shadowRenderer)
+        if (!shadowRenderer) {
             shadowRenderer = new ShadowRenderer(shaderLoader);
+            shadowRenderer.init(canvas, device);
+        }
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {

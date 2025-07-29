@@ -2,6 +2,7 @@ import { getBindGroups } from "../render.js";
 export class ShadowRenderer {
     isInit = false;
     shaderLoader;
+    pipelines = null;
     depthTexture = null;
     constructor(shaderLoader) {
         this.shaderLoader = shaderLoader;
@@ -106,11 +107,11 @@ export class ShadowRenderer {
                 entries: [
                     {
                         binding: 0,
-                        resource: { buffer: modelUniformBuffer }
+                        resource: { buffer: lightProjectionUniformBuffer }
                     },
                     {
                         binding: 1,
-                        resource: { buffer: lightProjectionUniformBuffer }
+                        resource: { buffer: modelUniformBuffer }
                     }
                 ]
             });
@@ -245,10 +246,10 @@ export class ShadowRenderer {
         }
     }
     async draw(commandEncoder, pipelines, canvas, device, textureView, objects) {
+        if (!this.isInit || !this.pipelines)
+            throw new Error('Shadow Renderer not initalized!');
+        const { shapePipeline, depthPipeline } = this.pipelines;
         for (const shadowData of objects) {
-            const pipeline = this.createPipelines(canvas, device);
-            const shapePipeline = (await pipeline).shapePipeline;
-            const depthPipeline = (await pipeline).depthPipeline;
             const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline, shadowData);
             const shadowBindGroup = (await bindGroups).shadow;
             const passDescriptor = {
@@ -270,5 +271,11 @@ export class ShadowRenderer {
             shadowPass.setBindGroup(0, shadowBindGroup);
             shadowPass.end();
         }
+    }
+    async init(canvas, device) {
+        if (this.isInit)
+            return;
+        this.pipelines = await this.createPipelines(canvas, device);
+        this.isInit = true;
     }
 }

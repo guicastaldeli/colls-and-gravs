@@ -31,6 +31,7 @@ interface Shaders {
 export class ShadowRenderer {
     private isInit = false;
     private shaderLoader: ShaderLoader;
+    private pipelines: Pipelines | null = null;
     private depthTexture: GPUTexture | null = null;
 
     constructor(shaderLoader: ShaderLoader) {
@@ -153,11 +154,11 @@ export class ShadowRenderer {
                 entries: [
                     {
                         binding: 0,
-                        resource: { buffer: modelUniformBuffer }
+                        resource: { buffer: lightProjectionUniformBuffer }
                     },
                     {
                         binding: 1,
-                        resource: { buffer: lightProjectionUniformBuffer }
+                        resource: { buffer: modelUniformBuffer }
                     }
                 ] 
             });
@@ -312,11 +313,10 @@ export class ShadowRenderer {
         textureView: GPUTextureView,
         objects: any[]
     ): Promise<void> {
+        if(!this.isInit || !this.pipelines) throw new Error('Shadow Renderer not initalized!');
+        const { shapePipeline, depthPipeline } = this.pipelines;
+
         for(const shadowData of objects) {
-            const pipeline = this.createPipelines(canvas, device);
-            const shapePipeline = (await pipeline).shapePipeline;
-            const depthPipeline = (await pipeline).depthPipeline;
-    
             const bindGroups = this.setBindGroups(device, shapePipeline, depthPipeline, shadowData);
             const shadowBindGroup = (await bindGroups).shadow;
     
@@ -340,5 +340,11 @@ export class ShadowRenderer {
             shadowPass.setBindGroup(0, shadowBindGroup);
             shadowPass.end();
         }
+    }
+
+    public async init(canvas: HTMLCanvasElement, device: GPUDevice): Promise<void> {
+        if(this.isInit) return;
+        this.pipelines = await this.createPipelines(canvas, device);
+        this.isInit = true;
     }
 }

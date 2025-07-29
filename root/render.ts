@@ -670,7 +670,10 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initPipeline();
-        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(shaderLoader);
+        if(!shadowRenderer) {
+            shadowRenderer = new ShadowRenderer(shaderLoader);
+            shadowRenderer.init(canvas, device);
+        }
 
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
