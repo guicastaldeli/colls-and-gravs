@@ -14,6 +14,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
+import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -38,19 +39,21 @@ let skybox;
 let lightningManager;
 let windManager;
 let objectManager;
+let shadowRenderer;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function initShaders() {
     try {
-        const [vertexSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc] = await Promise.all([
+        const [vertexSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc, shadowFragSrc] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/shadow-frag.wgsl')
         ]);
-        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
+        const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc, shadowFragSrc);
         console.log(combinedFragCode);
         return {
             vertexCode: vertexSrc,
@@ -122,6 +125,16 @@ async function setBindGroups() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth', viewDimension: 'cube' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -433,6 +446,10 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
             }
         }
     }
+    //Shadows
+    for (const light of lightningManager.getPointLights()) {
+        await shadowRenderer.renderShadowPass(passEncoder, light, renderBuffers);
+    }
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -461,11 +478,11 @@ async function directionalLight() {
         y: 5.0,
         z: -15.0
     };
-    const color = 'rgb(255, 255, 255)';
+    const color = 'rgb(169, 30, 30)';
     const colorArray = parseColor(color);
     const direction = vec3.fromValues(pos.x, pos.y, pos.z);
     vec3.normalize(direction, direction);
-    const light = new DirectionalLight(colorArray, direction, 0.0);
+    const light = new DirectionalLight(colorArray, direction, 1.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
 }
@@ -503,6 +520,8 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initPipeline();
+        if (!shadowRenderer)
+            shadowRenderer = new ShadowRenderer(device, shaderLoader);
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {

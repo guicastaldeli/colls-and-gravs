@@ -18,6 +18,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
+import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -60,6 +61,7 @@ let skybox: Skybox;
 let lightningManager: LightningManager;
 let windManager: WindManager;
 let objectManager: ObjectManager;
+let shadowRenderer: ShadowRenderer;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -72,7 +74,8 @@ async function initShaders(): Promise<Shaders> {
             ambientLightSrc,
             directionalLightSrc,
             pointLightSrc,
-            glowSrc
+            glowSrc,
+            shadowFragSrc
         ] = await Promise.all([
             shaderLoader.loader('./shaders/vertex.wgsl'),
             shaderLoader.sourceLoader('./shaders/frag.wgsl'),
@@ -80,6 +83,7 @@ async function initShaders(): Promise<Shaders> {
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
             shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
+            shaderLoader.sourceLoader('./lightning/shaders/shadow-frag.wgsl')
         ]);
 
         const combinedFragCode = await shaderComposer.combineShader(
@@ -87,7 +91,8 @@ async function initShaders(): Promise<Shaders> {
             ambientLightSrc,
             directionalLightSrc,
             pointLightSrc,
-            glowSrc
+            glowSrc,
+            shadowFragSrc
         );
         console.log(combinedFragCode)
         
@@ -164,6 +169,16 @@ async function setBindGroups(): Promise<BindGroupResources> {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth', viewDimension: 'cube' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -521,6 +536,11 @@ async function setBuffers(
             }
         }
     }
+
+    //Shadows
+    for(const light of lightningManager.getPointLights()) {
+        await shadowRenderer.renderShadowPass(passEncoder, light, renderBuffers);
+    }
 }
 
 //Color Parser
@@ -554,13 +574,13 @@ export function parseColor(rgb: string): [number, number, number] {
             z: -15.0
         }
         
-        const color = 'rgb(255, 255, 255)';
+        const color = 'rgb(169, 30, 30)';
         const colorArray = parseColor(color);
 
         const direction = vec3.fromValues(pos.x, pos.y, pos.z);
         vec3.normalize(direction, direction);
 
-        const light = new DirectionalLight(colorArray, direction, 0.0);
+        const light = new DirectionalLight(colorArray, direction, 1.0);
         lightningManager.addDirectionalLight('directional', light);
         lightningManager.updateLightBuffer('directional');
     }
@@ -597,6 +617,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initPipeline();
+        if(!shadowRenderer) shadowRenderer = new ShadowRenderer(device, shaderLoader);
         
         if(depthTexture &&
         (depthTextureWidth !== canvas.width ||
@@ -631,19 +652,19 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 depthStoreOp: 'store',
             }
         }
-
+        
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
-    
+        
         const modelMatrix = mat4.create();
         const viewProjectionMatrix = mat4.create();
-
+        
         //Lightning
         if(!lightningManager) lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
-
+        
         //Wind
         if(!windManager) windManager = new WindManager(tick);
 

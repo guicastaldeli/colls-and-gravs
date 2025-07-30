@@ -1,3 +1,4 @@
+import { device } from "../init.js";
 import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class PointLight {
     _position;
@@ -20,6 +21,7 @@ export class PointLight {
         this._constant = 1.0;
         this._linear = 0.01;
         this._quadratic = 0.01;
+        this.initShadowMap(device);
     }
     //Position
     set position(value) {
@@ -62,5 +64,27 @@ export class PointLight {
         data[12] = this._quadratic;
         data[13] = 0.0;
         return data;
+    }
+    initShadowMap(device) {
+        this._shadowMap = device.createTexture({
+            size: [this._shadowMapSize, this._shadowMapSize, 6],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            dimension: '2d'
+        });
+        this._shadowMapView = this._shadowMap.createView({
+            dimension: 'cube'
+        });
+        this._shadowSampler = device.createSampler({
+            compare: 'less',
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
+    }
+    get shadowMap() {
+        return this._shadowMapView;
+    }
+    get shadowSampler() {
+        return this._shadowSampler;
     }
 }

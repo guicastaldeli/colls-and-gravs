@@ -25,6 +25,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
     for(var i = 0u; i < pointLightCount; i++) {
         let light = pointLights[i];
+        let lightPos = light.position.xyz;
         
         finalColor += applyPointLight(
             baseColor,
@@ -43,6 +44,9 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
                 cameraPos
             );
         }
+
+        let shadowFactor = sampleShadow(lightPos, worldPos, light.range);
+        finalColor *= shadowFactor;
     }
 
     finalColor = max(finalColor, vec3f(0.0));
