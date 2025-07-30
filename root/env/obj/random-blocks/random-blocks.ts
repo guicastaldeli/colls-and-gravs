@@ -31,6 +31,7 @@ interface BlockData {
     sampler?: GPUSampler;
     sharedResourceId: string;
     modelDef: ListType;
+    normalMatrix: mat4;
 }
 
 interface SharedResource {
@@ -189,6 +190,8 @@ export class RandomBlocks implements ICollidable {
                 ]
             );
 
+            const normalMatrix = mat4.create();
+
             const sharedResource = this.addSharedResource(itemId);
             if(!this.sharedResources.has(itemId)) throw new Error(`${itemId} not loaded`);
             if(!sharedResource) throw new Error('err');
@@ -205,7 +208,8 @@ export class RandomBlocks implements ICollidable {
                 texture: sharedResource.texture,
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId,
-                modelDef: this.currentItem
+                modelDef: this.currentItem,
+                normalMatrix
             }
 
             const initialOrientaton = quat.create();
@@ -544,14 +548,22 @@ export class RandomBlocks implements ICollidable {
         vertex: GPUBuffer;
         index: GPUBuffer;
         indexCount: number;
-        modelMatrix: mat4
+        modelMatrix: mat4;
+        normalMatrix: mat4;
     }[]> {
-        return this.blocks.map(block => ({
-            vertex: block.vertex,
-            index: block.index,
-            indexCount: block.indexCount,
-            modelMatrix: block.modelMatrix
-        }));
+        return this.blocks.map(block => {
+            const normalMatrix = mat4.create();
+            mat4.invert(normalMatrix, block.normalMatrix);
+            mat4.transpose(normalMatrix, normalMatrix);
+
+            return {
+                vertex: block.vertex,
+                index: block.index,
+                indexCount: block.indexCount,
+                modelMatrix: block.modelMatrix,
+                normalMatrix: block.normalMatrix
+            }
+        });
     }
 
     public updatePhysicsCollidables(playerController: PlayerController): void {

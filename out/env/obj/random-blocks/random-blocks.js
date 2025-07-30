@@ -133,6 +133,7 @@ let RandomBlocks = class RandomBlocks {
                 this.currentItem.size.h,
                 this.currentItem.size.d
             ]);
+            const normalMatrix = mat4.create();
             const sharedResource = this.addSharedResource(itemId);
             if (!this.sharedResources.has(itemId))
                 throw new Error(`${itemId} not loaded`);
@@ -150,7 +151,8 @@ let RandomBlocks = class RandomBlocks {
                 texture: sharedResource.texture,
                 sampler: sharedResource.sampler,
                 sharedResourceId: this.defaultSharedResourceId,
-                modelDef: this.currentItem
+                modelDef: this.currentItem,
+                normalMatrix
             };
             const initialOrientaton = quat.create();
             if (faceNormal) {
@@ -407,12 +409,18 @@ let RandomBlocks = class RandomBlocks {
         }));
     }
     async getShadowData() {
-        return this.blocks.map(block => ({
-            vertex: block.vertex,
-            index: block.index,
-            indexCount: block.indexCount,
-            modelMatrix: block.modelMatrix
-        }));
+        return this.blocks.map(block => {
+            const normalMatrix = mat4.create();
+            mat4.invert(normalMatrix, block.normalMatrix);
+            mat4.transpose(normalMatrix, normalMatrix);
+            return {
+                vertex: block.vertex,
+                index: block.index,
+                indexCount: block.indexCount,
+                modelMatrix: block.modelMatrix,
+                normalMatrix: block.normalMatrix
+            };
+        });
     }
     updatePhysicsCollidables(playerController) {
         const getColliders = new GetColliders(undefined, this);

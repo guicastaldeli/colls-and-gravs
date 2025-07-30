@@ -114,7 +114,7 @@ export class ShadowRenderer {
                 entries: [
                     {
                         binding: 0,
-                        resource: { buffer: lightProjectionBuffer }
+                        resource: { buffer: vpBuffer }
                     },
                     {
                         binding: 1,

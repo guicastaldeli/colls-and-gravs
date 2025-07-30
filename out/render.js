@@ -598,7 +598,6 @@ export async function render(canvas) {
             const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
             const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
             await shadowRenderer.draw(commandEncoder, device, shadowData);
-            console.log(shadowData);
         }
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
