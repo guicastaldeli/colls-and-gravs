@@ -44,9 +44,6 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
                 cameraPos
             );
         }
-
-        let shadowFactor = sampleShadow(lightPos, worldPos, light.range);
-        finalColor *= shadowFactor;
     }
 
     finalColor = max(finalColor, vec3f(0.0));

@@ -26,7 +26,7 @@ type Types = 'randomBlocks' | 'lamp';
 interface Dependencies {
     tick: Tick;
     device: GPUDevice;
-    passEncoder: GPURenderPassEncoder;
+    passEncoder: GPURenderPassEncoder | null;
     loader: Loader;
     shaderLoader: ShaderLoader;
     ground: Ground;
@@ -35,7 +35,7 @@ interface Dependencies {
     playerController: PlayerController | null;
     format: GPUTextureFormat;
     hud: Hud | null;
-    windManager: WindManager;
+    windManager?: WindManager | null;
     viewProjectionMatrix: mat4;
 }
 

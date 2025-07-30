@@ -1,4 +1,3 @@
-import { device } from "../init.js";
 import { mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 import { LightningManager } from "../lightning-manager.js";
 import { getBindGroups } from "../render.js";
@@ -13,9 +12,9 @@ export class PointLight {
     private _quadratic: number;
 
     //Shadows
-    public _shadowMap: GPUTexture | null = null;
+    private _shadowMap: GPUTexture | null = null;
     private _shadowMapView!: GPUTextureView;
-    public _shadowSampler!: GPUSampler;
+    private _shadowSampler!: GPUSampler;
     private _shadowMapSize: number = 1024;
     
     constructor(
@@ -31,7 +30,6 @@ export class PointLight {
         this._constant = 1.0;
         this._linear = 0.01;
         this._quadratic = 0.01;
-        this.initShadowMap(device);
     }
 
     //Position
@@ -83,32 +81,5 @@ export class PointLight {
         data[12] = this._quadratic;
         data[13] = 0.0;
         return data;
-    }
-    
-    private initShadowMap(device: GPUDevice): void {
-        this._shadowMap = device.createTexture({
-            size: [this._shadowMapSize, this._shadowMapSize, 6],
-            format: 'depth24plus',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-            dimension: '2d'
-        });
-
-        this._shadowMapView = this._shadowMap.createView({
-            dimension: 'cube'
-        });
-
-        this._shadowSampler = device.createSampler({
-            compare: 'less',
-            magFilter: 'linear',
-            minFilter: 'linear'
-        });
-    }
-
-    get shadowMap(): GPUTextureView | null {
-        return this._shadowMapView;
-    }
-
-    get shadowSampler(): GPUSampler | null {
-        return this._shadowSampler;
     }
 }

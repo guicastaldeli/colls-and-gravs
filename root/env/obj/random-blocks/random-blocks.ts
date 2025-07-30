@@ -540,6 +540,20 @@ export class RandomBlocks implements ICollidable {
         }));
     }
 
+    public async getShadowData(): Promise<{
+        vertex: GPUBuffer;
+        index: GPUBuffer;
+        indexCount: number;
+        modelMatrix: mat4
+    }[]> {
+        return this.blocks.map(block => ({
+            vertex: block.vertex,
+            index: block.index,
+            indexCount: block.indexCount,
+            modelMatrix: block.modelMatrix
+        }));
+    }
+
     public updatePhysicsCollidables(playerController: PlayerController): void {
         const getColliders = new GetColliders(undefined, this);
         this.physicsSystem.setCollidables(getColliders.getCollidables());
@@ -595,7 +609,7 @@ export class RandomBlocks implements ICollidable {
 
                 if(lowestPoint < groundLevel) {
                     const correction = groundLevel - lowestPoint;
-                    physicsObj.position[1] -= correction;
+                    physicsObj.position[1] += correction;
                     physicsObj.velocity[1] = 0.0;
 
                     vec3.scale(physicsObj.velocity, physicsObj.velocity, 0.7);

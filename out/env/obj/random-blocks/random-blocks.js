@@ -406,6 +406,14 @@ let RandomBlocks = class RandomBlocks {
             type: this.type
         }));
     }
+    async getShadowData() {
+        return this.blocks.map(block => ({
+            vertex: block.vertex,
+            index: block.index,
+            indexCount: block.indexCount,
+            modelMatrix: block.modelMatrix
+        }));
+    }
     updatePhysicsCollidables(playerController) {
         const getColliders = new GetColliders(undefined, this);
         this.physicsSystem.setCollidables(getColliders.getCollidables());
@@ -448,7 +456,7 @@ let RandomBlocks = class RandomBlocks {
                 }
                 if (lowestPoint < groundLevel) {
                     const correction = groundLevel - lowestPoint;
-                    physicsObj.position[1] -= correction;
+                    physicsObj.position[1] += correction;
                     physicsObj.velocity[1] = 0.0;
                     vec3.scale(physicsObj.velocity, physicsObj.velocity, 0.7);
                     vec3.scale(physicsObj.angularVelocity, physicsObj.angularVelocity, 0.5);
