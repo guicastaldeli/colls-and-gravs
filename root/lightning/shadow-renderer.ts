@@ -3,8 +3,8 @@ import { ShaderLoader } from "../shader-loader.js";
 import { getBindGroups } from "../render.js";
 
 interface Renderable {
-    vertexBuffer: GPUBuffer;
-    indexBuffer: GPUBuffer;
+    vertex: GPUBuffer;
+    index: GPUBuffer;
     indexCount: number;
     modelMatrix: mat4;
     normalMatrix: mat4;
@@ -214,7 +214,7 @@ export class ShadowRenderer {
                     entryPoint: 'main',
                     buffers: [
                         {
-                            arrayStride: 5 * 4,
+                            arrayStride: 8 * 4,
                             attributes: [
                                 {
                                     shaderLocation: 0,
@@ -237,12 +237,11 @@ export class ShadowRenderer {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'none',
-                    frontFace: 'ccw',
+                    cullMode: 'front',
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
-                    depthCompare: 'less-equal',
+                    depthCompare: 'less',
                     format: 'depth24plus'
                 }
             });
@@ -257,7 +256,7 @@ export class ShadowRenderer {
                     entryPoint: 'main',
                     buffers: [
                         {
-                            arrayStride: 5 * 4,
+                            arrayStride: 8 * 4,
                             attributes: [
                                 {
                                     shaderLocation: 0,
@@ -280,8 +279,7 @@ export class ShadowRenderer {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'none',
-                    frontFace: 'ccw'
+                    cullMode: 'front',
                 }
             });
 
@@ -315,6 +313,27 @@ export class ShadowRenderer {
         }
     }
 
+    public async setLights(device: GPUDevice, uniformBuffers: GPUBuffer): Promise<void> {
+        try {
+            if(!this.buffers) throw new Error('buffer err');
+
+            const lightProjection = mat4.create();
+            const size = 20;
+            mat4.ortho(lightProjection, -size, size, -size, size, 0.1, 100);
+
+            const lightView = mat4.create();
+            const lightPos = vec3.fromValues(0, 0.5, 0);
+            mat4.lookAt(lightView, lightPos, [0, 0, 0], [0, 1, 0]);
+
+            const lightVP = mat4.create();
+            mat4.multiply(lightVP, lightProjection, lightView);
+            device.queue.writeBuffer(this.buffers.lightProjectionBuffer, 0, lightVP as Float32Array);
+        } catch(err) {
+            console.log(err);
+            throw err;
+        }
+    }
+
     public async draw(
         commandEncoder: GPUCommandEncoder,
         device: GPUDevice,
@@ -327,8 +346,8 @@ export class ShadowRenderer {
 
         const validObjects = objects.filter(obj =>
             obj &&
-            obj.vertexBuffer &&
-            obj.indexBuffer &&
+            obj.vertex &&
+            obj.index &&
             obj.indexCount > 0 &&
             obj.modelMatrix
         );
@@ -382,8 +401,8 @@ export class ShadowRenderer {
             shadowPass.setBindGroup(0, this.bindGroups.shadow);
 
             for(const obj of validObjects) {
-                shadowPass.setVertexBuffer(0, obj.vertexBuffer);
-                shadowPass.setIndexBuffer(obj.indexBuffer, 'uint16');
+                shadowPass.setVertexBuffer(0, obj.vertex);
+                shadowPass.setIndexBuffer(obj.index, 'uint16');
                 shadowPass.drawIndexed(obj.indexCount);
             }
 
@@ -395,15 +414,20 @@ export class ShadowRenderer {
     }
 
     public async init(canvas: HTMLCanvasElement, device: GPUDevice): Promise<void> {
-        if(this.isInit) return;
-
-        this.initPromise = (async () => {
-            this.pipelines = await this.createPipelines(canvas, device);
-            this.buffers = await this.setBuffers(device);
-            this.bindGroups = await this.setBindGroups(device);
-            this.isInit = true;
-            this.initPromise = null;
-        })();
-        await this.initPromise;
+        try {
+            if(this.isInit) return;
+    
+            this.initPromise = (async () => {
+                this.pipelines = await this.createPipelines(canvas, device);
+                this.buffers = await this.setBuffers(device);
+                this.bindGroups = await this.setBindGroups(device);
+                this.isInit = true;
+                this.initPromise = null;
+            })();
+            await this.initPromise;
+        } catch(err) {
+            console.log(err);
+            throw err;
+        }
     }
 }

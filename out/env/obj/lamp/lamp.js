@@ -82,6 +82,9 @@ let Lamp = class Lamp {
                 this.size.d
             ]);
             mat4.copy(this.modelMatrix, this.buffers.modelMatrix);
+            const normalMatrix = mat3.create();
+            mat3.normalFromMat4(normalMatrix, this.buffers.modelMatrix);
+            this.buffers.normalMatrix = normalMatrix;
             //Lightning
             const color = 'rgb(255, 255, 255)';
             const colorArray = parseColor(color);
@@ -97,6 +100,20 @@ let Lamp = class Lamp {
             console.error(err);
             throw err;
         }
+    }
+    async getShadowData() {
+        if (!this.buffers)
+            return [];
+        const normalMatrix = mat4.create();
+        mat4.invert(normalMatrix, this.buffers.modelMatrix);
+        mat4.transpose(normalMatrix, normalMatrix);
+        return [{
+                vertex: this.buffers.vertex,
+                index: this.buffers.index,
+                indexCount: this.buffers.indexCount,
+                modelMatrix: this.buffers.modelMatrix,
+                normalMatrix: normalMatrix
+            }];
     }
     async getBuffers() {
         const buffers = [];

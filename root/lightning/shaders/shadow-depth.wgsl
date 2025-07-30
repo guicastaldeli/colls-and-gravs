@@ -1,5 +1,5 @@
 @group(0) @binding(0) var<uniform> lightProjectionMatrix: mat4x4f;
-@group(0) @binding(1) var<storage> modelMatrix: array<mat4x4f>;
+@group(0) @binding(1) var<storage, read> modelMatrix: array<mat4x4f>;
 
 struct Input {
     @builtin(instance_index) idx: u32,
@@ -10,5 +10,7 @@ struct Input {
 @vertex
 fn main(in: Input) -> @builtin(position) vec4f {
     let mPosition = modelMatrix[in.idx] * in.position;
-    return lightProjectionMatrix * mPosition;
+    let pos = lightProjectionMatrix * mPosition;
+    // Visualize Z depth as color
+    return vec4f(pos.z, pos.z, pos.z, 1.0);
 }

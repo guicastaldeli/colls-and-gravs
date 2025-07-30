@@ -489,6 +489,8 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
             }
         }
     }
+    if (shadowRenderer)
+        shadowRenderer.setLights(device, uniformBuffer);
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -521,7 +523,7 @@ async function directionalLight() {
     const colorArray = parseColor(color);
     const direction = vec3.fromValues(pos.x, pos.y, pos.z);
     vec3.normalize(direction, direction);
-    const light = new DirectionalLight(colorArray, direction, 0.0);
+    const light = new DirectionalLight(colorArray, direction, 1.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
 }
@@ -596,8 +598,9 @@ export async function render(canvas) {
         }
         if (shadowRenderer) {
             const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
-            const shadowData = getRandomBlocks.map(obj => obj.getShadowData());
+            const shadowData = (await Promise.all(getRandomBlocks.map(obj => obj.getShadowData()))).flat();
             await shadowRenderer.draw(commandEncoder, device, shadowData);
+            console.log("Sending to shadow renderer:", shadowData.length, "blocks");
         }
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||

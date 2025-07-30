@@ -37,7 +37,7 @@ fn blinnPhong(N: vec3f, L: vec3f, V: vec3f) -> vec2f {
 }
 
 fn pcfShadows(in: Input) -> f32 {
-    var visibility = 0.0;
+    var visibility = 1.0;
     let size = f32(textureDimensions(shadowTexture).x);
     let oneOverSize = 1.0 / size;
 
@@ -48,13 +48,12 @@ fn pcfShadows(in: Input) -> f32 {
                 shadowTexture,
                 shadowSampler,
                 in.vShadowPos.xy + offset,
-                in.vShadowPos.z - 0.007
+                in.vShadowPos.z + 5.0
             );
         }
     }
 
-    visibility /= 0.9;
-    return visibility;
+    return visibility / 9.0;
 }
 
 @fragment

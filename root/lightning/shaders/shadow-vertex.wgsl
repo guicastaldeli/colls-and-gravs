@@ -33,8 +33,9 @@ fn main(in: Input) -> Output {
 
     let lightPosition = lightProjectionMatrix * mPosition;
     output.vShadowPos = vec4(
-        lightPosition.xy * vec2(0.5 -0.5) +
-        vec2(0.5, 0.5), lightPosition.z, 1.0
+        lightPosition.xy * vec2(0.5, -0.5) + vec2(0.5), 
+        lightPosition.z * 0.5 + 0.5, 
+        1.0
     );
 
     return output;

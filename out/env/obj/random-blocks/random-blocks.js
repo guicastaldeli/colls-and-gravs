@@ -418,7 +418,7 @@ let RandomBlocks = class RandomBlocks {
                 index: block.index,
                 indexCount: block.indexCount,
                 modelMatrix: block.modelMatrix,
-                normalMatrix: block.normalMatrix
+                normalMatrix: normalMatrix
             };
         });
     }
