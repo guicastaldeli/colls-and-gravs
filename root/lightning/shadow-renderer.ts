@@ -73,7 +73,7 @@ export class ShadowRenderer {
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
             const materialBuffer = device.createBuffer({
-                size: 16,
+                size: 32,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
 
@@ -148,7 +148,7 @@ export class ShadowRenderer {
                     },
                     {
                         binding: 2,
-                        resource: depthTextureView!
+                        resource: depthTextureView
                     },
                     {
                         binding: 3,
@@ -202,7 +202,7 @@ export class ShadowRenderer {
             });
 
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
-            const { lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
+            const { pointLightBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
 
             //Shape
             const shapePipeline = device.createRenderPipeline({

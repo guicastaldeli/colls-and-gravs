@@ -35,7 +35,7 @@ export class ShadowRenderer {
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
             const materialBuffer = device.createBuffer({
-                size: 16,
+                size: 32,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
             return {
@@ -153,7 +153,7 @@ export class ShadowRenderer {
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
-            const { lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
+            const { pointLightBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
             //Shape
             const shapePipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({

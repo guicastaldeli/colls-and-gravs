@@ -36,7 +36,7 @@ export class LightningManager {
 
         if(!this.lightBuffers.has(id)) {
             const bufferSize = {
-                'ambient': 16,
+                'ambient': 64,
                 'directional': 32,
                 'point': 64
             }
@@ -96,13 +96,13 @@ export class LightningManager {
     }
 
     //Lightning Group
-    public getLightningBindGroup(depthTexture: GPUTexture, lightningBindGroupLayout: GPUBindGroupLayout): GPUBindGroup | null {
+    public getLightningBindGroup(depthTexture: GPUTexture, bindGroupLayout: GPUBindGroupLayout): GPUBindGroup | null {
         const ambientLightBuffer = this.getLightBuffer('ambient');
         const directionalLightBuffer = this.getLightBuffer('directional');
         if(!ambientLightBuffer || !directionalLightBuffer) throw new Error('ambient or directional err');
 
         return this.device.createBindGroup({
-            layout: lightningBindGroupLayout,
+            layout: bindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -195,11 +195,11 @@ export class LightningManager {
             }
         }
 
-        public getPointLightBindGroup(pointLightBindGroupLayout: GPUBindGroupLayout): GPUBindGroup | null {
+        public getPointLightBindGroup(bindGroupLayout: GPUBindGroupLayout): GPUBindGroup | null {
             if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
 
             return this.device.createBindGroup({
-                layout: pointLightBindGroupLayout,
+                layout: bindGroupLayout,
                 entries: [
                     {
                         binding: 0,
