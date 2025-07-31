@@ -154,7 +154,10 @@ async function setBindGroups(): Promise<BindGroupResources> {
                 {
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
+                    texture: { 
+                        sampleType: 'depth',
+                        viewDimension: '2d' 
+                    }
                 },
                 {
                     binding: 3,
@@ -673,7 +676,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             depthTexture = device.createTexture({
                 size: [canvas.width, canvas.height],
                 format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             depthTextureWidth = canvas.width;
             depthTextureHeight = canvas.height;
