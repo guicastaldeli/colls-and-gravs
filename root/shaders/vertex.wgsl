@@ -41,5 +41,6 @@ fn main(input: VertexInput) -> VertexOutput {
     output.texCoord = input.texCoord;
     output.isLamp = uniforms.isLamp;
     output.viewDir = uniforms.cameraPos - output.worldPos;
+    
     return output;
 }

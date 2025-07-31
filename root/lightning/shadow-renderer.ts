@@ -202,12 +202,12 @@ export class ShadowRenderer {
             });
 
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
-            const { shadowMapBindGroupLayout, depthBindGroupLayout } = await getBindGroups();
+            const { lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
 
             //Shape
             const shapePipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowMapBindGroupLayout, depthBindGroupLayout]
+                    bindGroupLayouts: [pointLightBindGroupLayout, lightningBindGroupLayout]
                 }),
                 vertex: {
                     module: vertexShader,
@@ -237,7 +237,7 @@ export class ShadowRenderer {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'front',
+                    cullMode: 'back',
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
@@ -249,7 +249,7 @@ export class ShadowRenderer {
             //Depth
             const depthPipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [shadowMapBindGroupLayout]
+                    bindGroupLayouts: [pointLightBindGroupLayout]
                 }),
                 vertex: {
                     module: depthShader,
@@ -279,7 +279,7 @@ export class ShadowRenderer {
                 },
                 primitive: {
                     topology: 'triangle-list',
-                    cullMode: 'front',
+                    cullMode: 'back',
                 }
             });
 
@@ -318,11 +318,11 @@ export class ShadowRenderer {
             if(!this.buffers) throw new Error('buffer err');
 
             const lightProjection = mat4.create();
-            const size = 20;
+            const size = 50;
             mat4.ortho(lightProjection, -size, size, -size, size, 0.1, 100);
 
             const lightView = mat4.create();
-            const lightPos = vec3.fromValues(0, 0.5, 0);
+            const lightPos = vec3.fromValues(-10, 20, -15);
             mat4.lookAt(lightView, lightPos, [0, 0, 0], [0, 1, 0]);
 
             const lightVP = mat4.create();

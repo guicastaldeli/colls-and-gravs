@@ -10,7 +10,5 @@ struct Input {
 @vertex
 fn main(in: Input) -> @builtin(position) vec4f {
     let mPosition = modelMatrix[in.idx] * in.position;
-    let pos = lightProjectionMatrix * mPosition;
-    // Visualize Z depth as color
-    return vec4f(pos.z, pos.z, pos.z, 1.0);
+    return lightProjectionMatrix * mPosition;
 }

@@ -68,6 +68,34 @@ export class LightningManager {
     updateAllLightBuffers() {
         this.lights.forEach((_, id) => this.updateLightBuffer(id));
     }
+    //Lightning Group
+    getLightningBindGroup(depthTexture, lightningBindGroupLayout) {
+        const ambientLightBuffer = this.getLightBuffer('ambient');
+        const directionalLightBuffer = this.getLightBuffer('directional');
+        if (!ambientLightBuffer || !directionalLightBuffer)
+            throw new Error('ambient or directional err');
+        return this.device.createBindGroup({
+            layout: lightningBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: ambientLightBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: directionalLightBuffer }
+                },
+                {
+                    binding: 2,
+                    resource: depthTexture.createView()
+                },
+                {
+                    binding: 3,
+                    resource: this.device.createSampler({ compare: 'less' })
+                }
+            ]
+        });
+    }
     //Ambient Light
     addAmbientLight(id, light) {
         this.addLight(id, 'ambient', light);
@@ -120,13 +148,11 @@ export class LightningManager {
             this.device.queue.writeBuffer(this.pointCountBuffer, 0, new Uint32Array([count]));
         }
     }
-    getPointLightBindGroup(pipeline) {
+    getPointLightBindGroup(pointLightBindGroupLayout) {
         if (!this.pointStorageBuffer || !this.pointCountBuffer)
             return null;
-        const layout = pipeline.getBindGroupLayout(3);
-        const pointLights = this.getPointLights();
         return this.device.createBindGroup({
-            layout,
+            layout: pointLightBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -135,6 +161,18 @@ export class LightningManager {
                 {
                     binding: 1,
                     resource: { buffer: this.pointStorageBuffer }
+                },
+                {
+                    binding: 2,
+                    resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE }) }
+                },
+                {
+                    binding: 3,
+                    resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.UNIFORM }) }
+                },
+                {
+                    binding: 4,
+                    resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE }) }
                 }
             ]
         });

@@ -32,9 +32,10 @@ fn main(in: Input) -> Output {
     output.vColor = colorVec[in.idx];
 
     let lightPosition = lightProjectionMatrix * mPosition;
+    let projectedPos = lightPosition.xyz / lightPosition.w;
     output.vShadowPos = vec4(
-        lightPosition.xy * vec2(0.5, -0.5) + vec2(0.5), 
-        lightPosition.z * 0.5 + 0.5, 
+        projectedPos.xy * vec2(0.5, -0.5) + vec2(0.5),
+        projectedPos.z,
         1.0
     );
 

@@ -109,6 +109,16 @@ async function setBindGroups() {
                         type: 'uniform',
                         minBindingSize: 32
                     }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -122,20 +132,6 @@ async function setBindGroups() {
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'read-only-storage' }
-                }
-            ]
-        });
-        const shadowMapBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
                     buffer: { type: 'read-only-storage' }
                 },
                 {
@@ -155,37 +151,11 @@ async function setBindGroups() {
                 }
             ]
         });
-        const depthBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
-                }
-            ]
-        });
         return {
             bindGroupLayout,
             textureBindGroupLayout,
             lightningBindGroupLayout,
-            pointLightBindGroupLayout,
-            shadowMapBindGroupLayout,
-            depthBindGroupLayout
+            pointLightBindGroupLayout
         };
     }
     catch (err) {
@@ -369,7 +339,7 @@ async function getPipeline(passEncoder) {
 async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView) {
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
-    const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
+    const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => rb.getBlocks());
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
@@ -400,22 +370,12 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
     const directionalLightBuffer = lightningManager.getLightBuffer('directional');
     if (!directionalLightBuffer)
         throw new Error('Directional light err');
-    const pointLightBindGroup = lightningManager.getPointLightBindGroup(pipeline);
+    const pointLightBindGroup = lightningManager.getPointLightBindGroup(pointLightBindGroupLayout);
     if (!pointLightBindGroup)
         throw new Error('Point light err');
-    const lightningBindGroup = device.createBindGroup({
-        layout: lightningBindGroupLayout,
-        entries: [
-            {
-                binding: 0,
-                resource: { buffer: ambientLightBuffer }
-            },
-            {
-                binding: 1,
-                resource: { buffer: directionalLightBuffer }
-            }
-        ]
-    });
+    const lightningBindGroup = lightningManager.getLightningBindGroup(depthTexture, lightningBindGroupLayout);
+    if (!lightningBindGroup)
+        throw new Error('Lightning group err');
     //
     for (let i = 0; i < renderBuffers.length; i++) {
         const data = renderBuffers[i];
@@ -516,7 +476,7 @@ async function ambientLight() {
 async function directionalLight() {
     const pos = {
         x: -10.0,
-        y: 5.0,
+        y: 20.0,
         z: -15.0
     };
     const color = 'rgb(255, 255, 255)';

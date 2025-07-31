@@ -48,7 +48,7 @@ fn pcfShadows(in: Input) -> f32 {
                 shadowTexture,
                 shadowSampler,
                 in.vShadowPos.xy + offset,
-                in.vShadowPos.z + 5.0
+                in.vShadowPos.z - 0.01
             );
         }
     }
