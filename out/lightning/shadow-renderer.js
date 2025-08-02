@@ -14,25 +14,99 @@ export class ShadowRenderer {
         this.bufferData = bufferData;
         this.shaderLoader = shaderLoader;
     }
-    async initMatricesBuffer(device) {
-        const bindGroupLayout = device.createBindGroupLayout({
-            entries: [{
+    async cubeBindGroup(device) {
+        return device.createBindGroupLayout({
+            entries: [
+                {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: 'uniform' }
-                }]
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 6,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 7,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 8,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                }
+            ]
         });
+    }
+    async initMatricesBuffer(device) {
+        const bindGroupLayout = await this.cubeBindGroup(device);
         this.faceMatricesBuffer = device.createBuffer({
             size: 6 * 16 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             mappedAtCreation: false
         });
+        const storageBuffer = device.createBuffer({
+            size: 16 * 4,
+            usage: GPUBufferUsage.STORAGE,
+            mappedAtCreation: false
+        });
+        const depthTexture = device.createTexture({
+            size: [1, 1],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.TEXTURE_BINDING
+        });
+        const sampler = device.createSampler({
+            compare: 'less'
+        });
         this.faceMatricesBindGroup = device.createBindGroup({
             layout: bindGroupLayout,
-            entries: [{
+            entries: [
+                {
                     binding: 0,
                     resource: { buffer: this.faceMatricesBuffer }
-                }]
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: storageBuffer }
+                },
+                {
+                    binding: 4,
+                    resource: { buffer: this.faceMatricesBuffer }
+                },
+                {
+                    binding: 5,
+                    resource: { buffer: storageBuffer }
+                },
+                {
+                    binding: 6,
+                    resource: { buffer: this.faceMatricesBuffer }
+                },
+                {
+                    binding: 7,
+                    resource: depthTexture.createView()
+                },
+                {
+                    binding: 8,
+                    resource: sampler
+                }
+            ]
         });
     }
     async createPipelines(canvas, device) {
@@ -44,6 +118,7 @@ export class ShadowRenderer {
             });
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
             const { pointLightBindGroupLayout, lightningBindGroupLayout, textureBindGroupLayout } = await getBindGroups();
+            const bindGroupLayout = await this.cubeBindGroup(device);
             //Shape
             const shapePipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
@@ -128,7 +203,7 @@ export class ShadowRenderer {
             //Cube
             const cubeShadowPipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [pointLightBindGroupLayout]
+                    bindGroupLayouts: [bindGroupLayout]
                 }),
                 vertex: {
                     module: depthShader,
@@ -214,19 +289,14 @@ export class ShadowRenderer {
                     depthStoreOp: 'store',
                 }
             });
-            /*
-
             shadowPass.setPipeline(this.pipelines.cubeShadowPipeline);
             shadowPass.setBindGroup(0, this.faceMatricesBindGroup);
-
-            for(const obj of objects) {
+            for (const obj of objects) {
                 shadowPass.setVertexBuffer(0, obj.vertex);
                 shadowPass.setIndexBuffer(obj.index, 'uint16');
                 shadowPass.drawIndexed(obj.indexCount);
             }
-
             shadowPass.end();
-        */
         }
     }
     async init(canvas, device) {

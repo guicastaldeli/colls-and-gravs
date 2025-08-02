@@ -18,7 +18,6 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { ShadowRenderer } from "./lightning/shadow-renderer.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -64,7 +63,6 @@ let skybox: Skybox;
 let lightningManager: LightningManager;
 let windManager: WindManager;
 let objectManager: ObjectManager;
-let shadowRenderer: ShadowRenderer;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -707,22 +705,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!commandManager) {
             commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
             commandManager.init();
-        }
-
-        //Shadows
-        if(!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(buffers, shaderLoader);
-            await shadowRenderer.init(canvas, device);
-        }
-        if(shadowRenderer.isInit) {
-            const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
-            const shadowData = (await Promise.all(getRandomBlocks.map(obj => obj.getShadowData()))).flat();
-            const pointLights = lightningManager.getPointLights();
-
-            for(const light of pointLights) {
-                light.initShadowMap(device);
-                //await shadowRenderer.draw(device, commandEncoder, light, shadowData);
-            }
         }
 
         if(depthTexture &&

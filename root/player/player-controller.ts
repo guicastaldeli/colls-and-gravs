@@ -22,8 +22,8 @@ export class PlayerController implements ICollidable {
     private yaw: number = 0;
     private pitch: number = 0;
         
-    private _movSpeed: number = 5.0;
-    private _mouseSensv: number = 0.3;
+    private _movSpeed: number = 7.0;
+    private _mouseSensv: number = 0.4;
 
     public _Rigidbody: Rigidbody;
     private _Collider: Collider;
@@ -41,7 +41,7 @@ export class PlayerController implements ICollidable {
     private _movementStateDelay: number = 0.1;
 
     //Jump
-    private _jumpForce: number = 25.0;
+    private _jumpForce: number = 20.0;
     private _isJumping: boolean = false;
         
     constructor(

@@ -14,8 +14,8 @@ export class PlayerController {
     _cameraOffset = vec3.fromValues(0, 0, 0);
     yaw = 0;
     pitch = 0;
-    _movSpeed = 5.0;
-    _mouseSensv = 0.3;
+    _movSpeed = 7.0;
+    _mouseSensv = 0.4;
     _Rigidbody;
     _Collider;
     _Collidables = [];
@@ -30,7 +30,7 @@ export class PlayerController {
     _movmentStateChangeTime = 0.0;
     _movementStateDelay = 0.1;
     //Jump
-    _jumpForce = 25.0;
+    _jumpForce = 20.0;
     _isJumping = false;
     constructor(tick, input, _initialPosition, collidables) {
         this.tick = tick;
