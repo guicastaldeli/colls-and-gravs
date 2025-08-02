@@ -214,14 +214,19 @@ export class ShadowRenderer {
                     depthStoreOp: 'store',
                 }
             });
+            /*
+
             shadowPass.setPipeline(this.pipelines.cubeShadowPipeline);
             shadowPass.setBindGroup(0, this.faceMatricesBindGroup);
-            for (const obj of objects) {
+
+            for(const obj of objects) {
                 shadowPass.setVertexBuffer(0, obj.vertex);
                 shadowPass.setIndexBuffer(obj.index, 'uint16');
                 shadowPass.drawIndexed(obj.indexCount);
             }
+
             shadowPass.end();
+        */
         }
     }
     async init(canvas, device) {

@@ -272,6 +272,8 @@ export class ShadowRenderer {
                 }
             });
 
+            /*
+
             shadowPass.setPipeline(this.pipelines.cubeShadowPipeline);
             shadowPass.setBindGroup(0, this.faceMatricesBindGroup);
 
@@ -282,6 +284,7 @@ export class ShadowRenderer {
             }
 
             shadowPass.end();
+        */
         }
     }
 

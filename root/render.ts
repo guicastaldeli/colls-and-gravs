@@ -652,56 +652,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!shaderLoader) shaderLoader = new ShaderLoader(device);
         if(!shaderComposer) shaderComposer = new ShaderComposer(device);
         if(!pipeline) await initPipeline();
-        
-        if(depthTexture &&
-        (depthTextureWidth !== canvas.width ||
-            depthTextureHeight !== canvas.height)
-        ) {
-            await device.queue.onSubmittedWorkDone();
-            depthTexture.destroy();
-            depthTexture = null;
-        }
-        
-        if(!depthTexture) {
-            depthTexture = device.createTexture({
-                size: [canvas.width, canvas.height],
-                format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
-            });
-            depthTextureWidth = canvas.width;
-            depthTextureHeight = canvas.height;
-        }
-        if(!shadowDepthTexture) {
-            shadowDepthTexture = device.createTexture({
-                size: [canvas.width, canvas.height],
-                format: 'depth24plus',
-                usage: GPUTextureUsage.TEXTURE_BINDING
-            });
-            shadowDepthTextureWidth = canvas.width;
-            shadowDepthTextureHeight = canvas.height;
-        }
-        
-        const renderPassDescriptor: GPURenderPassDescriptor = {
-            colorAttachments: [{
-                view: textureView,
-                clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-                loadOp: 'clear',
-                storeOp: 'store'
-            }],
-            depthStencilAttachment: {
-                view: depthTexture.createView(),
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            }
-        }
-
-        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-        passEncoder.setPipeline(pipeline);
-    
-        const modelMatrix = mat4.create();
-        const viewProjectionMatrix = mat4.create();
 
         //Lightning
         if(!lightningManager) lightningManager = new LightningManager(device);
@@ -716,7 +666,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 const deps = {
                     tick,
                     device,
-                    passEncoder,
+                    passEncoder: null,
                     loader,
                     shaderLoader,
                     ground: envRenderer?.ground,
@@ -726,7 +676,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                     format,
                     hud: null,
                     windManager,
-                    viewProjectionMatrix,
+                    viewProjectionMatrix: null,
                     pipeline
                 }
     
@@ -793,19 +743,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             commandManager.init();
         }
 
-        const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
-        const viewMatrix = camera.getViewMatrix();
-        mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
-        await setBuffers(
-            canvas,
-            passEncoder, 
-            viewProjectionMatrix, 
-            modelMatrix, 
-            currentTime, 
-            commandEncoder,
-            textureView
-        );
-
         //Shadows
         if(!shadowRenderer) {
             shadowRenderer = new ShadowRenderer(buffers, shaderLoader);
@@ -821,6 +758,62 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 //await shadowRenderer.draw(device, commandEncoder, light, shadowData);
             }
         }
+
+        if(depthTexture &&
+        (depthTextureWidth !== canvas.width ||
+            depthTextureHeight !== canvas.height)
+        ) {
+            await device.queue.onSubmittedWorkDone();
+            depthTexture.destroy();
+            depthTexture = null;
+        }
+        
+        if(!depthTexture) {
+            depthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            depthTextureWidth = canvas.width;
+            depthTextureHeight = canvas.height;
+        }
+        if(!shadowDepthTexture) {
+            shadowDepthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.TEXTURE_BINDING
+            });
+            shadowDepthTextureWidth = canvas.width;
+            shadowDepthTextureHeight = canvas.height;
+        }
+        
+        const passEncoder = commandEncoder.beginRenderPass({
+            colorAttachments: [{
+                view: textureView,
+                clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }],
+            depthStencilAttachment: {
+                view: depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            }
+        });
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        objectManager.deps.passEncoder = passEncoder;
+    
+        const modelMatrix = mat4.create();
+        const viewProjectionMatrix = mat4.create();
+        const projectionMatrix = camera.getProjectionMatrix(canvas.width / canvas.height);
+        const viewMatrix = camera.getViewMatrix();
+        mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
+        objectManager.deps.viewProjectionMatrix = viewProjectionMatrix;
+
+        //Buffers
+        await setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView);
 
         //**__ Late Renderers __**
         await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);
