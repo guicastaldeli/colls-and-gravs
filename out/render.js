@@ -245,9 +245,7 @@ async function initPipeline() {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat()
-                    }]
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
             },
             primitive: {
                 topology: 'triangle-list',
@@ -311,9 +309,7 @@ async function initPipeline() {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat()
-                    }]
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
             },
             primitive: {
                 topology: 'line-list',
@@ -349,10 +345,10 @@ async function getPipeline(passEncoder) {
         console.error('err pipeline');
     passEncoder.setPipeline(currentPipeline);
 }
-async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView) {
+async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime) {
+    const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
     buffers = await initBuffers(device);
     mat4.identity(modelMatrix);
-    const { bindGroupLayout, textureBindGroupLayout, lightningBindGroupLayout, pointLightBindGroupLayout } = await getBindGroups();
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => rb.getBlocks());
     const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
@@ -363,16 +359,14 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
     });
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
-        entries: [
-            {
+        entries: [{
                 binding: 0,
                 resource: {
                     buffer: uniformBuffer,
                     offset: 0,
                     size: 256
                 }
-            }
-        ]
+            }]
     });
     //Pipeline
     await getPipeline(passEncoder);
@@ -401,17 +395,12 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
-        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
-        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
-        if (isLamp) {
-            uniformData.set([1.0, 1.0, 1.0], 44);
-        }
-        else {
-            uniformData.set([0.0, 0.0, 0.0], 44);
-        }
         const cameraPos = camera.playerController.getCameraPosition();
         uniformData.set(cameraPos, 48);
         uniformData.set([currentTime / 1000], 51);
+        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
+        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
+        isLamp ? uniformData.set([1.0, 1.0, 1.0], 44) : uniformData.set([0.0, 0.0, 0.0], 44);
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {
@@ -520,12 +509,10 @@ async function lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canva
     }
     await skybox.render(passEncoder, viewProjectionMatrix, deltaTime);
     //Camera Related
-    //Arm
-    if (camera && pipeline)
-        camera.renderArm(device, pipeline, passEncoder, canvas);
-    //Hud
-    camera.renderHud(passEncoder);
-    //
+    if (!camera || !pipeline)
+        return;
+    camera.renderArm(device, pipeline, passEncoder, canvas); //Arm
+    camera.renderHud(passEncoder); //Hud
     //Random Blocks
     if (randomBlocks)
         randomBlocks.init(canvas, playerController, format, hud);
@@ -576,13 +563,10 @@ export async function render(canvas) {
                 viewProjectionMatrix: null,
                 pipeline
             };
-            if (!objectManager) {
-                objectManager = new ObjectManager(deps);
-                await objectManager.ready();
-            }
+            objectManager = new ObjectManager(deps);
+            await objectManager.ready();
             await renderEnv(deltaTime);
         }
-        //
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
         randomBlocks.update(deltaTime);
@@ -596,26 +580,25 @@ export async function render(canvas) {
         }
         playerController.update(deltaTime);
         //Camera
+        //Main
         if (!camera) {
             camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
             await camera.initArm(device, pipeline);
             await camera.initHud(canvas.width, canvas.height);
-        }
-        if (camera)
             camera.update(deltaTime);
+        }
+        //Input
         if (!input) {
             input = new Input(tick, camera, playerController);
             input.setupInputControls(canvas);
         }
-        if (camera) {
-            hud = camera.getHud();
-            hud.update(canvas.width, canvas.height);
-            camera.getProjectionMatrix(canvas.width / canvas.height);
-        }
+        //Hud
+        hud = camera.getHud();
+        hud.update(canvas.width, canvas.height);
+        camera.getProjectionMatrix(canvas.width / canvas.height);
         //
         //Commands
-        if (!commandManager && input &&
-            playerController && randomBlocks) {
+        if (!commandManager) {
             commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
             commandManager.init();
         }
@@ -682,7 +665,7 @@ export async function render(canvas) {
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         objectManager.deps.viewProjectionMatrix = viewProjectionMatrix;
         //Buffers
-        await setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         //**__ Late Renderers __**
         await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);
         passEncoder.end();

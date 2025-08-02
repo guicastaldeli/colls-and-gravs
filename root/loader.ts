@@ -41,18 +41,18 @@ export class Loader {
                     parseFloat(parts[1]),
                     parseFloat(parts[2]),
                     parseFloat(parts[3])
-                )
+                );
             } else if(parts[0] === 'vn') {
                 this.normals.push(
                     parseFloat(parts[1]),
                     parseFloat(parts[2]),
                     parseFloat(parts[3])
-                )
+                );
             } else if(parts[0] === 'vt') {
                 this.coords.push(
                     parseFloat(parts[1]),
                     1.0 - parseFloat(parts[2])
-                )
+                );
             } else if(parts[0] === 'f') {
                 if(parts.length === 4) {
                     const triIndices: number[] = [];
@@ -78,7 +78,7 @@ export class Loader {
                             this.vertices.push(
                                 this.coords[texIndex] || 0,
                                 this.coords[texIndex + 1] || 0
-                            )
+                            );
 
                             const normIndex = Math.min(nIdx, this.normals.length / 3 - 1) * 3;
                             this.vertices.push(
@@ -216,31 +216,26 @@ export class Loader {
     private async createBuffers(device: GPUDevice): Promise<EnvBufferData> {
         //Vertex
         const vertexArray = new Float32Array(this.vertices);
-
         const vertexBuffer = device.createBuffer({
             size: vertexArray.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Float32Array(vertexBuffer.getMappedRange()).set(vertexArray);
         vertexBuffer.unmap();
 
         //Color
         const colorData = new Float32Array(this.positions.length);
-
         for(let i = 0; i < colorData.length; i += 3) {
             colorData[i] = 0.8;
             colorData[i + 1] = 0.6;
             colorData[i + 2] = 0.4;
         }
-
         const colorBuffer = device.createBuffer({
             size: colorData.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Float32Array(colorBuffer.getMappedRange()).set(colorData);
         colorBuffer.unmap();
 
@@ -250,14 +245,12 @@ export class Loader {
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true
         });
-
         new Uint16Array(indexBuffer.getMappedRange()).set(this.objIndices);
         indexBuffer.unmap();
 
         //Texture
         let texture: GPUTexture = this.createDefaultTex();
         let sampler: GPUSampler = this.createSampler();
-
         if(this.textureUrl && this.textureUrl.trim() !== '') {
             try {
                 texture = this.textureUrl ? await this.textureLoader(this.textureUrl) : this.createDefaultTex();

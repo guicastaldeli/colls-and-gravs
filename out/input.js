@@ -43,7 +43,7 @@ export class Input {
         this.requestPointerLock(canvas);
         this.lastTime = performance.now();
         if (this.playerController)
-            this.initLoop(this.playerController, this.keys);
+            this.initLoop(this.keys);
     }
     requestPointerLock(canvas) {
         canvas.requestPointerLock = canvas.requestPointerLock;
@@ -108,7 +108,7 @@ export class Input {
         this.lastTime = time;
         this.playerController.updateInput(this.keys, deltaTime);
     }
-    initLoop(playerController, keys) {
+    initLoop(keys) {
         const loop = (time) => {
             if (!this.playerController)
                 return;

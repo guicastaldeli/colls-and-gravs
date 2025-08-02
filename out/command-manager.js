@@ -84,17 +84,13 @@ export class CommandManager {
         const parts = command.trim().substring(1).split(/\s+/);
         const cmd = parts[0].toLowerCase();
         const args = parts.slice(1);
-        if (!this.commandConfig?.commands[cmd]) {
-            console.log(`Unknown command: ${cmd}. Type /list for available commands.`);
-            return;
-        }
+        if (!this.commandConfig?.commands[cmd])
+            throw new Error(`Unknown command: ${cmd}. Type /list for available commands.`);
         const commandDef = this.commandConfig.commands[cmd];
         const handler = this.spawnHandler.get(commandDef.handler);
-        if (!handler) {
-            console.log(`No handler for command: ${cmd}`);
-            return;
-        }
         try {
+            if (!handler)
+                throw new Error(`No handler for command: ${cmd}`);
             await handler(args);
         }
         catch (err) {
@@ -106,10 +102,8 @@ export class CommandManager {
         let blockDef = ListData.find(item => item.id === id);
         if (!blockDef)
             blockDef = ListData.find(item => item.id_attr === id);
-        if (!blockDef) {
-            console.log(`Block with ID or attribute '${id}' not found`);
-            return;
-        }
+        if (!blockDef)
+            throw new Error(`Block with ID or attribute '${id}' not found`);
         let position;
         const playerPos = this.playerController.getPosition();
         const forward = this.playerController.getForward();

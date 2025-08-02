@@ -296,9 +296,7 @@ async function initPipeline(): Promise<void> {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{
-                    format: navigator.gpu.getPreferredCanvasFormat()
-                }]
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
             },
             primitive: {
                 topology: 'triangle-list',
@@ -363,9 +361,7 @@ async function initPipeline(): Promise<void> {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{
-                    format: navigator.gpu.getPreferredCanvasFormat()
-                }]
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
             },
             primitive: {
                 topology: 'line-list',
@@ -404,22 +400,19 @@ async function getPipeline(passEncoder: GPURenderPassEncoder): Promise<void> {
 }
 
 async function setBuffers(
-    canvas: HTMLCanvasElement,
     passEncoder: GPURenderPassEncoder,
     viewProjectionMatrix: mat4,
     modelMatrix: mat4,
-    currentTime: number,
-    commandEncoder: GPUCommandEncoder,
-    textureView: GPUTextureView
+    currentTime: number
 ) {
-    buffers = await initBuffers(device);
-    mat4.identity(modelMatrix);
     const { 
         bindGroupLayout, 
         textureBindGroupLayout,
         lightningBindGroupLayout,
         pointLightBindGroupLayout
     } = await getBindGroups();
+    buffers = await initBuffers(device);
+    mat4.identity(modelMatrix);
     
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => (rb as any).getBlocks());
@@ -433,16 +426,14 @@ async function setBuffers(
 
     const bindGroup = device.createBindGroup({
         layout: bindGroupLayout,
-        entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: uniformBuffer,
-                    offset: 0,
-                    size: 256
-                }
+        entries: [{
+            binding: 0,
+            resource: {
+                buffer: uniformBuffer,
+                offset: 0,
+                size: 256
             }
-        ]
+        }]
     });
 
     //Pipeline
@@ -477,18 +468,13 @@ async function setBuffers(
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
 
-        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
-        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
-
-        if(isLamp) {
-            uniformData.set([1.0, 1.0, 1.0], 44);
-        } else {
-            uniformData.set([0.0, 0.0, 0.0], 44);
-        }
-
         const cameraPos = camera.playerController.getCameraPosition();
         uniformData.set(cameraPos, 48);
         uniformData.set([currentTime / 1000], 51);
+
+        const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
+        uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
+        isLamp ? uniformData.set([1.0, 1.0, 1.0], 44) : uniformData.set([0.0, 0.0, 0.0], 44);
         
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
@@ -624,12 +610,9 @@ async function lateRenderers(
     await skybox.render(passEncoder, viewProjectionMatrix, deltaTime);
 
     //Camera Related
-        //Arm
-        if(camera && pipeline) camera.renderArm(device, pipeline, passEncoder, canvas);
-
-        //Hud
-        camera.renderHud(passEncoder);
-    //
+    if(!camera || !pipeline) return;
+    camera.renderArm(device, pipeline, passEncoder, canvas); //Arm
+    camera.renderHud(passEncoder); //Hud
 
     //Random Blocks
     if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
@@ -662,32 +645,28 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         if(!windManager) windManager = new WindManager(tick);
 
         //Objects
-            if(!objectManager) {
-                const deps = {
-                    tick,
-                    device,
-                    passEncoder: null,
-                    loader,
-                    shaderLoader,
-                    ground: envRenderer?.ground,
-                    lightningManager,
-                    canvas,
-                    playerController: null,
-                    format,
-                    hud: null,
-                    windManager,
-                    viewProjectionMatrix: null,
-                    pipeline
-                }
-    
-                if(!objectManager) {
-                    objectManager = new ObjectManager(deps);
-                    await objectManager.ready();
-                }
-
-                await renderEnv(deltaTime);
+        if(!objectManager) {
+            const deps = {
+                tick,
+                device,
+                passEncoder: null,
+                loader,
+                shaderLoader,
+                ground: envRenderer?.ground,
+                lightningManager,
+                canvas,
+                playerController: null,
+                format,
+                hud: null,
+                windManager,
+                viewProjectionMatrix: null,
+                pipeline
             }
-        //
+    
+            objectManager = new ObjectManager(deps);
+            await objectManager.ready();
+            await renderEnv(deltaTime);
+        }
 
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
@@ -704,42 +683,29 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         playerController.update(deltaTime);
 
         //Camera
+            //Main
             if(!camera) {
-                camera = new Camera(
-                    tick,
-                    device, 
-                    pipeline, 
-                    loader, 
-                    shaderLoader, 
-                    playerController,
-                    lightningManager
-                );
-
+                camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
                 await camera.initArm(device, pipeline);
                 await camera.initHud(canvas.width, canvas.height);
+                camera.update(deltaTime);
             }
-            if(camera) camera.update(deltaTime);
+
+            //Input
             if(!input) {
                 input = new Input(tick, camera, playerController);
                 input.setupInputControls(canvas);
             }
-            if(camera) {
-                hud = camera.getHud();
-                hud.update(canvas.width, canvas.height);
-                camera.getProjectionMatrix(canvas.width / canvas.height);
-            }
+            
+            //Hud
+            hud = camera.getHud();
+            hud.update(canvas.width, canvas.height);
+            camera.getProjectionMatrix(canvas.width / canvas.height);
         //
 
         //Commands
-        if(!commandManager && input && 
-            playerController && randomBlocks
-        ) {
-            commandManager = new CommandManager(
-                canvas, 
-                input, 
-                playerController, 
-                randomBlocks
-            );
+        if(!commandManager) {
+            commandManager = new CommandManager(canvas, input, playerController, randomBlocks);
             commandManager.init();
         }
 
@@ -760,14 +726,13 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         }
 
         if(depthTexture &&
-        (depthTextureWidth !== canvas.width ||
+            (depthTextureWidth !== canvas.width ||
             depthTextureHeight !== canvas.height)
         ) {
             await device.queue.onSubmittedWorkDone();
             depthTexture.destroy();
             depthTexture = null;
         }
-        
         if(!depthTexture) {
             depthTexture = device.createTexture({
                 size: [canvas.width, canvas.height],
@@ -813,7 +778,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         objectManager.deps.viewProjectionMatrix = viewProjectionMatrix;
 
         //Buffers
-        await setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView);
+        await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
 
         //**__ Late Renderers __**
         await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);

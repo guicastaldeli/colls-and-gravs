@@ -33,7 +33,6 @@ export class Input {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
         });
-
         window.addEventListener('keyup', (e) => {
             this.keys[e.key.toLowerCase()] = false;
         });
@@ -47,7 +46,6 @@ export class Input {
                 this.playerController.updateRotation(xOffset, yOffset);
             }
         });
-
         canvas.addEventListener('click', () => {
             setTimeout(() => {
                 canvas.requestPointerLock = canvas.requestPointerLock;
@@ -58,7 +56,7 @@ export class Input {
         document.addEventListener('pointerlockchange', this.onPointerLock.bind(this, canvas));
         this.requestPointerLock(canvas);
         this.lastTime = performance.now();
-        if(this.playerController) this.initLoop(this.playerController, this.keys);
+        if(this.playerController) this.initLoop(this.keys);
     }
 
     private requestPointerLock(canvas: HTMLCanvasElement): void {
@@ -129,10 +127,7 @@ export class Input {
         this.playerController.updateInput(this.keys, deltaTime);
     }
 
-    private initLoop(
-        playerController: PlayerController, 
-        keys: Record<string, boolean>
-    ) {        
+    private initLoop(keys: Record<string, boolean>) {        
         const loop = (time: number) => {
             if(!this.playerController) return;
             this.update(this.playerController, keys, time);

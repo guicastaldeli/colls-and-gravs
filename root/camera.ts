@@ -54,13 +54,7 @@ export class Camera {
         const cameraPos = this.playerController.getCameraPosition();
         const target = vec3.create();
         vec3.add(target, cameraPos, this.playerController.getForward());
-        
-        mat4.lookAt(
-            this.viewMatrix,
-            cameraPos,
-            target,
-            this.playerController.getUp()
-        );
+        mat4.lookAt(this.viewMatrix, cameraPos, target, this.playerController.getUp());
 
         return this.viewMatrix;
     }
@@ -77,25 +71,13 @@ export class Camera {
 
         const target = vec3.create();
         vec3.add(target, cameraPos, this.playerController.getForward());
-
-        mat4.lookAt(
-            this.viewMatrix,
-            cameraPos,
-            target,
-            this.playerController.getUp()
-        );
+        mat4.lookAt(this.viewMatrix, cameraPos, target, this.playerController.getUp());
 
         return this.viewMatrix;
     }
 
     public async initHud(w: number, h: number): Promise<void> {
-        this.hud = new Hud(
-            this.device, 
-            this.pipeline,
-            this.loader, 
-            this.shaderLoader
-        );
-
+        this.hud = new Hud(this.device, this.pipeline, this.loader, this.shaderLoader);
         await this.hud.update(w, h);
         await this.hud.init(w, h);
     }
@@ -109,14 +91,7 @@ export class Camera {
     ): Promise<void> {
         const projectionMatrix = this.getProjectionMatrix(canvas.width / canvas.height);
         passEncoder.setPipeline(pipeline);
-
-        await this.armController.render(
-            device, 
-            pipeline, 
-            passEncoder, 
-            this, 
-            projectionMatrix,
-        );
+        await this.armController.render(device, pipeline, passEncoder, this, projectionMatrix);
     }
 
     public async initArm(device: GPUDevice, pipeline: GPURenderPipeline): Promise<void> {
