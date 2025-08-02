@@ -6,19 +6,18 @@ import { ShaderLoader } from "./shader-loader.js";
 export class Hud {
     private device: GPUDevice;
     private pipeline!: GPURenderPipeline;
-
     private loader: Loader;
     private shaderLoader: ShaderLoader;
 
     private texture!: GPUTexture;
     private sampler!: GPUSampler;
 
+    private transformBuffer!: GPUBuffer;
     private buffers!: {
         vertex: GPUBuffer,
         index: GPUBuffer,
         uv: GPUBuffer
     }
-    private transformBuffer!: GPUBuffer;
 
     constructor(
         device: GPUDevice, 
@@ -33,21 +32,27 @@ export class Hud {
         this.shaderLoader = shaderLoader;
     }
 
-    private async drawCrosshair(): Promise<void> {
-        const vertices = new Float32Array([
-            -0.005, -0.01, 1,
-            0.005, -0.01, 1,
-            0.005,  0.01, 1,
-            -0.005,  0.01, 1 
-        ]);
+    private async drawCrosshair(w: number, h: number): Promise<void> {
+        const aspectRatio = w / h;
+        const baseHeight = 0.02;
 
+        const height = baseHeight;
+        const width = height * aspectRatio;
+        const halfWidth = width / 4;
+        const halfHeight = height / 2;
+
+        const vertices = new Float32Array([
+            -halfWidth, -halfHeight, 1,
+            halfWidth, -halfHeight, 1,
+            halfWidth,  halfHeight, 1,
+            -halfWidth,  halfHeight, 1 
+        ]);
         const uvs = new Float32Array([
             0, 0,
             1, 0,
             1, 1,
             0, 1 
         ]);
-
         const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
         this.buffers = {
@@ -103,7 +108,6 @@ export class Hud {
             size: 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
-
         this.device.queue.writeBuffer(this.transformBuffer, 0, transform as Float32Array);
     }
 
@@ -211,16 +215,23 @@ export class Hud {
         return worldPos;
     }
 
+    private async getTexSize(tex: GPUTexture): Promise<{ w: number, h: number }> {
+        return { w: 32, h: 32 }
+    }
+
     public async update(w: number, h: number): Promise<void> {
         this.crosshairScale(w, h);
     }
 
     public async init(w: number, h: number): Promise<void> {
         try {
-            await this.drawCrosshair();
+            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
+            const texSize = await this.getTexSize(this.texture);
+
+            await this.drawCrosshair(texSize.w, texSize.h);
             await this.initShaders();
             this.crosshairScale(w, h);
-            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
+
             this.sampler = this.device.createSampler({
                 magFilter: 'linear',
                 minFilter: 'linear'

@@ -6,20 +6,26 @@ export class Hud {
     shaderLoader;
     texture;
     sampler;
-    buffers;
     transformBuffer;
+    buffers;
     constructor(device, pipeline, loader, shaderLoader) {
         this.device = device;
         this.pipeline = pipeline;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
     }
-    async drawCrosshair() {
+    async drawCrosshair(w, h) {
+        const aspectRatio = w / h;
+        const baseHeight = 0.02;
+        const height = baseHeight;
+        const width = height * aspectRatio;
+        const halfWidth = width / 4;
+        const halfHeight = height / 2;
         const vertices = new Float32Array([
-            -0.005, -0.01, 1,
-            0.005, -0.01, 1,
-            0.005, 0.01, 1,
-            -0.005, 0.01, 1
+            -halfWidth, -halfHeight, 1,
+            halfWidth, -halfHeight, 1,
+            halfWidth, halfHeight, 1,
+            -halfWidth, halfHeight, 1
         ]);
         const uvs = new Float32Array([
             0, 0,
@@ -171,15 +177,19 @@ export class Hud {
         vec3.scaleAndAdd(worldPos, cameraPosition, cameraForward, distance);
         return worldPos;
     }
+    async getTexSize(tex) {
+        return { w: 32, h: 32 };
+    }
     async update(w, h) {
         this.crosshairScale(w, h);
     }
     async init(w, h) {
         try {
-            await this.drawCrosshair();
+            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
+            const texSize = await this.getTexSize(this.texture);
+            await this.drawCrosshair(texSize.w, texSize.h);
             await this.initShaders();
             this.crosshairScale(w, h);
-            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
             this.sampler = this.device.createSampler({
                 magFilter: 'linear',
                 minFilter: 'linear'
