@@ -48,7 +48,13 @@ export class ShadowRenderer {
     }
 
     private async initMatricesBuffer(device: GPUDevice): Promise<void> {
-        const { pointLightBindGroupLayout } = await getBindGroups();
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [{
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: 'uniform' }
+            }]
+        });
 
         this.faceMatricesBuffer = device.createBuffer({
             size: 6 * 16 * 4,
@@ -57,7 +63,7 @@ export class ShadowRenderer {
         });
 
         this.faceMatricesBindGroup = device.createBindGroup({
-            layout: pointLightBindGroupLayout,
+            layout: bindGroupLayout,
             entries: [{
                 binding: 0,
                 resource: { buffer: this.faceMatricesBuffer }

@@ -15,14 +15,20 @@ export class ShadowRenderer {
         this.shaderLoader = shaderLoader;
     }
     async initMatricesBuffer(device) {
-        const { pointLightBindGroupLayout } = await getBindGroups();
+        const bindGroupLayout = device.createBindGroupLayout({
+            entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
+                }]
+        });
         this.faceMatricesBuffer = device.createBuffer({
             size: 6 * 16 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             mappedAtCreation: false
         });
         this.faceMatricesBindGroup = device.createBindGroup({
-            layout: pointLightBindGroupLayout,
+            layout: bindGroupLayout,
             entries: [{
                     binding: 0,
                     resource: { buffer: this.faceMatricesBuffer }

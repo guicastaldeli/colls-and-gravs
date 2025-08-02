@@ -14,8 +14,8 @@ struct MaterialUniforms {
 }
 
 @group(0) @binding(0) var<uniform> material: MaterialUniforms;
-@group(2) @binding(2) var shadowTexture: texture_depth_2d;
-@group(2) @binding(3) var shadowSampler: sampler_comparison;
+@group(0) @binding(7) var shadowTexture: texture_depth_2d;
+@group(0) @binding(8) var shadowSampler: sampler_comparison;
 
 struct Input {
     @location(0) vPosition: vec4f,

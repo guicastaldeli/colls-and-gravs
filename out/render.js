@@ -92,16 +92,6 @@ async function setBindGroups() {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {}
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'depth' }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -162,6 +152,16 @@ async function setBindGroups() {
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: 'uniform' }
                 },
+                {
+                    binding: 7,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 8,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                }
             ]
         });
         return {
@@ -431,14 +431,6 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
                 {
                     binding: 1,
                     resource: data.texture.createView()
-                },
-                {
-                    binding: 2,
-                    resource: shadowDepthTexture.createView()
-                },
-                {
-                    binding: 3,
-                    resource: device.createSampler({ compare: 'less' })
                 }
             ]
         });

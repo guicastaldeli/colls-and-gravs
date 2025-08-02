@@ -173,6 +173,14 @@ export class LightningManager {
                 {
                     binding: 6,
                     resource: { buffer: this.pointCountBuffer }
+                },
+                {
+                    binding: 7,
+                    resource: depthTexture.createView()
+                },
+                {
+                    binding: 8,
+                    resource: this.device.createSampler({ compare: 'less' })
                 }
             ]
         });
