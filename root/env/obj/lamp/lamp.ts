@@ -104,7 +104,7 @@ export class Lamp {
             this.buffers.normalMatrix = normalMatrix;
             
             //Lightning
-                const color = 'rgb(28, 43, 179)';
+                const color = 'rgb(255, 255, 255)';
                 const colorArray = parseColor(color);
 
                 const lx = x;

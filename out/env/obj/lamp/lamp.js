@@ -86,7 +86,7 @@ let Lamp = class Lamp {
             mat3.normalFromMat4(normalMatrix, this.buffers.modelMatrix);
             this.buffers.normalMatrix = normalMatrix;
             //Lightning
-            const color = 'rgb(28, 43, 179)';
+            const color = 'rgb(255, 255, 255)';
             const colorArray = parseColor(color);
             const lx = x;
             const ly = y;

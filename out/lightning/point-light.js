@@ -9,8 +9,6 @@ export class PointLight {
     _quadratic;
     //Shadows
     _shadowMap = null;
-    _shadowMapView;
-    _shadowSampler;
     _shadowMapSize = 1024;
     constructor(position = vec3.fromValues(0.0, 0.0, 0.0), color = vec3.fromValues(1.0, 1.0, 1.0), intensity = 1.0, range = 10.0) {
         this._position = position;
@@ -62,5 +60,20 @@ export class PointLight {
         data[12] = this._quadratic;
         data[13] = 0.0;
         return data;
+    }
+    //Shadows
+    async initShadowMap(device) {
+        this._shadowMap = device.createTexture({
+            size: [this._shadowMapSize, this._shadowMapSize, 6],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            dimension: '2d'
+        });
+    }
+    get shadowMap() {
+        return this._shadowMap;
+    }
+    get shadowMapSize() {
+        return this._shadowMapSize;
     }
 }

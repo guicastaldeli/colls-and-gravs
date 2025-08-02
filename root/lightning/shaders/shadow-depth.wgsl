@@ -1,5 +1,6 @@
 @group(0) @binding(0) var<uniform> lightProjectionMatrix: mat4x4f;
 @group(0) @binding(1) var<storage, read> modelMatrix: array<mat4x4f>;
+@group(0) @binding(6) var<uniform> faceIndex: u32;
 
 struct Input {
     @builtin(instance_index) idx: u32,
@@ -10,5 +11,5 @@ struct Input {
 @vertex
 fn main(in: Input) -> @builtin(position) vec4f {
     let mPosition = modelMatrix[in.idx] * in.position;
-    return lightProjectionMatrix * mPosition;
+    return lightProjectionMatrix[faceIndex] * mPosition;
 }

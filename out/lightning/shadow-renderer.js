@@ -1,149 +1,33 @@
-import { vec3, mat4 } from "../../node_modules/gl-matrix/esm/index.js";
 import { getBindGroups } from "../render.js";
+import { getPointLightViewProjectionMatrices } from "../utils/matrix-utils.js";
 export class ShadowRenderer {
     isInit = false;
     initPromise = null;
-    shaderLoader;
     pipelines = null;
-    buffers = null;
     bindGroups = null;
     depthTexture = null;
-    constructor(shaderLoader) {
+    bufferData;
+    shaderLoader;
+    faceMatricesBuffer;
+    faceMatricesBindGroup;
+    constructor(bufferData, shaderLoader) {
+        this.bufferData = bufferData;
         this.shaderLoader = shaderLoader;
     }
-    async setBuffers(device) {
-        try {
-            //Buffers
-            const vpBuffer = device.createBuffer({
-                size: 64,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-            const modelBuffer = device.createBuffer({
-                size: 64 * 100,
-                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-            });
-            const normalBuffer = device.createBuffer({
-                size: 64 * 100,
-                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-            });
-            const colorBuffer = device.createBuffer({
-                size: 64 * 100,
-                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-            });
-            const lightProjectionBuffer = device.createBuffer({
-                size: 64,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-            const materialBuffer = device.createBuffer({
-                size: 32,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-            return {
-                vpBuffer,
-                modelBuffer,
-                normalBuffer,
-                colorBuffer,
-                lightProjectionBuffer,
-                materialBuffer
-            };
-        }
-        catch (err) {
-            console.log(err);
-            throw err;
-        }
-    }
-    async setBindGroups(device) {
-        try {
-            if (!this.pipelines || !this.buffers || !this.depthTexture)
-                throw new Error('Initalize err');
-            const sampler = device.createSampler({ compare: 'less' });
-            const depthTextureView = this.depthTexture.createView();
-            const { shapePipeline, depthPipeline } = this.pipelines;
-            const vertexLayout = shapePipeline.getBindGroupLayout(0);
-            const fragLayout = shapePipeline.getBindGroupLayout(1);
-            const shadowLayout = depthPipeline.getBindGroupLayout(0);
-            const { vpBuffer, modelBuffer, normalBuffer, colorBuffer, lightProjectionBuffer, materialBuffer } = this.buffers;
-            const vertexBindGroup = device.createBindGroup({
-                layout: vertexLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: vpBuffer }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: modelBuffer }
-                    },
-                    {
-                        binding: 2,
-                        resource: { buffer: normalBuffer }
-                    },
-                    {
-                        binding: 3,
-                        resource: { buffer: lightProjectionBuffer }
-                    },
-                    {
-                        binding: 4,
-                        resource: { buffer: colorBuffer }
-                    }
-                ]
-            });
-            const fragBindGroup = device.createBindGroup({
-                layout: fragLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: lightProjectionBuffer }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: materialBuffer }
-                    },
-                    {
-                        binding: 2,
-                        resource: depthTextureView
-                    },
-                    {
-                        binding: 3,
-                        resource: sampler
-                    }
-                ]
-            });
-            const shadowBindGroup = device.createBindGroup({
-                layout: shadowLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: { buffer: vpBuffer }
-                    },
-                    {
-                        binding: 1,
-                        resource: { buffer: modelBuffer }
-                    },
-                    {
-                        binding: 2,
-                        resource: { buffer: normalBuffer }
-                    },
-                    {
-                        binding: 3,
-                        resource: { buffer: lightProjectionBuffer }
-                    },
-                    {
-                        binding: 4,
-                        resource: { buffer: colorBuffer }
-                    }
-                ]
-            });
-            return {
-                vertex: vertexBindGroup,
-                frag: fragBindGroup,
-                shadow: shadowBindGroup
-            };
-        }
-        catch (err) {
-            console.log(err);
-            throw err;
-        }
+    async initMatricesBuffer(device) {
+        const { pointLightBindGroupLayout } = await getBindGroups();
+        this.faceMatricesBuffer = device.createBuffer({
+            size: 6 * 16 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: false
+        });
+        this.faceMatricesBindGroup = device.createBindGroup({
+            layout: pointLightBindGroupLayout,
+            entries: [{
+                    binding: 0,
+                    resource: { buffer: this.faceMatricesBuffer }
+                }]
+        });
     }
     async createPipelines(canvas, device) {
         try {
@@ -153,11 +37,15 @@ export class ShadowRenderer {
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
             });
             const { vertexShader, fragShader, depthShader } = await this.loadShaders();
-            const { pointLightBindGroupLayout, lightningBindGroupLayout } = await getBindGroups();
+            const { pointLightBindGroupLayout, lightningBindGroupLayout, textureBindGroupLayout } = await getBindGroups();
             //Shape
             const shapePipeline = device.createRenderPipeline({
                 layout: device.createPipelineLayout({
-                    bindGroupLayouts: [pointLightBindGroupLayout, lightningBindGroupLayout]
+                    bindGroupLayouts: [
+                        pointLightBindGroupLayout,
+                        lightningBindGroupLayout,
+                        textureBindGroupLayout
+                    ]
                 }),
                 vertex: {
                     module: vertexShader,
@@ -231,7 +119,47 @@ export class ShadowRenderer {
                     cullMode: 'back',
                 }
             });
-            return { shapePipeline, depthPipeline };
+            //Cube
+            const cubeShadowPipeline = device.createRenderPipeline({
+                layout: device.createPipelineLayout({
+                    bindGroupLayouts: [pointLightBindGroupLayout]
+                }),
+                vertex: {
+                    module: depthShader,
+                    entryPoint: 'main',
+                    buffers: [
+                        {
+                            arrayStride: 8 * 4,
+                            attributes: [
+                                {
+                                    shaderLocation: 0,
+                                    offset: 0,
+                                    format: 'float32x3'
+                                },
+                                {
+                                    shaderLocation: 1,
+                                    offset: 3 * 4,
+                                    format: 'float32x2'
+                                },
+                            ]
+                        }
+                    ]
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus'
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: 'back'
+                }
+            });
+            return {
+                shapePipeline,
+                depthPipeline,
+                cubeShadowPipeline
+            };
         }
         catch (err) {
             console.log(err);
@@ -256,78 +184,38 @@ export class ShadowRenderer {
             throw err;
         }
     }
-    async setLights(device, uniformBuffers) {
-        try {
-            if (!this.buffers)
-                throw new Error('buffer err');
-            const lightProjection = mat4.create();
-            const size = 50;
-            mat4.ortho(lightProjection, -size, size, -size, size, 0.1, 100);
-            const lightView = mat4.create();
-            const lightPos = vec3.fromValues(-10, 20, -15);
-            mat4.lookAt(lightView, lightPos, [0, 0, 0], [0, 1, 0]);
-            const lightVP = mat4.create();
-            mat4.multiply(lightVP, lightProjection, lightView);
-            device.queue.writeBuffer(this.buffers.lightProjectionBuffer, 0, lightVP);
-        }
-        catch (err) {
-            console.log(err);
-            throw err;
-        }
-    }
-    async draw(commandEncoder, device, objects) {
+    async draw(device, commandEncoder, light, objects) {
         if (this.initPromise)
             await this.initPromise;
-        if (!this.isInit || !this.pipelines || !this.buffers || !this.depthTexture || !this.bindGroups) {
-            throw new Error('Shadow Renderer not initalized!');
-        }
-        const validObjects = objects.filter(obj => obj &&
-            obj.vertex &&
-            obj.index &&
-            obj.indexCount > 0 &&
-            obj.modelMatrix);
-        const modelMatrices = validObjects.flatMap(obj => {
-            if (!obj.modelMatrix) {
-                console.warn('Object missing modelMatrix', obj);
-                return Array(16).fill(0);
-            }
-            return Array.from(obj.modelMatrix);
-        });
-        const normalMatrices = validObjects.flatMap(obj => {
-            if (!obj.normalMatrix) {
-                const normal = mat4.create();
-                mat4.invert(normal, obj.modelMatrix);
-                mat4.transpose(normal, normal);
-                return Array.from(normal);
-            }
-            return Array.from(obj.normalMatrix);
-        });
-        try {
-            const modelArray = new Float32Array(modelMatrices);
-            const normalArray = new Float32Array(normalMatrices);
-            device.queue.writeBuffer(this.buffers.modelBuffer, 0, modelArray.buffer, modelArray.byteOffset, modelArray.byteLength);
-            device.queue.writeBuffer(this.buffers.normalBuffer, 0, normalArray.buffer, normalArray.byteOffset, normalArray.byteLength);
+        if (!this.pipelines?.cubeShadowPipeline || !light.shadowMap)
+            return;
+        const viewProjMatrices = getPointLightViewProjectionMatrices(light.position, 0.1, light.range);
+        const matrixData = new Float32Array(6 * 16);
+        viewProjMatrices.forEach((matrix, i) => matrixData.set(matrix, i * 16));
+        device.queue.writeBuffer(this.faceMatricesBuffer, 0, matrixData);
+        for (let face = 0; face < 6; face++) {
+            const shadowMapView = light.shadowMap.createView({
+                dimension: '2d',
+                baseArrayLayer: face,
+                arrayLayerCount: 1
+            });
             const shadowPass = commandEncoder.beginRenderPass({
                 colorAttachments: [],
                 depthStencilAttachment: {
-                    view: this.depthTexture.createView(),
+                    view: shadowMapView,
                     depthClearValue: 1.0,
                     depthLoadOp: 'clear',
-                    depthStoreOp: 'store'
+                    depthStoreOp: 'store',
                 }
             });
-            shadowPass.setPipeline(this.pipelines.depthPipeline);
-            shadowPass.setBindGroup(0, this.bindGroups.shadow);
-            for (const obj of validObjects) {
+            shadowPass.setPipeline(this.pipelines.cubeShadowPipeline);
+            shadowPass.setBindGroup(0, this.faceMatricesBindGroup);
+            for (const obj of objects) {
                 shadowPass.setVertexBuffer(0, obj.vertex);
                 shadowPass.setIndexBuffer(obj.index, 'uint16');
                 shadowPass.drawIndexed(obj.indexCount);
             }
             shadowPass.end();
-        }
-        catch (err) {
-            console.error(err);
-            throw err;
         }
     }
     async init(canvas, device) {
@@ -336,8 +224,7 @@ export class ShadowRenderer {
                 return;
             this.initPromise = (async () => {
                 this.pipelines = await this.createPipelines(canvas, device);
-                this.buffers = await this.setBuffers(device);
-                this.bindGroups = await this.setBindGroups(device);
+                this.initMatricesBuffer(device);
                 this.isInit = true;
                 this.initPromise = null;
             })();

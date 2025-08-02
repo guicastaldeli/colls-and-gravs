@@ -8,8 +8,6 @@ export type BufferData = {
     color: GPUBuffer;
     index: GPUBuffer;
     indexCount: number;
-
-    //Env
     initEnvBuffers: EnvBufferData;
 }
 

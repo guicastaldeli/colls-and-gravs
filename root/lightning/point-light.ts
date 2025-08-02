@@ -13,8 +13,6 @@ export class PointLight {
 
     //Shadows
     private _shadowMap: GPUTexture | null = null;
-    private _shadowMapView!: GPUTextureView;
-    private _shadowSampler!: GPUSampler;
     private _shadowMapSize: number = 1024;
     
     constructor(
@@ -81,5 +79,23 @@ export class PointLight {
         data[12] = this._quadratic;
         data[13] = 0.0;
         return data;
+    }
+
+    //Shadows
+    public async initShadowMap(device: GPUDevice): Promise<void> {
+        this._shadowMap = device.createTexture({
+            size: [this._shadowMapSize, this._shadowMapSize, 6],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            dimension: '2d'
+        });
+    }
+
+    get shadowMap() {
+        return this._shadowMap;
+    }
+
+    get shadowMapSize() {
+        return this._shadowMapSize;
     }
 }

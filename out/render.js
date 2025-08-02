@@ -24,6 +24,9 @@ let cachedBindGroups = null;
 let depthTexture = null;
 let depthTextureWidth = 0;
 let depthTextureHeight = 0;
+let shadowDepthTexture = null;
+let shadowDepthTextureWidth = 0;
+let shadowDepthTextureHeight = 0;
 let tick;
 let commandManager;
 let camera;
@@ -90,6 +93,16 @@ async function setBindGroups() {
                     visibility: GPUShaderStage.FRAGMENT,
                     texture: {}
                 },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
+                }
             ]
         });
         const lightningBindGroupLayout = device.createBindGroupLayout({
@@ -109,19 +122,6 @@ async function setBindGroups() {
                         type: 'uniform',
                         minBindingSize: 32
                     }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: 'depth',
-                        viewDimension: '2d'
-                    }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'comparison' }
                 }
             ]
         });
@@ -139,19 +139,29 @@ async function setBindGroups() {
                 },
                 {
                     binding: 2,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'read-only-storage' }
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'depth' }
                 },
                 {
                     binding: 3,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'comparison' }
                 },
                 {
                     binding: 4,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: 'read-only-storage' }
-                }
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 6,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: 'uniform' }
+                },
             ]
         });
         return {
@@ -373,7 +383,7 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
     const directionalLightBuffer = lightningManager.getLightBuffer('directional');
     if (!directionalLightBuffer)
         throw new Error('Directional light err');
-    const pointLightBindGroup = lightningManager.getPointLightBindGroup(pointLightBindGroupLayout);
+    const pointLightBindGroup = lightningManager.getPointLightBindGroup(pointLightBindGroupLayout, shadowDepthTexture);
     if (!pointLightBindGroup)
         throw new Error('Point light err');
     const lightningBindGroup = lightningManager.getLightningBindGroup(depthTexture, lightningBindGroupLayout);
@@ -421,6 +431,14 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
                 {
                     binding: 1,
                     resource: data.texture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: shadowDepthTexture.createView()
+                },
+                {
+                    binding: 3,
+                    resource: device.createSampler({ compare: 'less' })
                 }
             ]
         });
@@ -452,8 +470,6 @@ async function setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix
             }
         }
     }
-    if (shadowRenderer)
-        shadowRenderer.setLights(device, uniformBuffer);
 }
 //Color Parser
 export function parseColor(rgb) {
@@ -486,7 +502,7 @@ async function directionalLight() {
     const colorArray = parseColor(color);
     const direction = vec3.fromValues(pos.x, pos.y, pos.z);
     vec3.normalize(direction, direction);
-    const light = new DirectionalLight(colorArray, direction, 1.0);
+    const light = new DirectionalLight(colorArray, direction, 0.0);
     lightningManager.addDirectionalLight('directional', light);
     lightningManager.updateLightBuffer('directional');
 }
@@ -524,47 +540,6 @@ export async function render(canvas) {
             shaderComposer = new ShaderComposer(device);
         if (!pipeline)
             await initPipeline();
-        //Lightning
-        if (!lightningManager)
-            lightningManager = new LightningManager(device);
-        await ambientLight();
-        await directionalLight();
-        //Wind
-        if (!windManager)
-            windManager = new WindManager(tick);
-        //Objects
-        if (!objectManager) {
-            const deps = {
-                tick,
-                device,
-                passEncoder: null,
-                loader,
-                shaderLoader,
-                ground: envRenderer?.ground,
-                lightningManager,
-                canvas,
-                playerController: null,
-                format,
-                hud: null,
-                windManager,
-                viewProjectionMatrix: null,
-                pipeline
-            };
-            objectManager = new ObjectManager(deps);
-            await objectManager.ready();
-            await renderEnv(deltaTime);
-        }
-        //
-        if (!shadowRenderer) {
-            shadowRenderer = new ShadowRenderer(shaderLoader);
-            shadowRenderer.init(canvas, device);
-        }
-        if (shadowRenderer) {
-            const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
-            const shadowData = (await Promise.all(getRandomBlocks.map(obj => obj.getShadowData()))).flat();
-            await shadowRenderer.draw(commandEncoder, device, shadowData);
-            console.log("Sending to shadow renderer:", shadowData.length, "blocks");
-        }
         if (depthTexture &&
             (depthTextureWidth !== canvas.width ||
                 depthTextureHeight !== canvas.height)) {
@@ -576,10 +551,19 @@ export async function render(canvas) {
             depthTexture = device.createTexture({
                 size: [canvas.width, canvas.height],
                 format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
             });
             depthTextureWidth = canvas.width;
             depthTextureHeight = canvas.height;
+        }
+        if (!shadowDepthTexture) {
+            shadowDepthTexture = device.createTexture({
+                size: [canvas.width, canvas.height],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.TEXTURE_BINDING
+            });
+            shadowDepthTextureWidth = canvas.width;
+            shadowDepthTextureHeight = canvas.height;
         }
         const renderPassDescriptor = {
             colorAttachments: [{
@@ -598,10 +582,41 @@ export async function render(canvas) {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
-        if (objectManager.deps)
-            objectManager.deps.passEncoder = passEncoder;
         const modelMatrix = mat4.create();
         const viewProjectionMatrix = mat4.create();
+        //Lightning
+        if (!lightningManager)
+            lightningManager = new LightningManager(device);
+        await ambientLight();
+        await directionalLight();
+        //Wind
+        if (!windManager)
+            windManager = new WindManager(tick);
+        //Objects
+        if (!objectManager) {
+            const deps = {
+                tick,
+                device,
+                passEncoder,
+                loader,
+                shaderLoader,
+                ground: envRenderer?.ground,
+                lightningManager,
+                canvas,
+                playerController: null,
+                format,
+                hud: null,
+                windManager,
+                viewProjectionMatrix,
+                pipeline
+            };
+            if (!objectManager) {
+                objectManager = new ObjectManager(deps);
+                await objectManager.ready();
+            }
+            await renderEnv(deltaTime);
+        }
+        //
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
         randomBlocks.update(deltaTime);
@@ -642,6 +657,17 @@ export async function render(canvas) {
         const viewMatrix = camera.getViewMatrix();
         mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
         await setBuffers(canvas, passEncoder, viewProjectionMatrix, modelMatrix, currentTime, commandEncoder, textureView);
+        if (!shadowRenderer) {
+            shadowRenderer = new ShadowRenderer(buffers, shaderLoader);
+            await shadowRenderer.init(canvas, device);
+        }
+        if (shadowRenderer.isInit) {
+            const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
+            const shadowData = (await Promise.all(getRandomBlocks.map(obj => obj.getShadowData()))).flat();
+            const pointLights = lightningManager.getPointLights();
+            for (const light of pointLights)
+                await shadowRenderer.draw(device, commandEncoder, light, shadowData);
+        }
         //Late Renderers
         //Skybox
         if (!skybox) {

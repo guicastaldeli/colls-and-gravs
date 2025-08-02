@@ -111,14 +111,6 @@ export class LightningManager {
                 {
                     binding: 1,
                     resource: { buffer: directionalLightBuffer }
-                },
-                {
-                    binding: 2,
-                    resource: depthTexture.createView()
-                },
-                {
-                    binding: 3,
-                    resource: this.device.createSampler({ compare: 'less' })
                 }
             ]
         });
@@ -195,7 +187,7 @@ export class LightningManager {
             }
         }
 
-        public getPointLightBindGroup(bindGroupLayout: GPUBindGroupLayout): GPUBindGroup | null {
+        public getPointLightBindGroup(bindGroupLayout: GPUBindGroupLayout, depthTexture: GPUTexture): GPUBindGroup | null {
             if(!this.pointStorageBuffer || !this.pointCountBuffer) return null;
 
             return this.device.createBindGroup({
@@ -211,15 +203,23 @@ export class LightningManager {
                     },
                     {
                         binding: 2,
-                        resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE }) }
+                        resource: depthTexture.createView()
                     },
                     {
                         binding: 3,
-                        resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.UNIFORM }) }
+                        resource: this.device.createSampler({ compare: 'less' })
                     },
                     {
                         binding: 4,
-                        resource: { buffer: this.device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE }) }
+                        resource: { buffer: this.pointStorageBuffer }
+                    },
+                    {
+                        binding: 5,
+                        resource: { buffer: this.pointStorageBuffer }
+                    },
+                    {
+                        binding: 6,
+                        resource: { buffer: this.pointCountBuffer }
                     }
                 ]
             });

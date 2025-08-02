@@ -1,8 +1,8 @@
 @group(0) @binding(0) var<uniform> viewProjectionMatrix: mat4x4f;
 @group(0) @binding(1) var<storage, read> modelMatrix: array<mat4x4f>;
-@group(0) @binding(2) var<storage, read> normalMatrix: array<mat4x4f>;
-@group(0) @binding(3) var<uniform> lightProjectionMatrix: mat4x4f;
-@group(0) @binding(4) var<storage, read> colorVec: array<vec4f>;
+@group(0) @binding(4) var<storage, read> normalMatrix: array<mat4x4f>;
+@group(0) @binding(6) var<uniform> lightProjectionMatrix: mat4x4f;
+@group(0) @binding(5) var<storage, read> colorVec: array<vec4f>;
 
 struct Input {
     @builtin(instance_index) idx: u32,
