@@ -608,6 +608,33 @@ async function renderEnv(deltaTime: number): Promise<void> {
     }
 }
 
+async function lateRenderers(
+    passEncoder: GPURenderPassEncoder, 
+    viewProjectionMatrix: mat4,
+    deltaTime: number, 
+    canvas: HTMLCanvasElement, 
+    format: GPUTextureFormat,
+    randomBlocks: any, 
+): Promise<void> {
+    //Skybox
+    if(!skybox) {
+        skybox = new Skybox(tick, device, shaderLoader);
+        await skybox.init();
+    }
+    await skybox.render(passEncoder, viewProjectionMatrix, deltaTime);
+
+    //Camera Related
+        //Arm
+        if(camera && pipeline) camera.renderArm(device, pipeline, passEncoder, canvas);
+
+        //Hud
+        camera.renderHud(passEncoder);
+    //
+
+    //Random Blocks
+    if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
+}
+
 export async function render(canvas: HTMLCanvasElement): Promise<void> {
     try {
         device.pushErrorScope('validation');
@@ -779,6 +806,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             textureView
         );
 
+        //Shadows
         if(!shadowRenderer) {
             shadowRenderer = new ShadowRenderer(buffers, shaderLoader);
             await shadowRenderer.init(canvas, device);
@@ -787,33 +815,15 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
             const shadowData = (await Promise.all(getRandomBlocks.map(obj => obj.getShadowData()))).flat();
             const pointLights = lightningManager.getPointLights();
-            for(const light of pointLights) await shadowRenderer.draw(device, commandEncoder, light, shadowData);
+
+            for(const light of pointLights) {
+                light.initShadowMap(device);
+                //await shadowRenderer.draw(device, commandEncoder, light, shadowData);
+            }
         }
 
-        //Late Renderers
-            //Skybox
-            if(!skybox) {
-                skybox = new Skybox(tick, device, shaderLoader);
-                await skybox.init();
-            }
-            await skybox.render(passEncoder, viewProjectionMatrix, deltaTime);
-
-            //Render Arm
-            if(camera && pipeline) {
-                camera.renderArm(
-                    device,
-                    pipeline,
-                    passEncoder,
-                    canvas
-                );
-            }
-
-            //Render Hud
-            camera.renderHud(passEncoder);
-
-            //Random Blocks
-            if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);
-        //
+        //**__ Late Renderers __**
+        await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);
         
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);

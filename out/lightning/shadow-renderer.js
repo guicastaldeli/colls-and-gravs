@@ -194,7 +194,7 @@ export class ShadowRenderer {
         if (this.initPromise)
             await this.initPromise;
         if (!this.pipelines?.cubeShadowPipeline || !light.shadowMap)
-            return;
+            throw new Error('err');
         const viewProjMatrices = getPointLightViewProjectionMatrices(light.position, 0.1, light.range);
         const matrixData = new Float32Array(6 * 16);
         viewProjMatrices.forEach((matrix, i) => matrixData.set(matrix, i * 16));

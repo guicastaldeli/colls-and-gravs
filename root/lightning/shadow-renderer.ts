@@ -243,7 +243,7 @@ export class ShadowRenderer {
         objects: Renderable[]
     ): Promise<void> {
         if(this.initPromise) await this.initPromise;
-        if(!this.pipelines?.cubeShadowPipeline || !light.shadowMap) return;
+        if(!this.pipelines?.cubeShadowPipeline || !light.shadowMap) throw new Error('err');
 
         const viewProjMatrices = getPointLightViewProjectionMatrices(
             light.position,
