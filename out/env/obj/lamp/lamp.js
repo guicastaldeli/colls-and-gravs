@@ -125,7 +125,7 @@ let Lamp = class Lamp {
         return buffers;
     }
     async update(deltaTime) {
-        await this.wire.update(this.device, deltaTime);
+        await this.wire.update(deltaTime);
     }
     async init() {
         this.buffers = await this.loadAssets();

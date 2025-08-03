@@ -157,8 +157,8 @@ export class Lamp {
         return buffers;
     }
 
-    public async update(deltaTime: number,): Promise<void> {
-        await this.wire.update(this.device, deltaTime);
+    public async update(deltaTime: number): Promise<void> {
+        await this.wire.update(deltaTime);
     }
 
     public async init(): Promise<void> {
