@@ -232,7 +232,7 @@ export class Hud {
 
     public async init(w: number, h: number): Promise<void> {
         try {
-            this.texture = await this.loader.textureLoader('./assets/hud/crosshair4.png');
+            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
             await this.drawCrosshair(w, h);
             await this.initShaders();
 
