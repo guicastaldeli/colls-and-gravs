@@ -115,7 +115,7 @@ export class Lamp {
                     vec3.fromValues(lx, ly, lz),
                     colorArray,
                     0.8,
-                    8.0
+                    7.0
                 );
 
                 this.lightningManager.addPointLight('point', light);

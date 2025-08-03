@@ -91,7 +91,7 @@ let Lamp = class Lamp {
             const lx = x;
             const ly = y;
             const lz = z;
-            const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 0.8, 8.0);
+            const light = new PointLight(vec3.fromValues(lx, ly, lz), colorArray, 0.8, 7.0);
             this.lightningManager.addPointLight('point', light);
             this.lightningManager.updatePointLightBuffer();
             //

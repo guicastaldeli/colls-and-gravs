@@ -170,7 +170,7 @@ export class Loader {
 
             try {
                 imgBitmap = await createImageBitmap(blob, {
-                    imageOrientation: 'none',
+                    imageOrientation: 'flipY',
                     premultiplyAlpha: 'none',
                     colorSpaceConversion: 'default'
                 });

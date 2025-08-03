@@ -53,7 +53,7 @@ fn applyPointLight(
     let toDiffuse = light.color.xyz * light.intensity * attenuation;
     let diffuse = toDiffuse * NdotL;
     let rangeFactor = 1.0 - smoothstep(
-        light.range * 0.6,
+        light.range * 0.4,
         light.range,
         distance
     );

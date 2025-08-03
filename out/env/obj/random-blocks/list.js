@@ -1,6 +1,6 @@
 export let ListData = [];
 export async function loadListData() {
-    const res = await fetch('./env/obj/random-blocks/list-data.json');
+    const res = await fetch('./data/list-data.json');
     ListData = await res.json();
 }
 export function getRandomItem() {

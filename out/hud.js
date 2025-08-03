@@ -15,12 +15,10 @@ export class Hud {
         this.shaderLoader = shaderLoader;
     }
     async drawCrosshair(w, h) {
-        const aspectRatio = w / h;
-        const baseHeight = 0.02;
-        const height = baseHeight;
-        const width = height * aspectRatio;
-        const halfWidth = width / 4;
-        const halfHeight = height / 2;
+        const screenAspectRatio = w / h;
+        const crosshairSize = 0.025;
+        const halfHeight = crosshairSize / 2;
+        const halfWidth = (crosshairSize / 2) / screenAspectRatio;
         const vertices = new Float32Array([
             -halfWidth, -halfHeight, 1,
             halfWidth, -halfHeight, 1,
@@ -57,6 +55,7 @@ export class Hud {
         this.buffers.uv.unmap();
         new Uint16Array(this.buffers.index.getMappedRange()).set(indices);
         this.buffers.index.unmap();
+        this.crosshairScale(w, h);
     }
     crosshairScale(w, h) {
         const refWidth = 808;
@@ -64,8 +63,8 @@ export class Hud {
         const widthRatio = w / refWidth;
         const heightRatio = h / refHeight;
         const maxRatio = Math.max(widthRatio, heightRatio);
-        const baseScale = 3.5;
-        const minScale = 1.5;
+        const baseScale = 3.0;
+        const minScale = 1.0;
         let dynamicScale = baseScale;
         if (maxRatio > 1.0) {
             dynamicScale = baseScale / maxRatio;
@@ -116,6 +115,19 @@ export class Hud {
                     entryPoint: 'main',
                     targets: [{
                             format: navigator.gpu.getPreferredCanvasFormat(),
+                            blend: {
+                                color: {
+                                    srcFactor: 'src-alpha',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                },
+                                alpha: {
+                                    srcFactor: 'one',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                }
+                            },
+                            writeMask: GPUColorWrite.ALL
                         }]
                 },
                 primitive: {
@@ -177,22 +189,17 @@ export class Hud {
         vec3.scaleAndAdd(worldPos, cameraPosition, cameraForward, distance);
         return worldPos;
     }
-    async getTexSize(tex) {
-        return { w: 32, h: 32 };
-    }
     async update(w, h) {
         this.crosshairScale(w, h);
     }
     async init(w, h) {
         try {
-            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
-            const texSize = await this.getTexSize(this.texture);
-            await this.drawCrosshair(texSize.w, texSize.h);
+            this.texture = await this.loader.textureLoader('./assets/hud/crosshair4.png');
+            await this.drawCrosshair(w, h);
             await this.initShaders();
-            this.crosshairScale(w, h);
             this.sampler = this.device.createSampler({
-                magFilter: 'linear',
-                minFilter: 'linear'
+                magFilter: 'nearest',
+                minFilter: 'nearest'
             });
         }
         catch (err) {

@@ -7,7 +7,8 @@ struct FragmentInput {
     @location(2) normal: vec3f,
     @location(3) worldPos: vec3f,
     @location(4) isLamp: f32,
-    @location(5) cameraPos: vec3f
+    @location(5) cameraPos: vec3f,
+    @builtin(position) Position: vec4f
 }
 
 @fragment
