@@ -22,9 +22,9 @@ export class Lamp {
     private lightningManager: LightningManager;
 
     size = {
-        w: 0.2,
-        h: 0.2,
-        d: 0.2
+        w: 0.4,
+        h: 0.4,
+        d: 0.4
     }
 
     constructor(

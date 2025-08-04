@@ -294,7 +294,21 @@ async function initPipeline(): Promise<void> {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+                targets: [{ 
+                    format: navigator.gpu.getPreferredCanvasFormat(),
+                    blend: {
+                        color: {
+                            srcFactor: 'src-alpha',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add'
+                        },
+                        alpha: {
+                            srcFactor: 'one',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add'
+                        }
+                    } 
+                }]
             },
             primitive: {
                 topology: 'triangle-list',
@@ -359,7 +373,21 @@ async function initPipeline(): Promise<void> {
             fragment: {
                 module: fragCodeSrc,
                 entryPoint: 'main',
-                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }]
+                targets: [{ 
+                    format: navigator.gpu.getPreferredCanvasFormat(),
+                    blend: {
+                        color: {
+                            srcFactor: 'src-alpha',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add'
+                        },
+                        alpha: {
+                            srcFactor: 'one',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add'
+                        }
+                    } 
+                }]
             },
             primitive: {
                 topology: 'line-list',
@@ -737,7 +765,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         const passEncoder = commandEncoder.beginRenderPass({
             colorAttachments: [{
                 view: textureView,
-                clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                 loadOp: 'clear',
                 storeOp: 'store'
             }],

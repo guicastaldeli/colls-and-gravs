@@ -26,9 +26,9 @@ let Lamp = class Lamp {
     wire;
     lightningManager;
     size = {
-        w: 0.2,
-        h: 0.2,
-        d: 0.2
+        w: 0.4,
+        h: 0.4,
+        d: 0.4
     };
     constructor(device, loader, shaderLoader, windManager, lightningManager) {
         this.device = device;

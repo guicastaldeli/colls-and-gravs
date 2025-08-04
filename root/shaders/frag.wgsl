@@ -14,7 +14,7 @@ struct FragmentInput {
 @fragment
 fn main(input: FragmentInput) -> @location(0) vec4f {
     var texColor = textureSample(textureMap, textureSampler, input.texCoord);
-    let baseColor = mix(texColor.rgb, input.color, 0.1);
+    var baseColor = mix(texColor.rgb, input.color, 0.1);
 
     let worldPos = input.worldPos;
     let cameraPos = input.cameraPos;
@@ -24,6 +24,24 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
+
+    if(input.isLamp > 0.5) {
+        var thickness = 1.0;
+        var alpha = texColor.a;
+        
+        let texSize = vec2f(textureDimensions(textureMap));
+        let aspectRatio = 2.0;
+
+        let uvCenter = vec2f(0.25, 0.5);
+        let uvOffset = (input.texCoord - uvCenter) * vec2f(aspectRatio, 1.0);
+        let distToCenter = length(uvOffset);
+        if(distToCenter > 0.1) {
+           alpha = mix(alpha, 0.0, smoothstep(0.1, 0.35, distToCenter));
+        }
+
+        texColor.a = alpha;
+    }
+
     for(var i = 0u; i < pointLightCount; i++) {
         let light = pointLights[i];
         let lightPos = light.position.xyz;
@@ -34,7 +52,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
             worldPos,
             pointLights[i]
         );
-
+    
         if(input.isLamp > 0.5) {
             finalColor += applyGlow(
                 baseColor,
@@ -45,6 +63,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
                 cameraPos
             );
         }
+    
     }
 
     finalColor = max(finalColor, vec3f(0.0));
