@@ -2,7 +2,7 @@ import { vec3 } from "../node_modules/gl-matrix/esm/index.js";
 export class WindManager {
     tick;
     _direction = vec3.fromValues(1.0, 0.5, 0.5);
-    _strength = 0.1;
+    _strength = 5.0;
     _turbulence = 0.3;
     _gustiness = 0.5;
     constructor(tick) {

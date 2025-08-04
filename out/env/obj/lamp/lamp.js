@@ -11,7 +11,6 @@ import { mat3, mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.j
 import { Injectable } from "../object-manager.js";
 import { ShaderLoader } from "../../../shader-loader.js";
 import { Loader } from "../../../loader.js";
-import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
 import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
@@ -22,21 +21,19 @@ let Lamp = class Lamp {
     buffers;
     shaderLoader;
     modelMatrix;
-    windManager;
     wire;
     lightningManager;
     size = {
-        w: 0.4,
-        h: 0.4,
-        d: 0.4
+        w: 0.7,
+        h: 0.7,
+        d: 0.7
     };
-    constructor(device, loader, shaderLoader, windManager, lightningManager) {
+    constructor(device, loader, shaderLoader, lightningManager) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
         this.modelMatrix = mat4.create();
-        this.windManager = windManager;
-        this.wire = new Wire(windManager, loader);
+        this.wire = new Wire(loader);
         this.lightningManager = lightningManager;
     }
     getModelMatrix() {
@@ -101,20 +98,7 @@ let Lamp = class Lamp {
             throw err;
         }
     }
-    async getShadowData() {
-        if (!this.buffers)
-            return [];
-        const normalMatrix = mat4.create();
-        mat4.invert(normalMatrix, this.buffers.modelMatrix);
-        mat4.transpose(normalMatrix, normalMatrix);
-        return [{
-                vertex: this.buffers.vertex,
-                index: this.buffers.index,
-                indexCount: this.buffers.indexCount,
-                modelMatrix: this.buffers.modelMatrix,
-                normalMatrix: normalMatrix
-            }];
-    }
+    update() { }
     async getBuffers() {
         const buffers = [];
         if (this.buffers)
@@ -123,9 +107,6 @@ let Lamp = class Lamp {
         if (wireBuffers)
             buffers.push(...wireBuffers);
         return buffers;
-    }
-    async update(deltaTime) {
-        await this.wire.update(deltaTime);
     }
     async init() {
         this.buffers = await this.loadAssets();
@@ -138,7 +119,6 @@ Lamp = __decorate([
     __metadata("design:paramtypes", [GPUDevice,
         Loader,
         ShaderLoader,
-        WindManager,
         LightningManager])
 ], Lamp);
 export { Lamp };

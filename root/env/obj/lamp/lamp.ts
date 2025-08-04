@@ -3,7 +3,6 @@ import { Injectable, ObjectManager } from "../object-manager.js";
 import { EnvBufferData, initEnvBuffers } from "../../env-buffers.js";
 import { ShaderLoader } from "../../../shader-loader.js";
 import { Loader } from "../../../loader.js";
-import { WindManager } from "../../../wind-manager.js";
 import { Wire } from "./wire.js";
 import { LightningManager } from "../../../lightning-manager.js";
 import { PointLight } from "../../../lightning/point-light.js";
@@ -17,21 +16,19 @@ export class Lamp {
     private shaderLoader: ShaderLoader;
     private modelMatrix: mat4;
 
-    private windManager: WindManager;
     public wire: Wire;
     private lightningManager: LightningManager;
 
     size = {
-        w: 0.4,
-        h: 0.4,
-        d: 0.4
+        w: 0.7,
+        h: 0.7,
+        d: 0.7
     }
 
     constructor(
         device: GPUDevice,
         loader: Loader,
         shaderLoader: ShaderLoader,
-        windManager: WindManager,
         lightningManager: LightningManager
     ) {
         this.device = device;
@@ -39,9 +36,7 @@ export class Lamp {
         this.shaderLoader = shaderLoader;
         
         this.modelMatrix = mat4.create();
-        
-        this.windManager = windManager;
-        this.wire = new Wire(windManager, loader);
+        this.wire = new Wire(loader);
         this.lightningManager = lightningManager;
     }
 
@@ -127,27 +122,7 @@ export class Lamp {
         }
     }
 
-    public async getShadowData(): Promise<{
-        vertex: GPUBuffer;
-        index: GPUBuffer;
-        indexCount: number;
-        modelMatrix: mat4;
-        normalMatrix: mat4;
-    }[]> {
-        if(!this.buffers) return [];
-
-        const normalMatrix = mat4.create();
-        mat4.invert(normalMatrix, this.buffers.modelMatrix);
-        mat4.transpose(normalMatrix, normalMatrix);
-
-        return [{
-            vertex: this.buffers.vertex,
-            index: this.buffers.index,
-            indexCount: this.buffers.indexCount,
-            modelMatrix: this.buffers.modelMatrix,
-            normalMatrix: normalMatrix
-        }];
-    }
+    public update(): void {}
 
     public async getBuffers(): Promise<EnvBufferData[] | undefined> {
         const buffers: EnvBufferData[] = [];
@@ -155,10 +130,6 @@ export class Lamp {
         const wireBuffers = await this.wire.getBuffers();
         if(wireBuffers) buffers.push(...wireBuffers);
         return buffers;
-    }
-
-    public async update(deltaTime: number): Promise<void> {
-        await this.wire.update(deltaTime);
     }
 
     public async init(): Promise<void> {

@@ -36,7 +36,7 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
         let uvOffset = (input.texCoord - uvCenter) * vec2f(aspectRatio, 1.0);
         let distToCenter = length(uvOffset);
         if(distToCenter > 0.1) {
-           alpha = mix(alpha, 0.0, smoothstep(0.1, 0.35, distToCenter));
+           alpha = alpha * pow(1.0 - smoothstep(0.1, 0.5, distToCenter), 60.0);
         }
 
         texColor.a = alpha;

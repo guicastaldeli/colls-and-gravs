@@ -18,7 +18,6 @@ import { Ground } from "../ground.js";
 import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
-import { WindManager } from "../../wind-manager.js";
 export function Injectable() {
     return (target) => {
         Reflect.defineMetadata('injectable', true, target);
@@ -36,7 +35,6 @@ const dependenciesMap = new Map([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [WindManager, 'windManager'],
     [mat4, 'viewProjectionMatrix']
 ]);
 let ObjectManager = class ObjectManager {

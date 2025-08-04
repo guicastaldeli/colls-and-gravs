@@ -12,7 +12,6 @@ struct PointLight {
 @group(3) @binding(0) var<uniform> pointLightCount: u32;
 @group(3) @binding(1) var<storage, read> pointLights: array<PointLight>;
 
-
 fn calculateAttenuation(
     distance: f32,
     constant: f32,
@@ -53,7 +52,7 @@ fn applyPointLight(
     let toDiffuse = light.color.xyz * light.intensity * attenuation;
     let diffuse = toDiffuse * NdotL;
     let rangeFactor = 1.0 - smoothstep(
-        light.range * 0.4,
+        light.range * 0.1,
         light.range,
         distance
     );

@@ -12,7 +12,6 @@ import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
-import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -39,7 +38,6 @@ let getColliders;
 let hud;
 let skybox;
 let lightningManager;
-let windManager;
 let objectManager;
 let wireframeMode = false;
 let wireframePipeline = null;
@@ -522,7 +520,7 @@ async function errorHandler() {
 }
 async function renderEnv(deltaTime) {
     if (!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, objectManager);
         await envRenderer.render(deltaTime);
         objectManager.deps.ground = envRenderer.ground;
     }
@@ -568,9 +566,6 @@ export async function render(canvas) {
             lightningManager = new LightningManager(device);
         await ambientLight();
         await directionalLight();
-        //Wind
-        if (!windManager)
-            windManager = new WindManager(tick);
         //Objects
         if (!objectManager) {
             const deps = {
@@ -585,7 +580,6 @@ export async function render(canvas) {
                 playerController: null,
                 format,
                 hud: null,
-                windManager,
                 viewProjectionMatrix: null,
                 pipeline
             };
@@ -595,7 +589,8 @@ export async function render(canvas) {
         }
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
-        randomBlocks.update(deltaTime);
+        if (randomBlocks)
+            randomBlocks.update(deltaTime);
         //Colliders
         if (!getColliders)
             getColliders = new GetColliders(envRenderer, randomBlocks);

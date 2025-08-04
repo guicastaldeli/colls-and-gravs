@@ -10,9 +10,7 @@ import { Ground } from "../ground.js";
 import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
-import { WindManager } from "../../wind-manager.js";
 import { EnvBufferData } from "../env-buffers.js";
-import { PointLight } from "../../lightning/point-light.js";
 
 export function Injectable() {
     return (target: any) => {
@@ -35,7 +33,6 @@ interface Dependencies {
     playerController: PlayerController | null;
     format: GPUTextureFormat;
     hud: Hud | null;
-    windManager?: WindManager | null;
     viewProjectionMatrix: mat4;
 }
 
@@ -51,7 +48,6 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [WindManager, 'windManager'],
     [mat4, 'viewProjectionMatrix']
 ]);
 

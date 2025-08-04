@@ -5,17 +5,15 @@ export class EnvRenderer {
     device;
     loader;
     shaderLoader;
-    windManager;
     //Items
     walls;
     ground;
     //Objects
     objectManager;
-    constructor(device, loader, shaderLoader, windManager, objectManager) {
+    constructor(device, loader, shaderLoader, objectManager) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-        this.windManager = windManager;
         this.objectManager = objectManager;
     }
     async renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup) {
@@ -83,9 +81,7 @@ export class EnvRenderer {
         await this.ground.init();
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
-        if (this.objectManager) {
+        if (this.objectManager)
             await this.objectManager.createObject('lamp');
-            (await this.objectManager.getObject('lamp')).update(deltaTime);
-        }
     }
 }

@@ -16,7 +16,6 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 
 import { LightningManager } from "./lightning-manager.js";
-import { WindManager } from "./wind-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
 
 import { Skybox } from "./skybox/skybox.js";
@@ -61,7 +60,6 @@ let hud: Hud;
 let skybox: Skybox;
 
 let lightningManager: LightningManager;
-let windManager: WindManager;
 let objectManager: ObjectManager;
 
 let wireframeMode = false;
@@ -614,7 +612,7 @@ async function errorHandler() {
 
 async function renderEnv(deltaTime: number): Promise<void> {
     if(!envRenderer) {
-        envRenderer = new EnvRenderer(device, loader, shaderLoader, windManager, objectManager);
+        envRenderer = new EnvRenderer(device, loader, shaderLoader, objectManager);
         await envRenderer.render(deltaTime);
         objectManager.deps.ground = envRenderer.ground;
     }
@@ -667,9 +665,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await ambientLight();
         await directionalLight();
 
-        //Wind
-        if(!windManager) windManager = new WindManager(tick);
-
         //Objects
         if(!objectManager) {
             const deps = {
@@ -684,7 +679,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 playerController: null,
                 format,
                 hud: null,
-                windManager,
                 viewProjectionMatrix: null,
                 pipeline
             }
@@ -696,7 +690,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
-        randomBlocks.update(deltaTime);
+        if(randomBlocks) randomBlocks.update(deltaTime);
 
         //Colliders
         if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);

@@ -408,20 +408,6 @@ let RandomBlocks = class RandomBlocks {
             type: this.type
         }));
     }
-    async getShadowData() {
-        return this.blocks.map(block => {
-            const normalMatrix = mat4.create();
-            mat4.invert(normalMatrix, block.normalMatrix);
-            mat4.transpose(normalMatrix, normalMatrix);
-            return {
-                vertex: block.vertex,
-                index: block.index,
-                indexCount: block.indexCount,
-                modelMatrix: block.modelMatrix,
-                normalMatrix: normalMatrix
-            };
-        });
-    }
     updatePhysicsCollidables(playerController) {
         const getColliders = new GetColliders(undefined, this);
         this.physicsSystem.setCollidables(getColliders.getCollidables());

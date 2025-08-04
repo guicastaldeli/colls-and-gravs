@@ -4,7 +4,6 @@ import { EnvBufferData } from "./env-buffers.js";
 import { PlayerController } from "../player/player-controller.js";
 import { Loader } from "../loader.js";
 import { ShaderLoader } from "../shader-loader.js";
-import { WindManager } from "../wind-manager.js";
 
 import { Walls } from "./walls.js";
 import { Ground } from "./ground.js";
@@ -14,7 +13,6 @@ export class EnvRenderer {
     private device: GPUDevice;
     private loader: Loader;
     private shaderLoader: ShaderLoader;
-    private windManager: WindManager;
 
     //Items
     public walls!: Walls;
@@ -27,13 +25,11 @@ export class EnvRenderer {
         device: GPUDevice, 
         loader: Loader,
         shaderLoader: ShaderLoader,
-        windManager: WindManager,
         objectManager?: ObjectManager
     ) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-        this.windManager = windManager;
         this.objectManager = objectManager;
     }
 
@@ -152,9 +148,6 @@ export class EnvRenderer {
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
 
-        if(this.objectManager) {
-            await this.objectManager.createObject('lamp');
-            (await this.objectManager.getObject('lamp')).update(deltaTime);
-        }
+        if(this.objectManager) await this.objectManager.createObject('lamp');
     }
 }
