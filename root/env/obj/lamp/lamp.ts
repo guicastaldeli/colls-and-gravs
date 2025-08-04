@@ -20,9 +20,9 @@ export class Lamp {
     private lightningManager: LightningManager;
 
     size = {
-        w: 0.7,
-        h: 0.7,
-        d: 0.7
+        w: 0.6,
+        h: 0.6,
+        d: 0.6
     }
 
     constructor(
@@ -126,15 +126,15 @@ export class Lamp {
 
     public async getBuffers(): Promise<EnvBufferData[] | undefined> {
         const buffers: EnvBufferData[] = [];
-        if(this.buffers) buffers.push(this.buffers);
         const wireBuffers = await this.wire.getBuffers();
         if(wireBuffers) buffers.push(...wireBuffers);
+        if(this.buffers) buffers.push(this.buffers);
         return buffers;
     }
 
     public async init(): Promise<void> {
+        await this.wire.init();
         this.buffers = await this.loadAssets();
         this.createLamp();
-        await this.wire.init();
     }
 }

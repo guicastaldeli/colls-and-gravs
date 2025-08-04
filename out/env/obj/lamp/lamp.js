@@ -24,9 +24,9 @@ let Lamp = class Lamp {
     wire;
     lightningManager;
     size = {
-        w: 0.7,
-        h: 0.7,
-        d: 0.7
+        w: 0.6,
+        h: 0.6,
+        d: 0.6
     };
     constructor(device, loader, shaderLoader, lightningManager) {
         this.device = device;
@@ -101,17 +101,17 @@ let Lamp = class Lamp {
     update() { }
     async getBuffers() {
         const buffers = [];
-        if (this.buffers)
-            buffers.push(this.buffers);
         const wireBuffers = await this.wire.getBuffers();
         if (wireBuffers)
             buffers.push(...wireBuffers);
+        if (this.buffers)
+            buffers.push(this.buffers);
         return buffers;
     }
     async init() {
+        await this.wire.init();
         this.buffers = await this.loadAssets();
         this.createLamp();
-        await this.wire.init();
     }
 };
 Lamp = __decorate([

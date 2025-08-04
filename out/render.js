@@ -264,7 +264,7 @@ async function initPipeline() {
             },
             depthStencil: {
                 depthWriteEnabled: true,
-                depthCompare: 'less-equal',
+                depthCompare: 'less',
                 format: 'depth24plus'
             }
         });

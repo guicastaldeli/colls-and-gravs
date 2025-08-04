@@ -315,7 +315,7 @@ async function initPipeline(): Promise<void> {
             },
             depthStencil: {
                 depthWriteEnabled: true,
-                depthCompare: 'less-equal',
+                depthCompare: 'less',
                 format: 'depth24plus'
             }
         });

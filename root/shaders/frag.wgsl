@@ -25,23 +25,6 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
     var finalColor = applyAmbientLight(baseColor);
     finalColor += applyDirectionalLight(baseColor, calculatedNormal);
 
-    if(input.isLamp > 0.5) {
-        var thickness = 1.0;
-        var alpha = texColor.a;
-        
-        let texSize = vec2f(textureDimensions(textureMap));
-        let aspectRatio = 2.0;
-
-        let uvCenter = vec2f(0.25, 0.5);
-        let uvOffset = (input.texCoord - uvCenter) * vec2f(aspectRatio, 1.0);
-        let distToCenter = length(uvOffset);
-        if(distToCenter > 0.1) {
-           alpha = alpha * pow(1.0 - smoothstep(0.1, 0.5, distToCenter), 60.0);
-        }
-
-        texColor.a = alpha;
-    }
-
     for(var i = 0u; i < pointLightCount; i++) {
         let light = pointLights[i];
         let lightPos = light.position.xyz;
@@ -64,6 +47,21 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
             );
         }
     
+    }
+
+    if(input.isLamp > 0.5) {
+        var thickness = 1.0;
+        var alpha = texColor.a;
+        
+        let texSize = vec2f(textureDimensions(textureMap));
+        let aspectRatio = 2.0;
+
+        let uvCenter = vec2f(0.25, 0.5);
+        let uvOffset = (input.texCoord - uvCenter) * vec2f(aspectRatio, 1.0);
+        let distToCenter = length(uvOffset);
+        
+        alpha = alpha * pow(1.0 - smoothstep(0.1, 0.5, distToCenter), 60.0);
+        texColor.a = alpha;
     }
 
     finalColor = max(finalColor, vec3f(0.0));
