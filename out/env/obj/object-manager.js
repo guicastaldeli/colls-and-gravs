@@ -88,16 +88,22 @@ let ObjectManager = class ObjectManager {
         });
     }
     async createObject(type) {
-        const typeInfo = this.typeRegistry.get(type);
-        if (!typeInfo)
-            throw new Error(`Object type ${type} not registered`);
-        const constructorArgs = this.resolveDependencies(typeInfo.constructor);
-        const instance = new typeInfo.constructor(...constructorArgs);
-        if (typeInfo.init)
-            await typeInfo.init(instance, this.deps);
-        const id = this.generateId(type);
-        this.objects.set(id, instance);
-        return id;
+        try {
+            const typeInfo = this.typeRegistry.get(type);
+            if (!typeInfo)
+                throw new Error(`Object type ${type} not registered`);
+            const constructorArgs = this.resolveDependencies(typeInfo.constructor);
+            const instance = new typeInfo.constructor(...constructorArgs);
+            if (typeInfo.init)
+                await typeInfo.init(instance, this.deps);
+            const id = this.generateId(type);
+            this.objects.set(id, instance);
+            return id;
+        }
+        catch (err) {
+            console.error(`Failed to create object ${type}:`, err);
+            return 0;
+        }
     }
     generateId(type) {
         const idNumber = this.id++;

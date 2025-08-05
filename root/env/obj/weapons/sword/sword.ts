@@ -8,11 +8,13 @@ export class Sword {
     private loader: Loader;
     private modelMatrix: mat4;
     private normalMatrix: mat3 = mat3.create();
+    private model: any = null;
+    private texture: GPUTexture | null = null;
 
     private pos = {
-        x: 0.0,
+        x: 5.0,
         y: 1.0,
-        z: 0.0
+        z: 5.0
     }
 
     private size = {
@@ -26,26 +28,17 @@ export class Sword {
         this.modelMatrix = mat4.create();
     }
 
-    private async loadAssets(): Promise<EnvBufferData> {
+    private async loadAssets(): Promise<boolean> {
         try {
-            const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/earth.obj'),
-                this.loader.textureLoader('./assets/env/textures/earth.png')
+            const [model, texture] = await Promise.all([
+                this.loader.parser('./assets/env/obj/sword.obj'),
+                this.loader.textureLoader('./assets/env/textures/sword.png')
             ]);
 
-            const sword: EnvBufferData = {
-                vertex: model.vertex,
-                color: model.color,
-                index: model.index,
-                indexCount: model.indexCount,
-                modelMatrix: this.modelMatrix,
-                normalMatrix: this.normalMatrix,
-                texture: tex,
-                sampler: this.loader.createSampler(),
-                isLamp: [0.0, 0.0, 0.0]
-            }
-
-            return sword;
+            if(!model || !texture) throw new Error('err');
+            this.model = model;
+            this.texture = texture;
+            return true;
         } catch(err) {
             console.log(err);
             throw err;
@@ -66,12 +59,45 @@ export class Sword {
         }
     }
 
+    public async getBuffers(): Promise<EnvBufferData | undefined> {
+        if(!this.model || !this.texture) {
+            console.warn('Sword not loaded');
+            return undefined;
+        }
+
+        try {
+            await this.setSword();
+
+            const buffers: EnvBufferData = {
+                vertex: this.model.vertex,
+                color: this.model.color,
+                index: this.model.index,
+                indexCount: this.model.indexCount,
+                modelMatrix: this.modelMatrix,
+                normalMatrix: this.normalMatrix,
+                texture: this.texture,
+                sampler: this.loader.createSampler(),
+                isLamp: [0.0, 0.0, 0.0]
+            }
+
+            return buffers;
+        } catch(err) {
+            console.error('Err sword', err);
+            throw err;
+        }
+    }
+
     public async update(): Promise<void> {
 
     }
 
     public async init(): Promise<void> {
-        await this.loadAssets();
-        await this.setSword();
+        try {
+            await this.loadAssets();
+            await this.setSword();
+        } catch(err) {
+            console.log(err);
+            throw err;
+        }
     }
 }

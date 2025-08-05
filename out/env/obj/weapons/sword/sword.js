@@ -14,10 +14,12 @@ let Sword = class Sword {
     loader;
     modelMatrix;
     normalMatrix = mat3.create();
+    model = null;
+    texture = null;
     pos = {
-        x: 0.0,
+        x: 5.0,
         y: 1.0,
-        z: 0.0
+        z: 5.0
     };
     size = {
         w: 1.0,
@@ -30,22 +32,15 @@ let Sword = class Sword {
     }
     async loadAssets() {
         try {
-            const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/earth.obj'),
-                this.loader.textureLoader('./assets/env/textures/earth.png')
+            const [model, texture] = await Promise.all([
+                this.loader.parser('./assets/env/obj/sword.obj'),
+                this.loader.textureLoader('./assets/env/textures/sword.png')
             ]);
-            const sword = {
-                vertex: model.vertex,
-                color: model.color,
-                index: model.index,
-                indexCount: model.indexCount,
-                modelMatrix: this.modelMatrix,
-                normalMatrix: this.normalMatrix,
-                texture: tex,
-                sampler: this.loader.createSampler(),
-                isLamp: [0.0, 0.0, 0.0]
-            };
-            return sword;
+            if (!model || !texture)
+                throw new Error('err');
+            this.model = model;
+            this.texture = texture;
+            return true;
         }
         catch (err) {
             console.log(err);
@@ -65,11 +60,42 @@ let Sword = class Sword {
             throw err;
         }
     }
+    async getBuffers() {
+        if (!this.model || !this.texture) {
+            console.warn('Sword not loaded');
+            return undefined;
+        }
+        try {
+            await this.setSword();
+            const buffers = {
+                vertex: this.model.vertex,
+                color: this.model.color,
+                index: this.model.index,
+                indexCount: this.model.indexCount,
+                modelMatrix: this.modelMatrix,
+                normalMatrix: this.normalMatrix,
+                texture: this.texture,
+                sampler: this.loader.createSampler(),
+                isLamp: [0.0, 0.0, 0.0]
+            };
+            return buffers;
+        }
+        catch (err) {
+            console.error('Err sword', err);
+            throw err;
+        }
+    }
     async update() {
     }
     async init() {
-        await this.loadAssets();
-        await this.setSword();
+        try {
+            await this.loadAssets();
+            await this.setSword();
+        }
+        catch (err) {
+            console.log(err);
+            throw err;
+        }
     }
 };
 Sword = __decorate([
