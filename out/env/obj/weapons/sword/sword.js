@@ -7,15 +7,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { mat4, vec3 } from "../../../../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable } from "../../object-manager.js";
 import { Loader } from "../../../../loader.js";
 let Sword = class Sword {
     loader;
+    modelMatrix;
+    normalMatrix = mat3.create();
     pos = {
-        x: 7.0,
-        y: 0.0,
-        z: 7.5
+        x: 0.0,
+        y: 1.0,
+        z: 0.0
     };
     size = {
         w: 1.0,
@@ -24,22 +26,24 @@ let Sword = class Sword {
     };
     constructor(loader) {
         this.loader = loader;
-        console.log(this.loader);
+        this.modelMatrix = mat4.create();
     }
     async loadAssets() {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/sword.obj'),
-                this.loader.textureLoader('./assets/env/textures/sword.png')
+                this.loader.parser('./assets/env/obj/earth.obj'),
+                this.loader.textureLoader('./assets/env/textures/earth.png')
             ]);
             const sword = {
                 vertex: model.vertex,
                 color: model.color,
                 index: model.index,
                 indexCount: model.indexCount,
-                modelMatrix: mat4.create(),
+                modelMatrix: this.modelMatrix,
+                normalMatrix: this.normalMatrix,
                 texture: tex,
-                sampler: this.loader.createSampler()
+                sampler: this.loader.createSampler(),
+                isLamp: [0.0, 0.0, 0.0]
             };
             return sword;
         }
@@ -50,11 +54,11 @@ let Sword = class Sword {
     }
     async setSword() {
         try {
-            const x = this.pos.x;
-            const y = this.pos.y;
-            const z = this.pos.z;
-            const position = vec3.fromValues(x, y, z);
-            return position;
+            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
+            const scale = vec3.fromValues(this.size.w, this.size.h, this.size.d);
+            mat4.identity(this.modelMatrix);
+            mat4.translate(this.modelMatrix, this.modelMatrix, position);
+            mat4.scale(this.modelMatrix, this.modelMatrix, scale);
         }
         catch (err) {
             console.error(err);

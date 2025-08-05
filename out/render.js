@@ -377,7 +377,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
     mat4.identity(modelMatrix);
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => rb.getBlocks());
-    const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
+    const renderBuffers = [
+        ...await envRenderer.get(),
+        ...randomBlocks,
+        ...await weaponRenderer.get()
+    ];
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
         size: bufferSize * 5,
@@ -531,7 +535,7 @@ async function renderEnv(deltaTime) {
 //Weapons
 async function renderWeapons(deltaTime) {
     if (!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, loader, shaderLoader, objectManager);
+        weaponRenderer = new WeaponRenderer(device, objectManager);
         await weaponRenderer.render(deltaTime);
     }
 }

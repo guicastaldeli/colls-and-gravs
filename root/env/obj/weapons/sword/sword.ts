@@ -6,11 +6,13 @@ import { EnvBufferData } from "../../../env-buffers.js";
 @Injectable()
 export class Sword {
     private loader: Loader;
+    private modelMatrix: mat4;
+    private normalMatrix: mat3 = mat3.create();
 
     private pos = {
-        x: 7.0,
-        y: 0.0,
-        z: 7.5
+        x: 0.0,
+        y: 1.0,
+        z: 0.0
     }
 
     private size = {
@@ -21,14 +23,14 @@ export class Sword {
 
     constructor(loader: Loader) {
         this.loader = loader;
-        console.log(this.loader)
+        this.modelMatrix = mat4.create();
     }
 
     private async loadAssets(): Promise<EnvBufferData> {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/sword.obj'),
-                this.loader.textureLoader('./assets/env/textures/sword.png')
+                this.loader.parser('./assets/env/obj/earth.obj'),
+                this.loader.textureLoader('./assets/env/textures/earth.png')
             ]);
 
             const sword: EnvBufferData = {
@@ -36,9 +38,11 @@ export class Sword {
                 color: model.color,
                 index: model.index,
                 indexCount: model.indexCount,
-                modelMatrix: mat4.create(),
+                modelMatrix: this.modelMatrix,
+                normalMatrix: this.normalMatrix,
                 texture: tex,
-                sampler: this.loader.createSampler()
+                sampler: this.loader.createSampler(),
+                isLamp: [0.0, 0.0, 0.0]
             }
 
             return sword;
@@ -48,13 +52,14 @@ export class Sword {
         }
     }
 
-    private async setSword(): Promise<vec3> {
+    private async setSword(): Promise<void> {
         try {
-            const x = this.pos.x;
-            const y = this.pos.y;
-            const z = this.pos.z;
-            const position = vec3.fromValues(x, y, z);
-            return position;
+            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
+            const scale = vec3.fromValues(this.size.w, this.size.h, this.size.d);
+
+            mat4.identity(this.modelMatrix);
+            mat4.translate(this.modelMatrix, this.modelMatrix, position);
+            mat4.scale(this.modelMatrix, this.modelMatrix, scale);
         } catch(err) {
             console.error(err);
             throw err;

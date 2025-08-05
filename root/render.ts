@@ -443,7 +443,11 @@ async function setBuffers(
     const getRandomBlocks = objectManager.getAllOfType('randomBlocks');
     const randomBlocks = getRandomBlocks.flatMap(rb => (rb as any).getBlocks());
     
-    const renderBuffers = [...await envRenderer.get(), ...randomBlocks];
+    const renderBuffers = [
+        ...await envRenderer.get(), 
+        ...randomBlocks, 
+        ...await weaponRenderer.get()
+    ];
     const bufferSize = 512 * renderBuffers.length;
     const uniformBuffer = device.createBuffer({
         size: bufferSize * 5,
@@ -624,7 +628,7 @@ async function renderEnv(deltaTime: number): Promise<void> {
 //Weapons
 async function renderWeapons(deltaTime: number): Promise<void> {
     if(!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, loader, shaderLoader, objectManager);
+        weaponRenderer = new WeaponRenderer(device, objectManager);
         await weaponRenderer.render(deltaTime);
     }
 }

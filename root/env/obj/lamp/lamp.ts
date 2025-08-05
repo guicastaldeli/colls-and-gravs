@@ -19,7 +19,7 @@ export class Lamp {
     public wire: Wire;
     private lightningManager: LightningManager;
 
-    size = {
+    private size = {
         w: 0.6,
         h: 0.6,
         d: 0.6
@@ -56,7 +56,7 @@ export class Lamp {
                 color: model.color,
                 index: model.index,
                 indexCount: model.indexCount,
-                modelMatrix: mat4.create(),
+                modelMatrix: this.modelMatrix,
                 normalMatrix: mat3.create(),
                 texture: tex,
                 sampler: this.loader.createSampler(),
@@ -81,7 +81,6 @@ export class Lamp {
             const position = vec3.fromValues(x, y, z);
             mat4.identity(this.buffers.modelMatrix);
             mat4.translate(this.buffers.modelMatrix, this.buffers.modelMatrix, position);
-            
             mat4.scale(
                 this.buffers.modelMatrix,
                 this.buffers.modelMatrix,
@@ -91,7 +90,6 @@ export class Lamp {
                     this.size.d
                 ]
             );
-
             mat4.copy(this.modelMatrix, this.buffers.modelMatrix);
 
             const normalMatrix = mat3.create();

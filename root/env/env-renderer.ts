@@ -38,6 +38,7 @@ export class EnvRenderer {
         viewProjectionMatrix: mat4,
         bindGroup: GPUBindGroup
     ): Promise<void> {
+        console.log('tst')
         //Ground
         const blocks = this.ground.getBlocks();
         for(let i = 0; i < blocks.length; i++) {

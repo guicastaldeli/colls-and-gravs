@@ -50,7 +50,7 @@ let Lamp = class Lamp {
                 color: model.color,
                 index: model.index,
                 indexCount: model.indexCount,
-                modelMatrix: mat4.create(),
+                modelMatrix: this.modelMatrix,
                 normalMatrix: mat3.create(),
                 texture: tex,
                 sampler: this.loader.createSampler(),
