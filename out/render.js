@@ -10,6 +10,7 @@ import { ShaderLoader } from "./shader-loader.js";
 import { ShaderComposer } from "./shader-composer.js";
 import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
+import { WeaponRenderer } from "./env/weapon-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
@@ -34,6 +35,7 @@ let shaderLoader;
 let shaderComposer;
 let playerController;
 let envRenderer;
+let weaponRenderer;
 let getColliders;
 let hud;
 let skybox;
@@ -518,11 +520,19 @@ async function errorHandler() {
     if (pipelineError)
         console.error('Pipeline error:', pipelineError);
 }
+//Env
 async function renderEnv(deltaTime) {
     if (!envRenderer) {
         envRenderer = new EnvRenderer(device, loader, shaderLoader, objectManager);
         await envRenderer.render(deltaTime);
         objectManager.deps.ground = envRenderer.ground;
+    }
+}
+//Weapons
+async function renderWeapons(deltaTime) {
+    if (!weaponRenderer) {
+        weaponRenderer = new WeaponRenderer(device, loader, shaderLoader, objectManager);
+        await weaponRenderer.render(deltaTime);
     }
 }
 async function lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks) {
@@ -586,6 +596,7 @@ export async function render(canvas) {
             objectManager = new ObjectManager(deps);
             await objectManager.ready();
             await renderEnv(deltaTime);
+            await renderWeapons(deltaTime);
         }
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');

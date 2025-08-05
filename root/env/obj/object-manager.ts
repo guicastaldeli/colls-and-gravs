@@ -3,6 +3,7 @@ import 'reflect-metadata';
 
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
+import { Sword } from "./weapons/sword/sword.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -18,8 +19,8 @@ export function Injectable() {
     }
 }
 
-export type List = RandomBlocks | Lamp;
-type Types = 'randomBlocks' | 'lamp';
+export type List = RandomBlocks | Lamp | Sword;
+type Types = 'randomBlocks' | 'lamp' | 'sword';
 
 interface Dependencies {
     tick: Tick;
@@ -98,6 +99,13 @@ export class ObjectManager {
         this.registerType('lamp', Lamp, async (instance, deps) => {
             await(instance as Lamp).init();
         });
+
+        //Weapons
+            //Sword
+            this.registerType('sword', Sword, async (instance, deps) => {
+                await(instance as Sword).init();
+            });
+        //
     }
 
     private resolveDependencies(constructor: new (...args: any[]) => any): any[] {

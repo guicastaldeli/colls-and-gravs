@@ -4,20 +4,12 @@ import { EnvBufferData } from "./env-buffers.js";
 import { PlayerController } from "../player/player-controller.js";
 import { Loader } from "../loader.js";
 import { ShaderLoader } from "../shader-loader.js";
-import { Walls } from "./walls.js";
-import { Ground } from "./ground.js";
 import { ObjectManager } from "./obj/object-manager.js";
 
-export class EnvRenderer {
+export class WeaponRenderer {
     private device: GPUDevice;
     private loader: Loader;
     private shaderLoader: ShaderLoader;
-
-    //Items
-    public walls!: Walls;
-    public ground!: Ground;
-
-    //Objects
     public objectManager?: ObjectManager;
 
     constructor(
@@ -38,29 +30,11 @@ export class EnvRenderer {
         viewProjectionMatrix: mat4,
         bindGroup: GPUBindGroup
     ): Promise<void> {
-        //Ground
-        const blocks = this.ground.getBlocks();
-        for(let i = 0; i < blocks.length; i++) {
-            const data = blocks[i];
-            const num = 256;
-            const offset = num * (i + 1);
-            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
-        }
-
-        //Walls
-        const walls = this.walls.getBlocks();
-        for(let i = 0; i < walls.length; i++) {
-            const data = walls[i];
-            const num = 256;
-            const offset = num * (i + 1);
-            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
-        }
-
-        //Lamp
+        //Sword
         if(this.objectManager) {
-            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
-            if(lampBuffers) {
-                for(const buffer of lampBuffers) {
+            const swordBuffers = await this.objectManager.setObjectBuffer('sword');
+            if(swordBuffers) {
+                for(const buffer of swordBuffers) {
                     const num = 256;
                     const offset = num;
                     await this.drawObject(passEncoder, buffer, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
@@ -97,26 +71,19 @@ export class EnvRenderer {
     }
 
     public async get(): Promise<EnvBufferData[]> {
-        const renderers = [
-            ...this.ground.getBlocks(),
-            ...this.walls.getBlocks(),
-        ];
-
+        const renderers: EnvBufferData[] = [];
+        
         if(this.objectManager) {
-            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
-            if(lampBuffers) renderers.push(...lampBuffers);
+            const swordBuffers = await this.objectManager.setObjectBuffer('sword');
+            if(swordBuffers) renderers.push(...swordBuffers);
         }
 
         return renderers;
     }
 
     public async render(deltaTime: number): Promise<void> {
-        this.ground = new Ground(this.device, this.loader);
-        await this.ground.init();
-        
-        this.walls = new Walls(this.device, this.loader);
-        await this.walls.init();
-
-        if(this.objectManager) await this.objectManager.createObject('lamp');
+        if(this.objectManager) {
+            await this.objectManager.createObject('sword');
+        }
     }
 }

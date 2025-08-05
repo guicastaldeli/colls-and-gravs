@@ -122,8 +122,6 @@ export class Lamp {
         }
     }
 
-    public update(): void {}
-
     public async getBuffers(): Promise<EnvBufferData[] | undefined> {
         const buffers: EnvBufferData[] = [];
         const wireBuffers = await this.wire.getBuffers();
@@ -131,10 +129,12 @@ export class Lamp {
         if(this.buffers) buffers.push(this.buffers);
         return buffers;
     }
-
+    
     public async init(): Promise<void> {
         await this.wire.init();
         this.buffers = await this.loadAssets();
         this.createLamp();
     }
+
+    public update(): void {}
 }

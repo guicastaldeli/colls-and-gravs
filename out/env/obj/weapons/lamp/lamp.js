@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a, _b, _c;
 import { mat3, mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable } from "../object-manager.js";
 import { ShaderLoader } from "../../../shader-loader.js";
@@ -98,6 +99,7 @@ let Lamp = class Lamp {
             throw err;
         }
     }
+    update() { }
     async getBuffers() {
         const buffers = [];
         const wireBuffers = await this.wire.getBuffers();
@@ -112,13 +114,9 @@ let Lamp = class Lamp {
         this.buffers = await this.loadAssets();
         this.createLamp();
     }
-    update() { }
 };
 Lamp = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [GPUDevice,
-        Loader,
-        ShaderLoader,
-        LightningManager])
+    __metadata("design:paramtypes", [GPUDevice, typeof (_a = typeof Loader !== "undefined" && Loader) === "function" ? _a : Object, typeof (_b = typeof ShaderLoader !== "undefined" && ShaderLoader) === "function" ? _b : Object, typeof (_c = typeof LightningManager !== "undefined" && LightningManager) === "function" ? _c : Object])
 ], Lamp);
 export { Lamp };

@@ -1,14 +1,8 @@
 import { mat3, mat4 } from "../../node_modules/gl-matrix/esm/index.js";
-import { Walls } from "./walls.js";
-import { Ground } from "./ground.js";
-export class EnvRenderer {
+export class WeaponRenderer {
     device;
     loader;
     shaderLoader;
-    //Items
-    walls;
-    ground;
-    //Objects
     objectManager;
     constructor(device, loader, shaderLoader, objectManager) {
         this.device = device;
@@ -17,27 +11,11 @@ export class EnvRenderer {
         this.objectManager = objectManager;
     }
     async renderEnv(passEncoder, uniformBuffer, viewProjectionMatrix, bindGroup) {
-        //Ground
-        const blocks = this.ground.getBlocks();
-        for (let i = 0; i < blocks.length; i++) {
-            const data = blocks[i];
-            const num = 256;
-            const offset = num * (i + 1);
-            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
-        }
-        //Walls
-        const walls = this.walls.getBlocks();
-        for (let i = 0; i < walls.length; i++) {
-            const data = walls[i];
-            const num = 256;
-            const offset = num * (i + 1);
-            await this.drawObject(passEncoder, data, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
-        }
-        //Lamp
+        //Sword
         if (this.objectManager) {
-            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
-            if (lampBuffers) {
-                for (const buffer of lampBuffers) {
+            const swordBuffers = await this.objectManager.setObjectBuffer('sword');
+            if (swordBuffers) {
+                for (const buffer of swordBuffers) {
                     const num = 256;
                     const offset = num;
                     await this.drawObject(passEncoder, buffer, uniformBuffer, viewProjectionMatrix, bindGroup, offset);
@@ -62,23 +40,17 @@ export class EnvRenderer {
         passEncoder.drawIndexed(buffers.indexCount);
     }
     async get() {
-        const renderers = [
-            ...this.ground.getBlocks(),
-            ...this.walls.getBlocks(),
-        ];
+        const renderers = [];
         if (this.objectManager) {
-            const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
-            if (lampBuffers)
-                renderers.push(...lampBuffers);
+            const swordBuffers = await this.objectManager.setObjectBuffer('sword');
+            if (swordBuffers)
+                renderers.push(...swordBuffers);
         }
         return renderers;
     }
     async render(deltaTime) {
-        this.ground = new Ground(this.device, this.loader);
-        await this.ground.init();
-        this.walls = new Walls(this.device, this.loader);
-        await this.walls.init();
-        if (this.objectManager)
-            await this.objectManager.createObject('lamp');
+        if (this.objectManager) {
+            await this.objectManager.createObject('sword');
+        }
     }
 }
