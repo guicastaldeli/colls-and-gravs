@@ -9,8 +9,8 @@ import { ResourceManager } from "./resource-manager.js";
 import { PlayerController } from "../../../player/player-controller.js";
 import { Hud } from "../../../hud.js";
 import { ShaderLoader } from "../../../shader-loader.js";
-import { Raycaster } from "./raycaster.js";
-import { OutlineConfig } from "./outline-config.js";
+import { Raycaster } from "../raycaster.js";
+import { OutlineConfig } from "../outline-config.js";
 import { PhysicsSystem } from "../../../physics/physics-system.js";
 import { PhysicsObject } from "../../../physics/physics-object.js";
 import { PhysicsGrid } from "../../../physics/physics-grid.js";
@@ -266,11 +266,7 @@ export class RandomBlocks implements ICollidable {
         const size = this.currentItem.size;
 
         this.raycaster.setCollider(new BoxCollider(
-            [
-                size.w,
-                size.h,
-                size.d
-            ],
+            [size.w, size.h, size.d],
             [0, 0, 0]
         ));
     }

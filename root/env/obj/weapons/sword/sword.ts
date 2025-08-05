@@ -1,15 +1,29 @@
 import { mat3, mat4, vec3, quat } from "../../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable, ObjectManager } from "../../object-manager.js";
-import { Loader } from "../../../../loader.js";
 import { EnvBufferData } from "../../../env-buffers.js";
+import { Loader } from "../../../../loader.js";
+import { ShaderLoader } from "../../../../shader-loader.js";
+import { Raycaster } from "../../raycaster.js";
+import { OutlineConfig } from "../../outline-config.js";
+import { PlayerController } from "../../../../player/player-controller.js";
 
 @Injectable()
 export class Sword {
+    private device: GPUDevice;
     private loader: Loader;
+    private shaderLoader: ShaderLoader;
+    private isLoaded: boolean = false;
+    private loadingPromise: Promise<void>;
+
     private modelMatrix: mat4;
     private normalMatrix: mat3 = mat3.create();
-    private model: any = null;
-    private texture: GPUTexture | null = null;
+    private model: any;
+    private texture!: GPUTexture;
+
+    //Raycaster
+    private raycaster: Raycaster;
+    private outline: OutlineConfig;
+    private isTargeted: boolean = false;
 
     private pos = {
         x: 5.0,
@@ -23,9 +37,16 @@ export class Sword {
         d: 1.0
     }
 
-    constructor(loader: Loader) {
+    constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader,) {
+        this.device = device;
         this.loader = loader;
+        this.shaderLoader = shaderLoader;
+
         this.modelMatrix = mat4.create();
+        this.raycaster = new Raycaster();
+        this.outline = new OutlineConfig(device, shaderLoader);
+
+        this.loadingPromise = this.loadAssets().then(() => this.setSword());
     }
 
     private async loadAssets(): Promise<boolean> {
@@ -38,9 +59,11 @@ export class Sword {
             if(!model || !texture) throw new Error('err');
             this.model = model;
             this.texture = texture;
+            this.isLoaded = true;
             return true;
         } catch(err) {
             console.log(err);
+            this.isLoaded = false;
             throw err;
         }
     }
@@ -59,7 +82,44 @@ export class Sword {
         }
     }
 
+    public updateTarget(playerController: PlayerController): void {
+        const maxDistance = 5.0;
+        const rayOrigin = playerController.getCameraPosition();
+        const rayDirection = playerController.getForward();
+
+        const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
+        const orientation = quat.create();
+
+        const halfSize = vec3.scale(vec3.create(), [
+            this.size.w,
+            this.size.h,
+            this.size.d
+        ], 0.5);
+
+        const intersection = this.raycaster.getRayOBBIntersect(
+            rayOrigin,
+            rayDirection,
+            position,
+            halfSize,
+            orientation
+        );
+
+        this.isTargeted = 
+        intersection.hit &&
+        intersection.distance !== undefined &&
+        intersection.distance < maxDistance;
+    }
+
+    private async renderOutline(
+        canvas: HTMLCanvasElement,
+        device: GPUDevice,
+        format: GPUTextureFormat,
+    ): Promise<void> {
+        this.outline.initOutline(canvas, device, format);
+    }
+
     public async getBuffers(): Promise<EnvBufferData | undefined> {
+        if(!this.isLoaded) await this.loadingPromise;
         if(!this.model || !this.texture) {
             console.warn('Sword not loaded');
             return undefined;
@@ -91,10 +151,16 @@ export class Sword {
 
     }
 
-    public async init(): Promise<void> {
+    public async init(
+        canvas: HTMLCanvasElement,
+        device: GPUDevice, 
+        format: GPUTextureFormat,
+        playerController: PlayerController
+    ): Promise<void> {
         try {
-            await this.loadAssets();
-            await this.setSword();
+            await this.loadingPromise;
+            this.renderOutline(canvas, device, format);
+            this.updateTarget(playerController);
         } catch(err) {
             console.log(err);
             throw err;

@@ -1,6 +1,5 @@
-import { mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
-import { RandomBlocks } from "./random-blocks.js";
-import { ShaderLoader } from "../../../shader-loader.js";
+import { mat4, vec3 } from "../../../node_modules/gl-matrix/esm/index.js";
+import { ShaderLoader } from "../../shader-loader.js";
 
 export class OutlineConfig {
     private device: GPUDevice;
@@ -12,10 +11,7 @@ export class OutlineConfig {
 
     private shaderLoader: ShaderLoader;
 
-    constructor(
-        device: GPUDevice,
-        shaderLoader: ShaderLoader
-    ) {
+    constructor(device: GPUDevice, shaderLoader: ShaderLoader) {
         this.device = device;
         this.shaderLoader = shaderLoader;
     }
@@ -26,8 +22,8 @@ export class OutlineConfig {
         format: GPUTextureFormat
     ): Promise<void> {
         const [vertexShader, fragShader] = await Promise.all([
-            this.shaderLoader.loader('./env/obj/random-blocks/shaders/vertex.wgsl'),
-            this.shaderLoader.loader('./env/obj/random-blocks/shaders/frag.wgsl'),
+            this.shaderLoader.loader('./env/obj/.shaders/vertex.wgsl'),
+            this.shaderLoader.loader('./env/obj/.shaders/frag.wgsl'),
         ]);
 
         const bindGroupLayout = device.createBindGroupLayout({

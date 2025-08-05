@@ -15,8 +15,8 @@ import { GetColliders } from "../../../collision/get-colliders.js";
 import { Loader } from "../../../loader.js";
 import { ResourceManager } from "./resource-manager.js";
 import { ShaderLoader } from "../../../shader-loader.js";
-import { Raycaster } from "./raycaster.js";
-import { OutlineConfig } from "./outline-config.js";
+import { Raycaster } from "../raycaster.js";
+import { OutlineConfig } from "../outline-config.js";
 import { PhysicsSystem } from "../../../physics/physics-system.js";
 import { PhysicsObject } from "../../../physics/physics-object.js";
 import { PhysicsGrid } from "../../../physics/physics-grid.js";
@@ -194,11 +194,7 @@ let RandomBlocks = class RandomBlocks {
     }
     updateRaycasterCollider() {
         const size = this.currentItem.size;
-        this.raycaster.setCollider(new BoxCollider([
-            size.w,
-            size.h,
-            size.d
-        ], [0, 0, 0]));
+        this.raycaster.setCollider(new BoxCollider([size.w, size.h, size.d], [0, 0, 0]));
     }
     updateTargetBlock(playerController) {
         this.targetBlockIndex = -1;

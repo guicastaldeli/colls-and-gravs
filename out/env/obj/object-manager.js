@@ -71,7 +71,9 @@ let ObjectManager = class ObjectManager {
         //Weapons
         //Sword
         this.registerType('sword', Sword, async (instance, deps) => {
-            await instance.init();
+            if (!deps.playerController)
+                return;
+            await instance.init(deps.canvas, deps.device, deps.format, deps.playerController);
         });
         //
     }

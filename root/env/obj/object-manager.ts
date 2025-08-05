@@ -103,7 +103,14 @@ export class ObjectManager {
         //Weapons
             //Sword
             this.registerType('sword', Sword, async (instance, deps) => {
-                await(instance as Sword).init();
+                if(!deps.playerController) return;
+                
+                await(instance as Sword).init(
+                    deps.canvas, 
+                    deps.device, 
+                    deps.format,
+                    deps.playerController
+                );
             });
         //
     }
