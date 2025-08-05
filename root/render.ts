@@ -628,9 +628,10 @@ async function renderEnv(deltaTime: number): Promise<void> {
 //Weapons
 async function renderWeapons(deltaTime: number): Promise<void> {
     if(!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, objectManager);
-        await weaponRenderer.render(deltaTime);
+        weaponRenderer = new WeaponRenderer(device, objectManager, playerController);
+        await weaponRenderer.render();
     }
+    await weaponRenderer.update(deltaTime);
 }
 
 async function lateRenderers(
@@ -680,6 +681,10 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         await ambientLight();
         await directionalLight();
 
+        //Player Controller
+        if(!playerController) playerController = new PlayerController(tick, input, undefined, getColliders);
+        playerController.update(deltaTime);
+
         //Objects
         if(!objectManager) {
             const deps = {
@@ -691,7 +696,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 ground: envRenderer?.ground,
                 lightningManager,
                 canvas,
-                playerController: null,
+                playerController,
                 format,
                 hud: null,
                 viewProjectionMatrix: null,
@@ -701,22 +706,18 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             objectManager = new ObjectManager(deps);
             await objectManager.ready();
             await renderEnv(deltaTime);
-            await renderWeapons(deltaTime);
         }
+        await renderWeapons(deltaTime);
 
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
         if(randomBlocks) randomBlocks.update(deltaTime);
 
         //Colliders
-        if(!getColliders) getColliders = new GetColliders(envRenderer, randomBlocks);
-
-        //Player Controller
-        if(!playerController) {
-            playerController = new PlayerController(tick, input, undefined, getColliders);
-            objectManager.deps.playerController = playerController;
+        if(!getColliders) {
+            getColliders = new GetColliders(envRenderer, randomBlocks);
+            playerController.setColliders(getColliders);
         }
-        playerController.update(deltaTime);
 
         //Camera
             //Main

@@ -508,11 +508,7 @@ export class RandomBlocks implements ICollidable {
         await this.resourceManager.cleanup();
     }
 
-    private async renderOutline(
-        canvas: HTMLCanvasElement,
-        device: GPUDevice,
-        format: GPUTextureFormat,
-    ): Promise<void> {
+    private async renderOutline(canvas: HTMLCanvasElement, device: GPUDevice, format: GPUTextureFormat): Promise<void> {
         this.outline.initOutline(canvas, device, format);
     }
 

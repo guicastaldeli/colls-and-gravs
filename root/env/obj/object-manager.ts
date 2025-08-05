@@ -85,11 +85,10 @@ export class ObjectManager {
     private async registeredTypes(): Promise<void> {
         //Random Blocks
         this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
-            if(!deps.playerController || !deps.hud) return;
-
+            if(!deps.hud) return;
             await(instance as RandomBlocks).init(
                 deps.canvas,
-                deps.playerController,
+                deps.playerController!,
                 deps.format,
                 deps.hud
             );
@@ -103,13 +102,11 @@ export class ObjectManager {
         //Weapons
             //Sword
             this.registerType('sword', Sword, async (instance, deps) => {
-                if(!deps.playerController) return;
-                
                 await(instance as Sword).init(
                     deps.canvas, 
                     deps.device, 
                     deps.format,
-                    deps.playerController
+                    deps.playerController!
                 );
             });
         //

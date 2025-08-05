@@ -60,7 +60,7 @@ let ObjectManager = class ObjectManager {
     async registeredTypes() {
         //Random Blocks
         this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
-            if (!deps.playerController || !deps.hud)
+            if (!deps.hud)
                 return;
             await instance.init(deps.canvas, deps.playerController, deps.format, deps.hud);
         });
@@ -71,8 +71,6 @@ let ObjectManager = class ObjectManager {
         //Weapons
         //Sword
         this.registerType('sword', Sword, async (instance, deps) => {
-            if (!deps.playerController)
-                return;
             await instance.init(deps.canvas, deps.device, deps.format, deps.playerController);
         });
         //

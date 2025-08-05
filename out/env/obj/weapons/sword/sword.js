@@ -78,7 +78,9 @@ let Sword = class Sword {
             throw err;
         }
     }
-    updateTarget(playerController) {
+    async updateTarget(playerController) {
+        if (!this.isLoaded)
+            await this.loadingPromise;
         const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
@@ -125,13 +127,16 @@ let Sword = class Sword {
             throw err;
         }
     }
-    async update() {
+    async update(deltaTime, playerController) {
+        if (!playerController)
+            throw new Error('err');
+        this.updateTarget(playerController);
     }
     async init(canvas, device, format, playerController) {
         try {
             await this.loadingPromise;
-            this.renderOutline(canvas, device, format);
-            this.updateTarget(playerController);
+            await this.renderOutline(canvas, device, format);
+            await this.updateTarget(playerController);
         }
         catch (err) {
             console.log(err);

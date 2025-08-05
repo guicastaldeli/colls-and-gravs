@@ -67,6 +67,11 @@ export class PlayerController implements ICollidable {
         this._GetColliders = collidables || new GetColliders();
         this._Collidables = this._GetColliders.getCollidables();
     }
+
+    public setColliders(colliders: GetColliders): void {
+        this._GetColliders = colliders;
+        this.updateCollidables();
+    }
     
     private updateVectors(): void {
         this._forward[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);

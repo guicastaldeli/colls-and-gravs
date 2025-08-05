@@ -12,6 +12,7 @@ export class Sword {
     private device: GPUDevice;
     private loader: Loader;
     private shaderLoader: ShaderLoader;
+
     private isLoaded: boolean = false;
     private loadingPromise: Promise<void>;
 
@@ -37,7 +38,7 @@ export class Sword {
         d: 1.0
     }
 
-    constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader,) {
+    constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
@@ -82,7 +83,9 @@ export class Sword {
         }
     }
 
-    public updateTarget(playerController: PlayerController): void {
+    public async updateTarget(playerController: PlayerController): Promise<void> {
+        if(!this.isLoaded) await this.loadingPromise;
+
         const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
@@ -110,11 +113,7 @@ export class Sword {
         intersection.distance < maxDistance;
     }
 
-    private async renderOutline(
-        canvas: HTMLCanvasElement,
-        device: GPUDevice,
-        format: GPUTextureFormat,
-    ): Promise<void> {
+    private async renderOutline(canvas: HTMLCanvasElement, device: GPUDevice, format: GPUTextureFormat): Promise<void> {
         this.outline.initOutline(canvas, device, format);
     }
 
@@ -147,8 +146,9 @@ export class Sword {
         }
     }
 
-    public async update(): Promise<void> {
-
+    public async update(deltaTime: number, playerController?: PlayerController): Promise<void> {
+        if(!playerController) throw new Error('err');
+        this.updateTarget(playerController);
     }
 
     public async init(
@@ -159,8 +159,8 @@ export class Sword {
     ): Promise<void> {
         try {
             await this.loadingPromise;
-            this.renderOutline(canvas, device, format);
-            this.updateTarget(playerController);
+            await this.renderOutline(canvas, device, format);
+            await this.updateTarget(playerController);
         } catch(err) {
             console.log(err);
             throw err;

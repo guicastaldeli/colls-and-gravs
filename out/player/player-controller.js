@@ -47,6 +47,10 @@ export class PlayerController {
         this._GetColliders = collidables || new GetColliders();
         this._Collidables = this._GetColliders.getCollidables();
     }
+    setColliders(colliders) {
+        this._GetColliders = colliders;
+        this.updateCollidables();
+    }
     updateVectors() {
         this._forward[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
         this._forward[1] = Math.sin(this.pitch * Math.PI / 180);
