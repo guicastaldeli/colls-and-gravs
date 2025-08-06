@@ -479,23 +479,6 @@ export class RandomBlocks implements ICollidable {
         return occupiedBlock || belowGround;
     }
 
-    private initListeners(
-        playerController: PlayerController,
-        hud: Hud
-    ): void {
-        if(this.eventListenersInitialized) return;
-        this.eventListenersInitialized = true;
-        
-        document.addEventListener('click', async (e) => {
-            const eKey = e.button;
-
-            if(!this.tick.isPaused) {
-                if(eKey === 0) await this.addBlocksRaycaster(playerController, hud);
-                if(eKey === 2) this.removeBlockRaycaster(playerController);
-            }
-        });
-    }
-
     public async cleanupResources(): Promise<void> {
         for(const [id, resource] of this.sharedResources) {
             this.resourceManager.scheduleDestroy(resource.vertex);
@@ -642,15 +625,9 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
-    public async init(
-        canvas?: HTMLCanvasElement, 
-        playerController?: PlayerController,
-        format?: GPUTextureFormat,
-        hud?: Hud,
-    ): Promise<void> {
-        if(!canvas || !playerController || !format || !hud) throw new Error('err')
+    public async init(canvas?: HTMLCanvasElement, playerController?: PlayerController, format?: GPUTextureFormat): Promise<void> {
+        if(!canvas || !playerController || !format) throw new Error('err')
         await this.renderOutline(canvas, this.device, format);
-        this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);
     }
 }

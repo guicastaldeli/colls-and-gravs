@@ -361,20 +361,6 @@ let RandomBlocks = class RandomBlocks {
         const belowGround = pos[1] < groundLevel;
         return occupiedBlock || belowGround;
     }
-    initListeners(playerController, hud) {
-        if (this.eventListenersInitialized)
-            return;
-        this.eventListenersInitialized = true;
-        document.addEventListener('click', async (e) => {
-            const eKey = e.button;
-            if (!this.tick.isPaused) {
-                if (eKey === 0)
-                    await this.addBlocksRaycaster(playerController, hud);
-                if (eKey === 2)
-                    this.removeBlockRaycaster(playerController);
-            }
-        });
-    }
     async cleanupResources() {
         for (const [id, resource] of this.sharedResources) {
             this.resourceManager.scheduleDestroy(resource.vertex);
@@ -484,11 +470,10 @@ let RandomBlocks = class RandomBlocks {
             }
         }
     }
-    async init(canvas, playerController, format, hud) {
-        if (!canvas || !playerController || !format || !hud)
+    async init(canvas, playerController, format) {
+        if (!canvas || !playerController || !format)
             throw new Error('err');
         await this.renderOutline(canvas, this.device, format);
-        this.initListeners(playerController, hud);
         this.updateTargetBlock(playerController);
     }
 };

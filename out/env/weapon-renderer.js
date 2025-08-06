@@ -127,6 +127,12 @@ export class WeaponRenderer {
         if (eKey === 'q')
             await this.handleUnequip();
     }
+    hasEquipped() {
+        return this.currentWeapon !== null;
+    }
+    getCurrentWeapon() {
+        return this.currentWeapon;
+    }
     async render() {
         const sword = await this.objectManager.createWeapon('sword');
         await this.addWeapon('sword', sword);

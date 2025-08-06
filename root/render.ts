@@ -16,6 +16,7 @@ import { EnvRenderer } from "./env/env-renderer.js";
 import { WeaponRenderer } from "./env/weapon-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
 
+import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
 
@@ -61,6 +62,7 @@ let getColliders: GetColliders;
 let hud: Hud;
 let skybox: Skybox;
 
+let functionManager: FunctionManager;
 let lightningManager: LightningManager;
 let objectManager: ObjectManager;
 
@@ -832,6 +834,10 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //**__ Late Renderers __**
         await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);
+
+        //Function Manager
+        if(!functionManager) functionManager = new FunctionManager(tick, objectManager, weaponRenderer, playerController, hud);
+        functionManager.init();
         
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);

@@ -12,6 +12,7 @@ import { PlayerController } from "./player/player-controller.js";
 import { EnvRenderer } from "./env/env-renderer.js";
 import { WeaponRenderer } from "./env/weapon-renderer.js";
 import { GetColliders } from "./collision/get-colliders.js";
+import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
 import { Skybox } from "./skybox/skybox.js";
@@ -39,6 +40,7 @@ let weaponRenderer;
 let getColliders;
 let hud;
 let skybox;
+let functionManager;
 let lightningManager;
 let objectManager;
 let wireframeMode = false;
@@ -711,6 +713,10 @@ export async function render(canvas) {
         await setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, currentTime);
         //**__ Late Renderers __**
         await lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canvas, format, randomBlocks);
+        //Function Manager
+        if (!functionManager)
+            functionManager = new FunctionManager(tick, objectManager, weaponRenderer, playerController, hud);
+        functionManager.init();
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

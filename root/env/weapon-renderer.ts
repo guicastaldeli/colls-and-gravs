@@ -164,6 +164,14 @@ export class WeaponRenderer {
         if(eKey === 'q') await this.handleUnequip();
     }
 
+    public hasEquipped(): boolean {
+        return this.currentWeapon !== null;
+    }
+
+    public getCurrentWeapon(): WeaponBase | null {
+        return this.currentWeapon;
+    }
+
     public async render(): Promise<void> {
         const sword = await this.objectManager.createWeapon<WeaponBase>('sword');
         await this.addWeapon('sword', sword);
