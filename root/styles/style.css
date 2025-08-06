@@ -28,3 +28,16 @@ html, body {
     bottom: 0;
     z-index: 999;
 }
+
+#weapon-message-container {
+    user-select: none;
+    position: absolute;
+    left: 50%;
+    bottom: 20%;
+    transform: translate(-50%, 50%);
+    z-index: 999;
+}
+
+#weapon-message {
+    color: rgb(189, 0, 0);        
+}

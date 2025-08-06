@@ -565,6 +565,29 @@ async function setBuffers(
             }
         }
     }
+
+    const weapons = weaponRenderer.getWeapons();
+    for(const [name, weapon] of weapons) {
+        if(weapon.isTargeted) {
+            const outline = await weapon.getBuffers();
+            if(outline) {
+                const outlineModelMatrix = mat4.create();
+                mat4.copy(outlineModelMatrix, outline.modelMatrix);
+
+                const mvp = mat4.create();
+                mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
+
+                const outlineConfig = weapon.getOutlineConfig();
+                device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvp as Float32Array);
+
+                passEncoder.setPipeline(outlineConfig.outlinePipeline);
+                passEncoder.setBindGroup(0, outlineConfig.outlineBindGroup);
+                passEncoder.setVertexBuffer(0, outline.vertex);
+                passEncoder.setIndexBuffer(outline.index, 'uint16');
+                passEncoder.drawIndexed(outline.indexCount);
+            }
+        }
+    }
 }
 
 //Color Parser
@@ -626,12 +649,16 @@ async function renderEnv(deltaTime: number): Promise<void> {
 }
 
 //Weapons
-async function renderWeapons(deltaTime: number): Promise<void> {
+async function renderWeapons(
+    deltaTime: number,
+    canvas: HTMLCanvasElement,
+    format: GPUTextureFormat
+): Promise<void> {
     if(!weaponRenderer) {
         weaponRenderer = new WeaponRenderer(device, objectManager, playerController);
         await weaponRenderer.render();
     }
-    await weaponRenderer.update(deltaTime);
+    await weaponRenderer.update(deltaTime, canvas, format);
 }
 
 async function lateRenderers(
@@ -707,7 +734,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             await objectManager.ready();
             await renderEnv(deltaTime);
         }
-        await renderWeapons(deltaTime);
+        await renderWeapons(deltaTime, canvas, format);
 
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');

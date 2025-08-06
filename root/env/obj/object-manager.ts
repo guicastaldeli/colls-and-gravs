@@ -12,6 +12,7 @@ import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { EnvBufferData } from "../env-buffers.js";
+import { WeaponBase } from "./weapons/weapon-base.js";
 
 export function Injectable() {
     return (target: any) => {
@@ -102,12 +103,7 @@ export class ObjectManager {
         //Weapons
             //Sword
             this.registerType('sword', Sword, async (instance, deps) => {
-                await(instance as Sword).init(
-                    deps.canvas, 
-                    deps.device, 
-                    deps.format,
-                    deps.playerController!
-                );
+                await(instance as Sword).init(deps.canvas, deps.format, deps.playerController!);
             });
         //
     }
@@ -142,6 +138,14 @@ export class ObjectManager {
             console.error(`Failed to create object ${type}:`, err);
             return 0;
         }
+    }
+
+    public async createWeapon<T extends WeaponBase>(type: Types): Promise<T> {
+        const id = await this.createObject(type);
+        const instance = this.objects.get(id);
+        if(!instance) throw new Error(`Failed to create weapon of type ${type}`);
+        if(!(instance instanceof WeaponBase)) throw new Error(`Obj ${type} isnt a weapon`);
+        return instance as unknown as T; 
     }
 
     private generateId(type: Types): number {

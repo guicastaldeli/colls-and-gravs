@@ -1,5 +1,6 @@
 import { mat3, mat4, vec3, quat } from "../../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable, ObjectManager } from "../../object-manager.js";
+import { WeaponBase } from "../weapon-base.js";
 import { EnvBufferData } from "../../../env-buffers.js";
 import { Loader } from "../../../../loader.js";
 import { ShaderLoader } from "../../../../shader-loader.js";
@@ -8,23 +9,23 @@ import { OutlineConfig } from "../../outline-config.js";
 import { PlayerController } from "../../../../player/player-controller.js";
 
 @Injectable()
-export class Sword {
-    private device: GPUDevice;
-    private loader: Loader;
-    private shaderLoader: ShaderLoader;
+export class Sword extends WeaponBase {
+    protected device: GPUDevice;
+    protected loader: Loader;
+    protected shaderLoader: ShaderLoader;
 
     private isLoaded: boolean = false;
     private loadingPromise: Promise<void>;
 
-    private modelMatrix: mat4;
-    private normalMatrix: mat3 = mat3.create();
+    protected modelMatrix: mat4;
+    protected normalMatrix: mat3 = mat3.create();
     private model: any;
     private texture!: GPUTexture;
 
     //Raycaster
     private raycaster: Raycaster;
-    private outline: OutlineConfig;
-    private isTargeted: boolean = false;
+    protected outline: OutlineConfig;
+    public isTargeted: boolean = false;
 
     private pos = {
         x: 5.0,
@@ -39,6 +40,7 @@ export class Sword {
     }
 
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
+        super(device, loader, shaderLoader);
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
@@ -146,20 +148,18 @@ export class Sword {
         }
     }
 
-    public async update(deltaTime: number, playerController?: PlayerController): Promise<void> {
-        if(!playerController) throw new Error('err');
-        this.updateTarget(playerController);
+    public async update(deltaTime: number): Promise<void> {
+        
     }
 
     public async init(
         canvas: HTMLCanvasElement,
-        device: GPUDevice, 
         format: GPUTextureFormat,
         playerController: PlayerController
     ): Promise<void> {
         try {
             await this.loadingPromise;
-            await this.renderOutline(canvas, device, format);
+            await this.renderOutline(canvas, this.device, format);
             await this.updateTarget(playerController);
         } catch(err) {
             console.log(err);

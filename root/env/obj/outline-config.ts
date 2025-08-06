@@ -21,6 +21,8 @@ export class OutlineConfig {
         device: GPUDevice,
         format: GPUTextureFormat
     ): Promise<void> {
+        if(this.outlinePipeline) return;
+        
         const [vertexShader, fragShader] = await Promise.all([
             this.shaderLoader.loader('./env/obj/.shaders/vertex.wgsl'),
             this.shaderLoader.loader('./env/obj/.shaders/frag.wgsl'),

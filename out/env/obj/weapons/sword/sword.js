@@ -9,11 +9,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { mat3, mat4, vec3, quat } from "../../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable } from "../../object-manager.js";
+import { WeaponBase } from "../weapon-base.js";
 import { Loader } from "../../../../loader.js";
 import { ShaderLoader } from "../../../../shader-loader.js";
 import { Raycaster } from "../../raycaster.js";
 import { OutlineConfig } from "../../outline-config.js";
-let Sword = class Sword {
+let Sword = class Sword extends WeaponBase {
     device;
     loader;
     shaderLoader;
@@ -38,6 +39,7 @@ let Sword = class Sword {
         d: 1.0
     };
     constructor(device, loader, shaderLoader) {
+        super(device, loader, shaderLoader);
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
@@ -127,15 +129,12 @@ let Sword = class Sword {
             throw err;
         }
     }
-    async update(deltaTime, playerController) {
-        if (!playerController)
-            throw new Error('err');
-        this.updateTarget(playerController);
+    async update(deltaTime) {
     }
-    async init(canvas, device, format, playerController) {
+    async init(canvas, format, playerController) {
         try {
             await this.loadingPromise;
-            await this.renderOutline(canvas, device, format);
+            await this.renderOutline(canvas, this.device, format);
             await this.updateTarget(playerController);
         }
         catch (err) {

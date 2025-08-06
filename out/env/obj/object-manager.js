@@ -19,6 +19,7 @@ import { Ground } from "../ground.js";
 import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
+import { WeaponBase } from "./weapons/weapon-base.js";
 export function Injectable() {
     return (target) => {
         Reflect.defineMetadata('injectable', true, target);
@@ -71,7 +72,7 @@ let ObjectManager = class ObjectManager {
         //Weapons
         //Sword
         this.registerType('sword', Sword, async (instance, deps) => {
-            await instance.init(deps.canvas, deps.device, deps.format, deps.playerController);
+            await instance.init(deps.canvas, deps.format, deps.playerController);
         });
         //
     }
@@ -104,6 +105,15 @@ let ObjectManager = class ObjectManager {
             console.error(`Failed to create object ${type}:`, err);
             return 0;
         }
+    }
+    async createWeapon(type) {
+        const id = await this.createObject(type);
+        const instance = this.objects.get(id);
+        if (!instance)
+            throw new Error(`Failed to create weapon of type ${type}`);
+        if (!(instance instanceof WeaponBase))
+            throw new Error(`Obj ${type} isnt a weapon`);
+        return instance;
     }
     generateId(type) {
         const idNumber = this.id++;
