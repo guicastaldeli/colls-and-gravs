@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { mat3, mat4 } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
 import { Loader } from "../../../loader.js";
 import { ShaderLoader } from "../../../shader-loader.js";
 import { Injectable } from "../object-manager.js";
@@ -19,6 +19,7 @@ let WeaponBase = class WeaponBase {
     outline;
     modelMatrix;
     normalMatrix = mat3.create();
+    position = vec3.create();
     isTargeted = false;
     _isEquipped = false;
     _visible = true;
@@ -52,6 +53,19 @@ let WeaponBase = class WeaponBase {
     }
     disableTarget() {
         this.isTargeted = false;
+    }
+    setPosition(position) {
+        vec3.copy(this.position, position);
+        this.updateModelMatrix();
+    }
+    updateModelMatrix() {
+        mat4.fromTranslation(this.modelMatrix, this.position);
+        mat3.fromMat4(this.normalMatrix, this.modelMatrix);
+        mat3.invert(this.normalMatrix, this.normalMatrix);
+        mat3.transpose(this.normalMatrix, this.normalMatrix);
+    }
+    getPosition(out) {
+        return out ? vec3.copy(out, this.position) : this.position;
     }
 };
 WeaponBase = __decorate([

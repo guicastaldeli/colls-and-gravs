@@ -101,7 +101,6 @@ export class PlayerController implements ICollidable {
             this.clearForces();
             return;
         }
-        
         if(this.tick.isPaused) {
             this.clearForces();
             return;
@@ -333,7 +332,6 @@ export class PlayerController implements ICollidable {
 
         this.yaw += xOffset;
         this.pitch += yOffset;
-
         if(this.pitch > 89.0) this.pitch = 89.0;
         if(this.pitch < -89.0) this.pitch = -89.0;
         this.updateVectors();
@@ -343,7 +341,6 @@ export class PlayerController implements ICollidable {
         if(this._isMoving) {
             const speedFactor = Math.min(1, vec3.length(this._Rigidbody.velocity) / this._movSpeed);
             this._movementTimer += deltaTime * this._bobSpeed * speedFactor;
-
             const bobAmount = Math.sin(this._movementTimer);
             this._bobOffset[1] = bobAmount * this._bobIntensity * speedFactor;
             this._bobOffset[0] = Math.sin(this._movementTimer * 0.5) * this._bobIntensity * 0.5 * speedFactor;
@@ -375,7 +372,6 @@ export class PlayerController implements ICollidable {
         const isGrounded = this._Rigidbody.isColliding && Math.abs(this._Rigidbody.velocity[1]) < 0.1;
         const wasGrounded = this._Rigidbody.isColliding;
         const activeMove = velocity > 0.1;
-
         if(!wasGrounded && isGrounded) this._isJumping = false;
 
         if(activeMove && isGrounded) {

@@ -50,6 +50,8 @@ export class Sword extends WeaponBase {
         this.outline = new OutlineConfig(device, shaderLoader);
 
         this.loadingPromise = this.loadAssets().then(() => this.setSword());
+        const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
+        this.setPosition(initialPos);
     }
 
     private async loadAssets(): Promise<boolean> {
@@ -73,11 +75,9 @@ export class Sword extends WeaponBase {
 
     private async setSword(): Promise<void> {
         try {
-            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
             const scale = vec3.fromValues(this.size.w, this.size.h, this.size.d);
-
             mat4.identity(this.modelMatrix);
-            mat4.translate(this.modelMatrix, this.modelMatrix, position);
+            mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
             mat4.scale(this.modelMatrix, this.modelMatrix, scale);
         } catch(err) {
             console.error(err);
@@ -91,8 +91,6 @@ export class Sword extends WeaponBase {
         const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
-
-        const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         const orientation = quat.create();
 
         const halfSize = vec3.scale(vec3.create(), [
@@ -104,7 +102,7 @@ export class Sword extends WeaponBase {
         const intersection = this.raycaster.getRayOBBIntersect(
             rayOrigin,
             rayDirection,
-            position,
+            this.position,
             halfSize,
             orientation
         );

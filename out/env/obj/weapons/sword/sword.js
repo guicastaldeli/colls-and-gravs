@@ -47,6 +47,8 @@ let Sword = class Sword extends WeaponBase {
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
         this.loadingPromise = this.loadAssets().then(() => this.setSword());
+        const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
+        this.setPosition(initialPos);
     }
     async loadAssets() {
         try {
@@ -69,10 +71,9 @@ let Sword = class Sword extends WeaponBase {
     }
     async setSword() {
         try {
-            const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
             const scale = vec3.fromValues(this.size.w, this.size.h, this.size.d);
             mat4.identity(this.modelMatrix);
-            mat4.translate(this.modelMatrix, this.modelMatrix, position);
+            mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
             mat4.scale(this.modelMatrix, this.modelMatrix, scale);
         }
         catch (err) {
@@ -86,14 +87,13 @@ let Sword = class Sword extends WeaponBase {
         const maxDistance = 5.0;
         const rayOrigin = playerController.getCameraPosition();
         const rayDirection = playerController.getForward();
-        const position = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         const orientation = quat.create();
         const halfSize = vec3.scale(vec3.create(), [
             this.size.w,
             this.size.h,
             this.size.d
         ], 0.5);
-        const intersection = this.raycaster.getRayOBBIntersect(rayOrigin, rayDirection, position, halfSize, orientation);
+        const intersection = this.raycaster.getRayOBBIntersect(rayOrigin, rayDirection, this.position, halfSize, orientation);
         this.isTargeted =
             intersection.hit &&
                 intersection.distance !== undefined &&

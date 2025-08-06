@@ -655,7 +655,7 @@ async function renderWeapons(
     format: GPUTextureFormat
 ): Promise<void> {
     if(!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController);
+        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController, envRenderer.ground);
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);

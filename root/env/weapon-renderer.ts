@@ -1,16 +1,21 @@
+import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 import { EnvBufferData } from "./env-buffers.js";
 import { ObjectManager } from "./obj/object-manager.js";
 import { PlayerController } from "../player/player-controller.js";
 import { WeaponBase } from "./obj/weapons/weapon-base.js";
 import { ArmController } from "../player/arm-controller.js";
+import { Ground } from "./ground.js";
 
 export class WeaponRenderer {
     private device: GPUDevice;
     private objectManager: ObjectManager;
     private playerController: PlayerController;
-    private weapons: Map<string, WeaponBase> = new Map();
-    private currentWeapon: WeaponBase | null = null;
     private armController: ArmController;
+    private ground: Ground;
+
+    private weapons: Map<string, WeaponBase> = new Map();
+    private pickedWeapons: Set<string> = new Set();
+    private currentWeapon: WeaponBase | null = null;
 
     private messageContainer!: HTMLDivElement;
     private hasTarget: Boolean = false;
@@ -19,17 +24,22 @@ export class WeaponRenderer {
         device: GPUDevice, 
         objectManager: ObjectManager, 
         playerController: PlayerController,
-        armController: ArmController
+        armController: ArmController,
+        ground: Ground
     ) {
         this.device = device;
         this.objectManager = objectManager;
         this.playerController = playerController;
         this.armController = armController;
+        this.ground = ground;
         document.addEventListener('keydown', (e) => this.checkPickup(e));
+        document.addEventListener('keydown', (e) => this.checkUnequip(e));
     }
 
     //Message
         private showMessage(type: string): void {
+            const wType = type.toUpperCase();
+            
             if(this.messageContainer) {
                 this.messageContainer.style.display = 'block';
                 return;
@@ -37,7 +47,7 @@ export class WeaponRenderer {
 
             const message = `
                 <div id="weapon-message-container">
-                    <p id="weapon-message">PRESS 'E' TO PICK ${type}</p>
+                    <p id="weapon-message">PRESS 'E' TO PICK ${wType}</p>
                 </div>
             `;
 
@@ -73,10 +83,32 @@ export class WeaponRenderer {
                 weapon.setVisible(false);
                 this.currentWeapon = weapon;
                 await this.armController.setWeapon(weapon);
+                this.pickedWeapons.add(name);
                 this.hideMessage();
                 break;
             }
         }
+    }
+
+    public async handleUnequip(): Promise<void> {
+        if(!this.currentWeapon) return;
+
+        const playerPos = this.playerController.getPosition();
+        const playerForward = this.playerController.getForward();
+
+        const dropDistance = 3.0;
+        const dropPosition = vec3.create();
+        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, dropDistance);
+
+        const groundLevel = this.ground.getGroundLevelY(dropPosition[0], dropPosition[2]);
+        dropPosition[1] = groundLevel + 1.0;
+
+        this.currentWeapon.setPosition(dropPosition);
+        this.currentWeapon.setVisible(true);
+        this.currentWeapon.unequip();
+
+        await this.armController.setWeapon(null);
+        this.currentWeapon = null;
     }
 
     public async addWeapon(name: string, weapon: WeaponBase): Promise<void> {
@@ -114,8 +146,8 @@ export class WeaponRenderer {
 
             if(weapon.isTargeted) {
                 await weapon.initOutline(canvas, format);
-                this.showMessage(name);
                 this.hasTarget = true;
+                if(!this.pickedWeapons.has(name)) this.showMessage(name);
             }
 
             if(!this.hasTarget) this.hideMessage();
@@ -125,6 +157,11 @@ export class WeaponRenderer {
     public async checkPickup(input: KeyboardEvent): Promise<void> {
         const eKey = input.key.toLowerCase();
         if(eKey === 'e') await this.handlePickup();
+    }
+
+    public async checkUnequip(input: KeyboardEvent): Promise<void> {
+        const eKey = input.key.toLowerCase();
+        if(eKey === 'q') await this.handleUnequip();
     }
 
     public async render(): Promise<void> {

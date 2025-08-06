@@ -554,7 +554,7 @@ async function renderEnv(deltaTime) {
 //Weapons
 async function renderWeapons(deltaTime, canvas, format) {
     if (!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController);
+        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController, envRenderer.ground);
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);

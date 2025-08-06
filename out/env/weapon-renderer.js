@@ -1,28 +1,34 @@
+import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class WeaponRenderer {
     device;
     objectManager;
     playerController;
-    weapons = new Map();
-    currentWeapon = null;
     armController;
+    ground;
+    weapons = new Map();
+    pickedWeapons = new Set();
+    currentWeapon = null;
     messageContainer;
     hasTarget = false;
-    constructor(device, objectManager, playerController, armController) {
+    constructor(device, objectManager, playerController, armController, ground) {
         this.device = device;
         this.objectManager = objectManager;
         this.playerController = playerController;
         this.armController = armController;
+        this.ground = ground;
         document.addEventListener('keydown', (e) => this.checkPickup(e));
+        document.addEventListener('keydown', (e) => this.checkUnequip(e));
     }
     //Message
     showMessage(type) {
+        const wType = type.toUpperCase();
         if (this.messageContainer) {
             this.messageContainer.style.display = 'block';
             return;
         }
         const message = `
                 <div id="weapon-message-container">
-                    <p id="weapon-message">PRESS 'E' TO PICK ${type}</p>
+                    <p id="weapon-message">PRESS 'E' TO PICK ${wType}</p>
                 </div>
             `;
         const parser = new DOMParser();
@@ -55,10 +61,27 @@ export class WeaponRenderer {
                 weapon.setVisible(false);
                 this.currentWeapon = weapon;
                 await this.armController.setWeapon(weapon);
+                this.pickedWeapons.add(name);
                 this.hideMessage();
                 break;
             }
         }
+    }
+    async handleUnequip() {
+        if (!this.currentWeapon)
+            return;
+        const playerPos = this.playerController.getPosition();
+        const playerForward = this.playerController.getForward();
+        const dropDistance = 3.0;
+        const dropPosition = vec3.create();
+        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, dropDistance);
+        const groundLevel = this.ground.getGroundLevelY(dropPosition[0], dropPosition[2]);
+        dropPosition[1] = groundLevel + 1.0;
+        this.currentWeapon.setPosition(dropPosition);
+        this.currentWeapon.setVisible(true);
+        this.currentWeapon.unequip();
+        await this.armController.setWeapon(null);
+        this.currentWeapon = null;
     }
     async addWeapon(name, weapon) {
         this.weapons.set(name, weapon);
@@ -86,8 +109,9 @@ export class WeaponRenderer {
             await weapon.updateTarget(this.playerController);
             if (weapon.isTargeted) {
                 await weapon.initOutline(canvas, format);
-                this.showMessage(name);
                 this.hasTarget = true;
+                if (!this.pickedWeapons.has(name))
+                    this.showMessage(name);
             }
             if (!this.hasTarget)
                 this.hideMessage();
@@ -97,6 +121,11 @@ export class WeaponRenderer {
         const eKey = input.key.toLowerCase();
         if (eKey === 'e')
             await this.handlePickup();
+    }
+    async checkUnequip(input) {
+        const eKey = input.key.toLowerCase();
+        if (eKey === 'q')
+            await this.handleUnequip();
     }
     async render() {
         const sword = await this.objectManager.createWeapon('sword');
