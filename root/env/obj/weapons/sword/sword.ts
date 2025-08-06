@@ -217,14 +217,6 @@ export class Sword extends WeaponBase {
                 this.weaponRotation
             );
         }
-
-        public triggerAnimation(): void {
-        if(!this.isAnimating) {
-            this.animationStarted = false; // Reset flag to allow new animation
-            this.startAnimation();
-        }
-    }
-
     //
 
     public async update(deltaTime: number): Promise<void> {

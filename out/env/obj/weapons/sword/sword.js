@@ -191,12 +191,6 @@ let Sword = class Sword extends WeaponBase {
         }
         this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), this.weaponRotation);
     }
-    triggerAnimation() {
-        if (!this.isAnimating) {
-            this.animationStarted = false; // Reset flag to allow new animation
-            this.startAnimation();
-        }
-    }
     //
     async update(deltaTime) {
         if (this.isAnimating)
