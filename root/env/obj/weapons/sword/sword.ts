@@ -39,6 +39,12 @@ export class Sword extends WeaponBase {
         d: 1.0
     }
 
+    public cameraPos = {
+        x: 0.65,
+        y: -0.3,
+        z: 0.5
+    }
+
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         super(device, loader, shaderLoader);
         this.device = device;
@@ -52,6 +58,10 @@ export class Sword extends WeaponBase {
         this.loadingPromise = this.loadAssets().then(() => this.setSword());
         const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         this.setPosition(initialPos);
+        this.setWeaponPos(
+            vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
+            quat.fromEuler(quat.create(), 0, 0, 0)
+        );
     }
 
     private async loadAssets(): Promise<boolean> {

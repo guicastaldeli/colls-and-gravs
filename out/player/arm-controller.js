@@ -1,4 +1,4 @@
-import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
 export class ArmController {
     tick;
     lightningManager;
@@ -62,13 +62,16 @@ export class ArmController {
                     texture: buffers.texture,
                     sampler: buffers.sampler
                 };
+                this.setRestPosition(weapon.getWeaponPos()[0], weapon.getWeaponPos()[1], weapon.getWeaponPos()[2]);
             }
             else {
                 this.currentModel = this.armModel;
+                this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
             }
         }
         else {
             this.currentModel = this.armModel;
+            this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
         }
     }
     async loadAssets() {
@@ -100,12 +103,14 @@ export class ArmController {
         vec3.lerp(this._delayedRight, this._delayedRight, cameraRight, this._delayFactor);
         vec3.lerp(this._delayedUp, this._delayedUp, cameraUp, this._delayFactor);
         const modelMatrix = mat4.create();
+        const weaponOffset = this.currentWeapon?.getWeaponPos() || this._restPosition;
+        const weaponRotation = this.currentWeapon?.getWeaponRotation || quat.create();
         const baseOffset = vec3.create();
-        vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, this.pos.z);
+        vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, weaponOffset[2]);
         const rightOffset = vec3.create();
-        vec3.scale(rightOffset, this._delayedRight, this.pos.x);
+        vec3.scale(rightOffset, this._delayedRight, weaponOffset[0]);
         const upOffset = vec3.create();
-        vec3.scale(upOffset, this._delayedUp, this.pos.y);
+        vec3.scale(upOffset, this._delayedUp, weaponOffset[1]);
         const finalPosition = vec3.create();
         vec3.add(finalPosition, cameraPosition, baseOffset);
         vec3.add(finalPosition, finalPosition, rightOffset);
