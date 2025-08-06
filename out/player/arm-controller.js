@@ -25,6 +25,8 @@ export class ArmController {
     _delayedRight = vec3.create();
     _delayedUp = vec3.create();
     _delayFactor = 0.1;
+    //Weapon
+    currentWeapon = null;
     //Size
     size = {
         w: 1.0,
@@ -40,11 +42,34 @@ export class ArmController {
     //Model
     loader;
     armModel;
+    currentModel;
+    //
     constructor(tick, loader, lightningManager) {
         this.tick = tick;
         this.loader = loader;
         this.lightningManager = lightningManager;
         this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
+    }
+    async setWeapon(weapon) {
+        if (weapon) {
+            const buffers = await weapon.getBuffers();
+            if (buffers) {
+                this.currentModel = {
+                    vertex: buffers.vertex,
+                    color: buffers.color,
+                    index: buffers.index,
+                    indexCount: buffers.indexCount,
+                    texture: buffers.texture,
+                    sampler: buffers.sampler
+                };
+            }
+            else {
+                this.currentModel = this.armModel;
+            }
+        }
+        else {
+            this.currentModel = this.armModel;
+        }
     }
     async loadAssets() {
         try {
@@ -143,21 +168,23 @@ export class ArmController {
         }
     }
     async render(device, pipeline, passEncoder, camera, projectionMatrix) {
+        if (!this.currentModel)
+            this.currentModel = this.armModel;
         const viewMatrix = camera.getViewMatrixWithoutProjection();
         const cameraPosition = camera.playerController.getCameraPosition();
         const cameraForward = camera.playerController.getForward();
         const cameraRight = camera.playerController.getRight();
         const cameraUp = camera.playerController.getUp();
-        const armMatrix = this.getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp);
+        const modelMatrix = this.getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp);
         const viewProjection = mat4.create();
         mat4.multiply(viewProjection, projectionMatrix, viewMatrix);
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjection, armMatrix);
+        mat4.multiply(mvp, viewProjection, modelMatrix);
         const normalMatrix = mat3.create();
-        mat3.normalFromMat4(normalMatrix, armMatrix);
+        mat3.normalFromMat4(normalMatrix, modelMatrix);
         const uniformData = new Float32Array(16 + 16 + 12 + 4);
         uniformData.set(mvp, 0);
-        uniformData.set(armMatrix, 16);
+        uniformData.set(modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
         uniformData.set([0.0, 0.0, 0.0], 44);
         device.queue.writeBuffer(this.armUniformBuffer, 0, uniformData);
@@ -166,11 +193,11 @@ export class ArmController {
             entries: [
                 {
                     binding: 0,
-                    resource: this.armModel.sampler
+                    resource: this.currentModel.sampler
                 },
                 {
                     binding: 1,
-                    resource: this.armModel.texture.createView()
+                    resource: this.currentModel.texture.createView()
                 }
             ]
         });
@@ -199,10 +226,10 @@ export class ArmController {
         passEncoder.setBindGroup(0, this.armBindGroup, [0]);
         passEncoder.setBindGroup(1, armTextureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
-        passEncoder.setVertexBuffer(0, this.armModel.vertex);
-        passEncoder.setVertexBuffer(1, this.armModel.color);
-        passEncoder.setIndexBuffer(this.armModel.index, 'uint16');
-        passEncoder.drawIndexed(this.armModel.indexCount);
+        passEncoder.setVertexBuffer(0, this.currentModel.vertex);
+        passEncoder.setVertexBuffer(1, this.currentModel.color);
+        passEncoder.setIndexBuffer(this.currentModel.index, 'uint16');
+        passEncoder.drawIndexed(this.currentModel.indexCount);
     }
     update(deltaTime, isMoving, velocityMagnitude, isJumping, camera) {
         const scaledDeltaTime = deltaTime * this.tick.getTimeScale();

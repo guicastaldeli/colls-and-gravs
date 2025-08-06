@@ -22,7 +22,7 @@ export class Camera {
     private _fov: number = 110;
 
     public playerController: PlayerController;
-    private armController: ArmController;
+    public armController: ArmController;
     private hud!: Hud;
     
     constructor(

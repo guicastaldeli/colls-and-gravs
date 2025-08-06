@@ -5,6 +5,7 @@ import { Loader } from "../loader.js";
 import { drawBuffers, initBuffers } from "./arm-buffer.js";
 import { Camera } from "../camera.js";
 import { LightningManager } from "../lightning-manager.js";
+import { WeaponBase } from "../env/obj/weapons/weapon-base.js";
 
 export class ArmController {
     private tick: Tick;
@@ -39,6 +40,9 @@ export class ArmController {
     private _delayedUp: vec3 = vec3.create();
     private _delayFactor: number = 0.1;
 
+    //Weapon
+    private currentWeapon: WeaponBase | null = null;
+
     //Size
     private size = {
         w: 1.0,
@@ -54,16 +58,26 @@ export class ArmController {
     }
 
     //Model
-    private loader: Loader;
+        private loader: Loader;
 
-    public armModel!: {
-        vertex: GPUBuffer,
-        color: GPUBuffer,
-        index: GPUBuffer,
-        indexCount: number,
-        texture: GPUTexture,
-        sampler: GPUSampler
-    }
+        public armModel!: {
+            vertex: GPUBuffer,
+            color: GPUBuffer,
+            index: GPUBuffer,
+            indexCount: number,
+            texture: GPUTexture,
+            sampler: GPUSampler
+        }
+
+        private currentModel!: {
+            vertex: GPUBuffer,
+            color: GPUBuffer,
+            index: GPUBuffer,
+            indexCount: number,
+            texture: GPUTexture,
+            sampler: GPUSampler
+        }
+    //
 
     constructor(
         tick: Tick,
@@ -74,6 +88,26 @@ export class ArmController {
         this.loader = loader;
         this.lightningManager = lightningManager;
         this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
+    }
+
+    public async setWeapon(weapon: WeaponBase | null): Promise<void> {
+        if(weapon) {
+            const buffers = await weapon.getBuffers();
+            if(buffers) {
+                this.currentModel = {
+                    vertex: buffers.vertex,
+                    color: buffers.color,
+                    index: buffers.index,
+                    indexCount: buffers.indexCount,
+                    texture: buffers.texture,
+                    sampler: buffers.sampler
+                }
+            } else {
+                this.currentModel = this.armModel;
+            }
+        } else {
+            this.currentModel = this.armModel;
+        }
     }
 
     public async loadAssets(): Promise<void> {
@@ -216,25 +250,27 @@ export class ArmController {
         camera: Camera,
         projectionMatrix: mat4
     ): Promise<void> {
+        if(!this.currentModel) this.currentModel = this.armModel;
+
         const viewMatrix = camera.getViewMatrixWithoutProjection();
         const cameraPosition = camera.playerController.getCameraPosition();
         const cameraForward = camera.playerController.getForward();
         const cameraRight = camera.playerController.getRight();
         const cameraUp = camera.playerController.getUp();
-        const armMatrix = this.getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp);
+        const modelMatrix = this.getModelMatrix(cameraPosition, cameraForward, cameraRight, cameraUp);
 
         const viewProjection = mat4.create();
         mat4.multiply(viewProjection, projectionMatrix, viewMatrix);
 
         const mvp = mat4.create();
-        mat4.multiply(mvp, viewProjection, armMatrix);
+        mat4.multiply(mvp, viewProjection, modelMatrix);
 
         const normalMatrix = mat3.create();
-        mat3.normalFromMat4(normalMatrix, armMatrix);
+        mat3.normalFromMat4(normalMatrix, modelMatrix);
 
         const uniformData = new Float32Array(16 + 16 + 12 + 4);
         uniformData.set(mvp, 0);
-        uniformData.set(armMatrix, 16);
+        uniformData.set(modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
         uniformData.set([0.0, 0.0, 0.0], 44);
         device.queue.writeBuffer(this.armUniformBuffer, 0, uniformData);
@@ -244,11 +280,11 @@ export class ArmController {
             entries: [
                 {
                     binding: 0,
-                    resource: this.armModel.sampler
+                    resource: this.currentModel.sampler
                 },
                 {
                     binding: 1,
-                    resource: this.armModel.texture.createView()
+                    resource: this.currentModel.texture.createView()
                 }
             ]
         });
@@ -279,10 +315,10 @@ export class ArmController {
         passEncoder.setBindGroup(0, this.armBindGroup, [0]);
         passEncoder.setBindGroup(1, armTextureBindGroup);
         passEncoder.setBindGroup(2, lightningBindGroup);
-        passEncoder.setVertexBuffer(0, this.armModel.vertex);
-        passEncoder.setVertexBuffer(1, this.armModel.color);
-        passEncoder.setIndexBuffer(this.armModel.index, 'uint16');
-        passEncoder.drawIndexed(this.armModel.indexCount);
+        passEncoder.setVertexBuffer(0, this.currentModel.vertex);
+        passEncoder.setVertexBuffer(1, this.currentModel.color);
+        passEncoder.setIndexBuffer(this.currentModel.index, 'uint16');
+        passEncoder.drawIndexed(this.currentModel.indexCount);
     }
 
     public update(

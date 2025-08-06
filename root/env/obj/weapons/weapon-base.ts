@@ -15,6 +15,7 @@ export abstract class WeaponBase {
     protected modelMatrix: mat4;
     protected normalMatrix: mat3 = mat3.create();
     public isTargeted: boolean = false;
+    protected _isEquipped: boolean = false;
     
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
@@ -31,6 +32,18 @@ export abstract class WeaponBase {
 
     public getOutlineConfig(): OutlineConfig {
         return this.outline;
+    }
+
+    public equip(): void {
+        this._isEquipped = true;
+    }
+
+    public unequip(): void {
+        this._isEquipped = false;
+    }
+
+    public isEquipped(): boolean {
+        return this._isEquipped;
     }
 
     public abstract getBuffers(): Promise<EnvBufferData | undefined>;

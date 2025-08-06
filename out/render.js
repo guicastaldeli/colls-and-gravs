@@ -554,7 +554,7 @@ async function renderEnv(deltaTime) {
 //Weapons
 async function renderWeapons(deltaTime, canvas, format) {
     if (!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, objectManager, playerController);
+        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController);
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);
@@ -625,7 +625,6 @@ export async function render(canvas) {
             await objectManager.ready();
             await renderEnv(deltaTime);
         }
-        await renderWeapons(deltaTime, canvas, format);
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
         if (randomBlocks)
@@ -653,6 +652,8 @@ export async function render(canvas) {
         hud.update(canvas.width, canvas.height);
         camera.getProjectionMatrix(canvas.width / canvas.height);
         //
+        //Weapons
+        await renderWeapons(deltaTime, canvas, format);
         //Commands
         if (!commandManager) {
             commandManager = new CommandManager(canvas, input, playerController, randomBlocks);

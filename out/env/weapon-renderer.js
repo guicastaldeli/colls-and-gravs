@@ -3,12 +3,16 @@ export class WeaponRenderer {
     objectManager;
     playerController;
     weapons = new Map();
+    currentWeapon = null;
+    armController;
     messageContainer;
     hasTarget = false;
-    constructor(device, objectManager, playerController) {
+    constructor(device, objectManager, playerController, armController) {
         this.device = device;
         this.objectManager = objectManager;
         this.playerController = playerController;
+        this.armController = armController;
+        document.addEventListener('keydown', (e) => this.checkPickup(e));
     }
     //Message
     showMessage(type) {
@@ -36,6 +40,23 @@ export class WeaponRenderer {
         this.messageContainer.style.display = 'none';
     }
     //
+    async handlePickup() {
+        if (!this.hasTarget)
+            return;
+        for (const [name, weapon] of this.weapons) {
+            if (weapon.isTargeted) {
+                if (this.currentWeapon) {
+                    this.currentWeapon.unequip();
+                    await this.armController.setWeapon(null);
+                }
+                weapon.equip();
+                this.currentWeapon = weapon;
+                await this.armController.setWeapon(weapon);
+                this.hideMessage();
+                break;
+            }
+        }
+    }
     async addWeapon(name, weapon) {
         this.weapons.set(name, weapon);
     }
@@ -54,6 +75,8 @@ export class WeaponRenderer {
     async update(deltaTime, canvas, format) {
         this.hasTarget = false;
         for (const [name, weapon] of this.weapons) {
+            if (weapon.isEquipped())
+                continue;
             await weapon.update(deltaTime);
             await weapon.updateTarget(this.playerController);
             if (weapon.isTargeted) {
@@ -64,6 +87,11 @@ export class WeaponRenderer {
             if (!this.hasTarget)
                 this.hideMessage();
         }
+    }
+    async checkPickup(input) {
+        const eKey = input.key.toLowerCase();
+        if (eKey === 'e')
+            await this.handlePickup();
     }
     async render() {
         const sword = await this.objectManager.createWeapon('sword');

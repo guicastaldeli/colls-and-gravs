@@ -655,7 +655,7 @@ async function renderWeapons(
     format: GPUTextureFormat
 ): Promise<void> {
     if(!weaponRenderer) {
-        weaponRenderer = new WeaponRenderer(device, objectManager, playerController);
+        weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController);
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);
@@ -734,7 +734,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             await objectManager.ready();
             await renderEnv(deltaTime);
         }
-        await renderWeapons(deltaTime, canvas, format);
 
         //Random Blocks
         const randomBlocks = await objectManager.getObject('randomBlocks');
@@ -766,6 +765,9 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
             hud.update(canvas.width, canvas.height);
             camera.getProjectionMatrix(canvas.width / canvas.height);
         //
+
+        //Weapons
+        await renderWeapons(deltaTime, canvas, format);
 
         //Commands
         if(!commandManager) {

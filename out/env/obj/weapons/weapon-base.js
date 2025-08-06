@@ -20,6 +20,7 @@ let WeaponBase = class WeaponBase {
     modelMatrix;
     normalMatrix = mat3.create();
     isTargeted = false;
+    _isEquipped = false;
     constructor(device, loader, shaderLoader) {
         this.device = device;
         this.loader = loader;
@@ -32,6 +33,15 @@ let WeaponBase = class WeaponBase {
     }
     getOutlineConfig() {
         return this.outline;
+    }
+    equip() {
+        this._isEquipped = true;
+    }
+    unequip() {
+        this._isEquipped = false;
+    }
+    isEquipped() {
+        return this._isEquipped;
     }
 };
 WeaponBase = __decorate([
