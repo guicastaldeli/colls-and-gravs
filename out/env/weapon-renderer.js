@@ -47,9 +47,12 @@ export class WeaponRenderer {
             if (weapon.isTargeted) {
                 if (this.currentWeapon) {
                     this.currentWeapon.unequip();
+                    this.currentWeapon.setVisible(true);
                     await this.armController.setWeapon(null);
                 }
+                weapon.disableTarget();
                 weapon.equip();
+                weapon.setVisible(false);
                 this.currentWeapon = weapon;
                 await this.armController.setWeapon(weapon);
                 this.hideMessage();
@@ -63,9 +66,11 @@ export class WeaponRenderer {
     async get() {
         const renderers = [];
         for (const [name, weapon] of this.weapons) {
-            const buffers = await weapon.getBuffers();
-            if (buffers)
-                renderers.push(buffers);
+            if (weapon.isVisible()) {
+                const buffers = await weapon.getBuffers();
+                if (buffers)
+                    renderers.push(buffers);
+            }
         }
         return renderers;
     }

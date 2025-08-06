@@ -16,6 +16,7 @@ export abstract class WeaponBase {
     protected normalMatrix: mat3 = mat3.create();
     public isTargeted: boolean = false;
     protected _isEquipped: boolean = false;
+    protected _visible: boolean = true;
     
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
@@ -44,6 +45,18 @@ export abstract class WeaponBase {
 
     public isEquipped(): boolean {
         return this._isEquipped;
+    }
+
+    public isVisible(): boolean {
+        return this._visible;
+    }
+
+    public setVisible(visible: boolean): void {
+        this._visible = visible;
+    }
+
+    public disableTarget(): void {
+        this.isTargeted = false;
     }
 
     public abstract getBuffers(): Promise<EnvBufferData | undefined>;

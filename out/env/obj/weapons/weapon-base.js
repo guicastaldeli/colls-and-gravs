@@ -21,6 +21,7 @@ let WeaponBase = class WeaponBase {
     normalMatrix = mat3.create();
     isTargeted = false;
     _isEquipped = false;
+    _visible = true;
     constructor(device, loader, shaderLoader) {
         this.device = device;
         this.loader = loader;
@@ -42,6 +43,15 @@ let WeaponBase = class WeaponBase {
     }
     isEquipped() {
         return this._isEquipped;
+    }
+    isVisible() {
+        return this._visible;
+    }
+    setVisible(visible) {
+        this._visible = visible;
+    }
+    disableTarget() {
+        this.isTargeted = false;
     }
 };
 WeaponBase = __decorate([
