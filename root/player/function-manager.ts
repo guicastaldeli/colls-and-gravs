@@ -48,7 +48,9 @@ export class FunctionManager {
         
         if(!this.blockClickHandler) {
             this.blockClickHandler = async (e: MouseEvent) => {
+                if(this.weaponRenderer.hasEquipped()) return;
                 const eKey = e.button;
+
                 for(const b of this.blockInstances) {
                     if(eKey === 0) await b.addBlocksRaycaster(this.playerController, this.hud);
                     if(eKey === 2) b.removeBlockRaycaster(this.playerController);
@@ -61,7 +63,7 @@ export class FunctionManager {
     /* Weapons */
     private async setWeaponsInteractions(): Promise<void> {
         if(this.tick.isPaused) return;
-        if(!this.weaponRenderer.hasEquipped()) {
+        if(this.weaponRenderer.hasEquipped()) {
             if(this.weaponClickHandler) {
                 document.removeEventListener('click', this.weaponClickHandler);
                 this.weaponClickHandler = null;
