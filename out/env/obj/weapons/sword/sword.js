@@ -41,7 +41,7 @@ let Sword = class Sword extends WeaponBase {
     cameraPos = {
         x: 0.65,
         y: -0.3,
-        z: 0.5
+        z: 0.8
     };
     constructor(device, loader, shaderLoader) {
         super(device, loader, shaderLoader);
