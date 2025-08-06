@@ -4,6 +4,7 @@ import { ShaderLoader } from "../../shader-loader.js";
 export class OutlineConfig {
     private device: GPUDevice;
 
+    public enabled: boolean = true;
     public outlinePipeline!: GPURenderPipeline;
     public outlineBindGroup!: GPUBindGroup;
     public outlineUniformBuffer!: GPUBuffer;
@@ -21,6 +22,7 @@ export class OutlineConfig {
         device: GPUDevice,
         format: GPUTextureFormat
     ): Promise<void> {
+        if(!this.enabled) return;
         if(this.outlinePipeline) return;
         
         const [vertexShader, fragShader] = await Promise.all([

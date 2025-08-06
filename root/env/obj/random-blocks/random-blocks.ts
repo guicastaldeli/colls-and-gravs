@@ -401,7 +401,7 @@ export class RandomBlocks implements ICollidable {
         );
     }
 
-    private removeBlockRaycaster(playerController: PlayerController): void {
+    public removeBlockRaycaster(playerController: PlayerController): void {
         this.updateTargetBlock(playerController);
         if(this.targetBlockIndex >= 0) {
             const blockToRemove = this.targetBlockIndex;
@@ -409,10 +409,7 @@ export class RandomBlocks implements ICollidable {
         }
     }
 
-    private async addBlocksRaycaster(
-        playerController: PlayerController, 
-        hud: Hud
-    ): Promise<void> {
+    public async addBlocksRaycaster(playerController: PlayerController, hud: Hud): Promise<void> {
         if(this.isPlacingBlock) return;
         this.isPlacingBlock = true;
 
@@ -492,7 +489,12 @@ export class RandomBlocks implements ICollidable {
     }
 
     private async renderOutline(canvas: HTMLCanvasElement, device: GPUDevice, format: GPUTextureFormat): Promise<void> {
+        if(!this.outline.enabled) return;
         this.outline.initOutline(canvas, device, format);
+    }
+
+    public setOutlineEnabled(enabled: boolean): void {
+        this.outline.enabled = enabled;
     }
 
     public getBlocks(): BlockData[] {
@@ -626,7 +628,7 @@ export class RandomBlocks implements ICollidable {
     }
 
     public async init(canvas?: HTMLCanvasElement, playerController?: PlayerController, format?: GPUTextureFormat): Promise<void> {
-        if(!canvas || !playerController || !format) throw new Error('err')
+        if(!canvas || !playerController || !format) throw new Error('err');
         await this.renderOutline(canvas, this.device, format);
         this.updateTargetBlock(playerController);
     }

@@ -1,5 +1,6 @@
 export class OutlineConfig {
     device;
+    enabled = true;
     outlinePipeline;
     outlineBindGroup;
     outlineUniformBuffer;
@@ -10,6 +11,8 @@ export class OutlineConfig {
         this.shaderLoader = shaderLoader;
     }
     async initOutline(canvas, device, format) {
+        if (!this.enabled)
+            return;
         if (this.outlinePipeline)
             return;
         const [vertexShader, fragShader] = await Promise.all([

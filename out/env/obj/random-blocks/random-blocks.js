@@ -372,7 +372,12 @@ let RandomBlocks = class RandomBlocks {
         await this.resourceManager.cleanup();
     }
     async renderOutline(canvas, device, format) {
+        if (!this.outline.enabled)
+            return;
         this.outline.initOutline(canvas, device, format);
+    }
+    setOutlineEnabled(enabled) {
+        this.outline.enabled = enabled;
     }
     getBlocks() {
         return this.blocks;

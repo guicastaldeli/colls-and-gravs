@@ -41,7 +41,9 @@ export class FunctionManager {
             return;
         }
 
+        const hasWeapon = this.weaponRenderer.hasEquipped();
         this.blockInstances.forEach((b: any) => {
+            b.setOutlineEnabled(!hasWeapon);
             if(b.eventListenersInitialized) return;
             b.eventListenersInitialized = true;
         });
