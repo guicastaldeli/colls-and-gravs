@@ -27,23 +27,46 @@ export class Sword extends WeaponBase {
     protected outline: OutlineConfig;
     public isTargeted: boolean = false;
 
-    private pos = {
-        x: 5.0,
-        y: 1.0,
-        z: 5.0
-    }
+    //Animation
+    private isAnimating: boolean = false;
+    private animationProgress: number = 0.0;
+    private animationDuration: number = 0.2;
+    private updRotation: quat = quat.create();
+    private originalRotation: quat = quat.create();
+    private animationStarted: boolean = false;
 
-    private size = {
-        w: 1.0,
-        h: 1.0,
-        d: 1.0
-    }
+    //Props
+        private pos = {
+            x: 5.0,
+            y: 1.0,
+            z: 5.0
+        }
 
-    public cameraPos = {
-        x: 0.65,
-        y: -0.3,
-        z: 0.8
-    }
+        private size = {
+            w: 1.0,
+            h: 1.0,
+            d: 1.0
+        }
+
+        public cameraPos = {
+            x: 0.65,
+            y: -0.3,
+            z: 0.8
+        }
+
+        public rotation = {
+            upd: {
+                x: 60,
+                y: 0,
+                z: 0
+            },
+            og: {
+                x: 0,
+                y: 0,
+                z: 0
+            }
+        }
+    //
 
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         super(device, loader, shaderLoader);
@@ -54,13 +77,16 @@ export class Sword extends WeaponBase {
         this.modelMatrix = mat4.create();
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
-
         this.loadingPromise = this.loadAssets().then(() => this.setSword());
+
         const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         this.setPosition(initialPos);
+        quat.fromEuler(this.originalRotation, this.rotation.og.x, this.rotation.og.y, this.rotation.og.z);
+        quat.fromEuler(this.updRotation, this.rotation.upd.x, this.rotation.upd.y, this.rotation.upd.z);
+        quat.copy(this.weaponRotation, this.originalRotation);
         this.setWeaponPos(
             vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
-            quat.fromEuler(quat.create(), 0, 0, 0)
+            this.originalRotation
         );
     }
 
@@ -156,8 +182,53 @@ export class Sword extends WeaponBase {
         }
     }
 
+    //Animation
+        private startAnimation(): void {
+            if(!this.animationStarted) {
+                this.animationStarted = true;
+                this.isAnimating = true;
+                this.animationProgress = 0.0;
+                quat.copy(this.originalRotation, this.weaponRotation);
+                console.log('tst')
+            }
+        }
+
+        public async updateAnimation(deltaTime: number): Promise<void> {
+            if(!this.animationStarted) this.startAnimation();
+            if(!this.isAnimating) return;
+            
+            this.animationProgress += deltaTime / this.animationDuration;
+            if(this.animationProgress >= 1) {
+                this.animationProgress = 1;
+                this.isAnimating = false;
+                this.animationStarted = false;
+            }
+
+            let t: number;
+            if(this.animationProgress <= 0.5) {
+                t = this.animationProgress * 2;
+                quat.slerp(this.weaponRotation, this.originalRotation, this.updRotation, t);
+            } else {
+                t = (this.animationProgress - 0.5) * 2;
+                quat.slerp(this.weaponRotation, this.updRotation, this.originalRotation, t);
+            }
+            this.setWeaponPos(
+                vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
+                this.weaponRotation
+            );
+        }
+
+        public triggerAnimation(): void {
+        if(!this.isAnimating) {
+            this.animationStarted = false; // Reset flag to allow new animation
+            this.startAnimation();
+        }
+    }
+
+    //
+
     public async update(deltaTime: number): Promise<void> {
-        
+        if(this.isAnimating) await this.updateAnimation(deltaTime);
     }
 
     public async init(

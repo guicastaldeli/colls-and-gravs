@@ -837,7 +837,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
 
         //Function Manager
         if(!functionManager) functionManager = new FunctionManager(tick, objectManager, weaponRenderer, playerController, hud);
-        functionManager.init();
+        functionManager.init(deltaTime);
         
         passEncoder.end();    
         device.queue.submit([ commandEncoder.finish() ]);

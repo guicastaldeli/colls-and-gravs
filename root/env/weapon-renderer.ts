@@ -172,6 +172,11 @@ export class WeaponRenderer {
         return this.currentWeapon;
     }
 
+    public async getCurrentWeaponAnimation(deltaTime: number): Promise<void> {
+        if(!this.currentWeapon) return;
+        await this.currentWeapon.updateAnimation(deltaTime);
+    }
+
     public async render(): Promise<void> {
         const sword = await this.objectManager.createWeapon<WeaponBase>('sword');
         await this.addWeapon('sword', sword);

@@ -1,8 +1,8 @@
-import { Tick } from "../tick";
-import { ObjectManager } from "../env/obj/object-manager";
-import { WeaponRenderer } from "../env/weapon-renderer";
-import { PlayerController } from "./player-controller";
-import { Hud } from "../hud";
+import { Tick } from "../tick.js";
+import { ObjectManager } from "../env/obj/object-manager.js";
+import { WeaponRenderer } from "../env/weapon-renderer.js";
+import { PlayerController } from "./player-controller.js";
+import { Hud } from "../hud.js";
 
 export class FunctionManager {
     private tick: Tick;
@@ -61,7 +61,7 @@ export class FunctionManager {
     }
 
     /* Weapons */
-    private async setWeaponsInteractions(): Promise<void> {
+    private async setWeaponsInteractions(deltaTime: number): Promise<void> {
         if(this.tick.isPaused) return;
         if(this.weaponRenderer.hasEquipped()) {
             if(this.weaponClickHandler) {
@@ -76,17 +76,17 @@ export class FunctionManager {
                 const eKey = e.button;
                 const currentWeapon = this.weaponRenderer.getCurrentWeapon();
                 if(!currentWeapon) return;
-                if(eKey === 0) console.log('tst')
+                if(eKey === 0) this.weaponRenderer.getCurrentWeaponAnimation(deltaTime);
             }
             document.addEventListener('click', this.weaponClickHandler);
         }
     }
 
-    public async init(): Promise<void> {
+    public async init(deltaTime: number): Promise<void> {
         if(this.isInit) return;
         this.blockInstances = this.objectManager.getAllOfType('randomBlocks') as any[];
         this.setBlocks();
-        this.setWeaponsInteractions();
+        this.setWeaponsInteractions(deltaTime);
         this.isInit = true;
     }
 }

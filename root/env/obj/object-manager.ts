@@ -86,13 +86,7 @@ export class ObjectManager {
     private async registeredTypes(): Promise<void> {
         //Random Blocks
         this.registerType('randomBlocks', RandomBlocks, async (instance, deps) => {
-            if(!deps.hud) return;
-            await(instance as RandomBlocks).init(
-                deps.canvas,
-                deps.playerController!,
-                deps.format,
-                deps.hud
-            );
+            await(instance as RandomBlocks).init(deps.canvas, deps.playerController!, deps.format);
         });
 
         //Lamp

@@ -28,6 +28,14 @@ let Sword = class Sword extends WeaponBase {
     raycaster;
     outline;
     isTargeted = false;
+    //Animation
+    isAnimating = false;
+    animationProgress = 0.0;
+    animationDuration = 0.2;
+    updRotation = quat.create();
+    originalRotation = quat.create();
+    animationStarted = false;
+    //Props
     pos = {
         x: 5.0,
         y: 1.0,
@@ -43,6 +51,19 @@ let Sword = class Sword extends WeaponBase {
         y: -0.3,
         z: 0.8
     };
+    rotation = {
+        upd: {
+            x: 60,
+            y: 0,
+            z: 0
+        },
+        og: {
+            x: 0,
+            y: 0,
+            z: 0
+        }
+    };
+    //
     constructor(device, loader, shaderLoader) {
         super(device, loader, shaderLoader);
         this.device = device;
@@ -54,7 +75,10 @@ let Sword = class Sword extends WeaponBase {
         this.loadingPromise = this.loadAssets().then(() => this.setSword());
         const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         this.setPosition(initialPos);
-        this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), quat.fromEuler(quat.create(), 0, 0, 0));
+        quat.fromEuler(this.originalRotation, this.rotation.og.x, this.rotation.og.y, this.rotation.og.z);
+        quat.fromEuler(this.updRotation, this.rotation.upd.x, this.rotation.upd.y, this.rotation.upd.z);
+        quat.copy(this.weaponRotation, this.originalRotation);
+        this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), this.originalRotation);
     }
     async loadAssets() {
         try {
@@ -135,7 +159,48 @@ let Sword = class Sword extends WeaponBase {
             throw err;
         }
     }
+    //Animation
+    startAnimation() {
+        if (!this.animationStarted) {
+            this.animationStarted = true;
+            this.isAnimating = true;
+            this.animationProgress = 0.0;
+            quat.copy(this.originalRotation, this.weaponRotation);
+            console.log('tst');
+        }
+    }
+    async updateAnimation(deltaTime) {
+        if (!this.animationStarted)
+            this.startAnimation();
+        if (!this.isAnimating)
+            return;
+        this.animationProgress += deltaTime / this.animationDuration;
+        if (this.animationProgress >= 1) {
+            this.animationProgress = 1;
+            this.isAnimating = false;
+            this.animationStarted = false;
+        }
+        let t;
+        if (this.animationProgress <= 0.5) {
+            t = this.animationProgress * 2;
+            quat.slerp(this.weaponRotation, this.originalRotation, this.updRotation, t);
+        }
+        else {
+            t = (this.animationProgress - 0.5) * 2;
+            quat.slerp(this.weaponRotation, this.updRotation, this.originalRotation, t);
+        }
+        this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), this.weaponRotation);
+    }
+    triggerAnimation() {
+        if (!this.isAnimating) {
+            this.animationStarted = false; // Reset flag to allow new animation
+            this.startAnimation();
+        }
+    }
+    //
     async update(deltaTime) {
+        if (this.isAnimating)
+            await this.updateAnimation(deltaTime);
     }
     async init(canvas, format, playerController) {
         try {

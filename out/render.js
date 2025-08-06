@@ -716,7 +716,7 @@ export async function render(canvas) {
         //Function Manager
         if (!functionManager)
             functionManager = new FunctionManager(tick, objectManager, weaponRenderer, playerController, hud);
-        functionManager.init();
+        functionManager.init(deltaTime);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

@@ -47,7 +47,7 @@ export class FunctionManager {
         }
     }
     /* Weapons */
-    async setWeaponsInteractions() {
+    async setWeaponsInteractions(deltaTime) {
         if (this.tick.isPaused)
             return;
         if (this.weaponRenderer.hasEquipped()) {
@@ -64,17 +64,17 @@ export class FunctionManager {
                 if (!currentWeapon)
                     return;
                 if (eKey === 0)
-                    console.log('tst');
+                    this.weaponRenderer.getCurrentWeaponAnimation(deltaTime);
             };
             document.addEventListener('click', this.weaponClickHandler);
         }
     }
-    async init() {
+    async init(deltaTime) {
         if (this.isInit)
             return;
         this.blockInstances = this.objectManager.getAllOfType('randomBlocks');
         this.setBlocks();
-        this.setWeaponsInteractions();
+        this.setWeaponsInteractions(deltaTime);
         this.isInit = true;
     }
 }

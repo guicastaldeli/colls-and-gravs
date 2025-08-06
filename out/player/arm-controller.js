@@ -104,7 +104,7 @@ export class ArmController {
         vec3.lerp(this._delayedUp, this._delayedUp, cameraUp, this._delayFactor);
         const modelMatrix = mat4.create();
         const weaponOffset = this.currentWeapon?.getWeaponPos() || this._restPosition;
-        const weaponRotation = this.currentWeapon?.getWeaponRotation || quat.create();
+        const weaponRotation = this.currentWeapon?.getWeaponRotation() || quat.create();
         const baseOffset = vec3.create();
         vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, weaponOffset[2]);
         const rightOffset = vec3.create();
@@ -116,20 +116,18 @@ export class ArmController {
         vec3.add(finalPosition, finalPosition, rightOffset);
         vec3.add(finalPosition, finalPosition, upOffset);
         mat4.translate(modelMatrix, modelMatrix, finalPosition);
-        const rotationMatrix = mat4.create();
+        const weaponRotationMatrix = mat4.create();
+        mat4.fromQuat(weaponRotationMatrix, weaponRotation);
         const cameraMatrix = mat4.create();
-        mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0.01, -0.1, -0.1, 1.0);
-        const baseRotation = mat4.create();
-        mat4.rotateX(baseRotation, baseRotation, this._currentRotationX * Math.PI / 180);
-        mat4.rotateY(baseRotation, baseRotation, 90 * -Math.PI / 180);
-        mat4.rotateZ(baseRotation, baseRotation, 0);
-        mat4.multiply(rotationMatrix, cameraMatrix, baseRotation);
-        mat4.multiply(modelMatrix, modelMatrix, rotationMatrix);
-        mat4.scale(modelMatrix, modelMatrix, [
-            this.size.w,
-            this.size.h,
-            this.size.d
-        ]);
+        mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0, 0, 0, 1.0);
+        const armRotation = mat4.create();
+        mat4.rotateX(armRotation, armRotation, this._currentRotationX * Math.PI / 180);
+        mat4.rotateY(armRotation, armRotation, 90 * -Math.PI / 180);
+        const combinedRotation = mat4.create();
+        mat4.multiply(combinedRotation, cameraMatrix, weaponRotationMatrix);
+        mat4.multiply(combinedRotation, combinedRotation, armRotation);
+        mat4.multiply(modelMatrix, modelMatrix, combinedRotation);
+        mat4.scale(modelMatrix, modelMatrix, [this.size.w, this.size.h, this.size.d]);
         return modelMatrix;
     }
     updateBobPosition(deltaTime) {

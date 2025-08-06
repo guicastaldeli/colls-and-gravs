@@ -133,6 +133,11 @@ export class WeaponRenderer {
     getCurrentWeapon() {
         return this.currentWeapon;
     }
+    async getCurrentWeaponAnimation(deltaTime) {
+        if (!this.currentWeapon)
+            return;
+        await this.currentWeapon.updateAnimation(deltaTime);
+    }
     async render() {
         const sword = await this.objectManager.createWeapon('sword');
         await this.addWeapon('sword', sword);
