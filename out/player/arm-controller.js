@@ -1,4 +1,4 @@
-import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../node_modules/gl-matrix/esm/index.js";
 export class ArmController {
     tick;
     lightningManager;
@@ -104,7 +104,6 @@ export class ArmController {
         vec3.lerp(this._delayedUp, this._delayedUp, cameraUp, this._delayFactor);
         const modelMatrix = mat4.create();
         const weaponOffset = this.currentWeapon?.getWeaponPos() || this._restPosition;
-        const weaponRotation = this.currentWeapon?.getWeaponRotation() || quat.create();
         const baseOffset = vec3.create();
         vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, weaponOffset[2]);
         const rightOffset = vec3.create();
@@ -117,7 +116,8 @@ export class ArmController {
         vec3.add(finalPosition, finalPosition, upOffset);
         mat4.translate(modelMatrix, modelMatrix, finalPosition);
         const weaponRotationMatrix = mat4.create();
-        mat4.fromQuat(weaponRotationMatrix, weaponRotation);
+        const rotationAngle = this.currentWeapon?.getWeaponRotation() || 0;
+        mat4.rotateX(weaponRotationMatrix, weaponRotationMatrix, rotationAngle);
         const cameraMatrix = mat4.create();
         mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0, 0, 0, 1.0);
         const armRotation = mat4.create();

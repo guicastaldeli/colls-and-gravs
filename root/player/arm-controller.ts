@@ -160,7 +160,6 @@ export class ArmController {
 
         const modelMatrix = mat4.create();
         const weaponOffset = this.currentWeapon?.getWeaponPos() || this._restPosition;
-        const weaponRotation = this.currentWeapon?.getWeaponRotation() || quat.create();
 
         const baseOffset = vec3.create();
         vec3.scaleAndAdd(baseOffset, baseOffset, this._delayedForward, weaponOffset[2]);
@@ -178,7 +177,8 @@ export class ArmController {
         mat4.translate(modelMatrix, modelMatrix, finalPosition);
 
         const weaponRotationMatrix = mat4.create();
-        mat4.fromQuat(weaponRotationMatrix, weaponRotation);
+        const rotationAngle = this.currentWeapon?.getWeaponRotation() || 0;
+        mat4.rotateX(weaponRotationMatrix, weaponRotationMatrix, rotationAngle);
 
         const cameraMatrix = mat4.create();
         mat4.set(

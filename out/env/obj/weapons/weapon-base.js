@@ -24,7 +24,10 @@ let WeaponBase = class WeaponBase {
     _isEquipped = false;
     _visible = true;
     weaponOffset = vec3.create();
-    weaponRotation = quat.create();
+    weaponRotation = 0;
+    currentRotationX = 0;
+    targetRotationX = 60;
+    originalRotationX = 0;
     constructor(device, loader, shaderLoader) {
         this.device = device;
         this.loader = loader;
@@ -39,7 +42,7 @@ let WeaponBase = class WeaponBase {
     setWeaponPos(offset, rotation) {
         vec3.copy(this.weaponOffset, offset);
         if (rotation)
-            quat.copy(this.weaponRotation, rotation);
+            this.currentRotationX = rotation;
     }
     getWeaponPos() {
         return this.weaponOffset;

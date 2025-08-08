@@ -21,7 +21,10 @@ export abstract class WeaponBase {
     protected _visible: boolean = true;
 
     protected weaponOffset: vec3 = vec3.create();
-    protected weaponRotation: quat = quat.create();
+    protected weaponRotation: number = 0;
+    protected currentRotationX: number = 0;
+    protected targetRotationX: number = 60;
+    protected originalRotationX: number = 0;
     
     constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
         this.device = device;
@@ -37,9 +40,9 @@ export abstract class WeaponBase {
         quat.identity(this.weaponRotation);
     }
 
-    public setWeaponPos(offset: vec3, rotation?: quat): void {
+    public setWeaponPos(offset: vec3, rotation?: number): void {
         vec3.copy(this.weaponOffset, offset);
-        if(rotation) quat.copy(this.weaponRotation, rotation);
+        if(rotation) this.currentRotationX = rotation;
     }
 
     public getWeaponPos(): vec3 {

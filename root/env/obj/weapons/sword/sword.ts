@@ -31,9 +31,6 @@ export class Sword extends WeaponBase {
     private isAnimating: boolean = false;
     private animationProgress: number = 0.0;
     private animationDuration: number = 0.2;
-    private updRotation: quat = quat.create();
-    private originalRotation: quat = quat.create();
-    private animationStarted: boolean = false;
 
     //Props
         private pos = {
@@ -81,12 +78,12 @@ export class Sword extends WeaponBase {
 
         const initialPos = vec3.fromValues(this.pos.x, this.pos.y, this.pos.z);
         this.setPosition(initialPos);
-        quat.fromEuler(this.originalRotation, this.rotation.og.x, this.rotation.og.y, this.rotation.og.z);
-        quat.fromEuler(this.updRotation, this.rotation.upd.x, this.rotation.upd.y, this.rotation.upd.z);
-        quat.copy(this.weaponRotation, this.originalRotation);
+        this.originalRotationX = this.rotation.og.x;
+        this.currentRotationX = this.originalRotationX;
+        this.targetRotationX = this.rotation.upd.x;
         this.setWeaponPos(
             vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
-            this.originalRotation
+            this.currentRotationX
         );
     }
 
@@ -184,37 +181,20 @@ export class Sword extends WeaponBase {
 
     //Animation
         private startAnimation(): void {
-            if(!this.animationStarted) {
-                this.animationStarted = true;
+            if(!this.isAnimating) {
                 this.isAnimating = true;
                 this.animationProgress = 0.0;
-                quat.copy(this.originalRotation, this.weaponRotation);
-                console.log('tst')
+                this.originalRotationX = this.currentRotationX;
             }
         }
 
         public async updateAnimation(deltaTime: number): Promise<void> {
-            if(!this.animationStarted) this.startAnimation();
-            if(!this.isAnimating) return;
-            
-            this.animationProgress += deltaTime / this.animationDuration;
-            if(this.animationProgress >= 1) {
-                this.animationProgress = 1;
-                this.isAnimating = false;
-                this.animationStarted = false;
-            }
-
-            let t: number;
-            if(this.animationProgress <= 0.5) {
-                t = this.animationProgress * 2;
-                quat.slerp(this.weaponRotation, this.originalRotation, this.updRotation, t);
-            } else {
-                t = (this.animationProgress - 0.5) * 2;
-                quat.slerp(this.weaponRotation, this.updRotation, this.originalRotation, t);
-            }
+            console.log('tst')
+            this.startAnimation();
+            this.currentRotationX = -60
             this.setWeaponPos(
                 vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
-                this.weaponRotation
+                this.currentRotationX
             );
         }
     //
