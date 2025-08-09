@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { mat3, mat4, vec3, quat } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { mat3, mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
 import { Loader } from "../../../loader.js";
 import { ShaderLoader } from "../../../shader-loader.js";
 import { Injectable } from "../object-manager.js";
@@ -23,8 +23,8 @@ let WeaponBase = class WeaponBase {
     isTargeted = false;
     _isEquipped = false;
     _visible = true;
+    isAnimating = false;
     weaponOffset = vec3.create();
-    weaponRotation = 0;
     currentRotationX = 0;
     targetRotationX = 60;
     originalRotationX = 0;
@@ -32,12 +32,11 @@ let WeaponBase = class WeaponBase {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-        this.outline = new OutlineConfig(device, shaderLoader);
         this.modelMatrix = mat4.create();
+        this.outline = new OutlineConfig(device, shaderLoader);
     }
     setDefaultWeaponPos() {
         vec3.set(this.weaponOffset, 0.5 - 0.9, 0.5);
-        quat.identity(this.weaponRotation);
     }
     setWeaponPos(offset, rotation) {
         vec3.copy(this.weaponOffset, offset);
@@ -48,7 +47,7 @@ let WeaponBase = class WeaponBase {
         return this.weaponOffset;
     }
     getWeaponRotation() {
-        return this.weaponRotation;
+        return this.currentRotationX;
     }
     async initOutline(canvas, format) {
         await this.outline.initOutline(canvas, this.device, format);

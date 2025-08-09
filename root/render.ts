@@ -19,6 +19,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
+import { TempWeaponBase } from "./env/obj/weapons/temp-weapon-base.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -65,6 +66,7 @@ let skybox: Skybox;
 let functionManager: FunctionManager;
 let lightningManager: LightningManager;
 let objectManager: ObjectManager;
+let tempWeaponBase: TempWeaponBase;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -558,7 +560,9 @@ async function setBuffers(
                 const mvp = mat4.create();
                 mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
     
-                device.queue.writeBuffer(rb.outline.outlineUniformBuffer, 0, mvp as Float32Array);
+                const mvpArray = new Float32Array(mvp);
+                device.queue.writeBuffer(rb.outline.outlineUniformBuffer, 0, mvpArray);
+
                 passEncoder.setPipeline(rb.outline.outlinePipeline);
                 passEncoder.setBindGroup(0, rb.outline.outlineBindGroup);
                 passEncoder.setVertexBuffer(0, outline.vertex);
@@ -580,7 +584,8 @@ async function setBuffers(
                 mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
 
                 const outlineConfig = weapon.getOutlineConfig();
-                device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvp as Float32Array);
+                const mvpArray = new Float32Array(mvp);
+                device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvpArray);
 
                 passEncoder.setPipeline(outlineConfig.outlinePipeline);
                 passEncoder.setBindGroup(0, outlineConfig.outlineBindGroup);
@@ -748,9 +753,20 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         }
 
         //Camera
+            tempWeaponBase = new TempWeaponBase(device, loader, shaderLoader);
+
             //Main
             if(!camera) {
-                camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
+                camera = new Camera(
+                    tick, 
+                    device, 
+                    pipeline, 
+                    loader, 
+                    shaderLoader, 
+                    playerController, 
+                    lightningManager,
+                    tempWeaponBase
+                );
                 await camera.initArm(device, pipeline);
                 await camera.initHud(canvas.width, canvas.height);
                 camera.update(deltaTime);

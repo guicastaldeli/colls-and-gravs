@@ -51,6 +51,7 @@ export class ArmController {
         this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
     }
     async setWeapon(weapon) {
+        this.currentWeapon = weapon;
         if (weapon) {
             const buffers = await weapon.getBuffers();
             if (buffers) {
@@ -115,14 +116,14 @@ export class ArmController {
         vec3.add(finalPosition, finalPosition, rightOffset);
         vec3.add(finalPosition, finalPosition, upOffset);
         mat4.translate(modelMatrix, modelMatrix, finalPosition);
-        const weaponRotationMatrix = mat4.create();
-        const rotationAngle = this.currentWeapon?.getWeaponRotation() || 0;
-        mat4.rotateX(weaponRotationMatrix, weaponRotationMatrix, rotationAngle);
         const cameraMatrix = mat4.create();
         mat4.set(cameraMatrix, cameraRight[0], cameraRight[1], cameraRight[2], 0, cameraUp[0], cameraUp[1], cameraUp[2], 0, -cameraForward[0], -cameraForward[1], -cameraForward[2], 0, 0, 0, 0, 1.0);
         const armRotation = mat4.create();
         mat4.rotateX(armRotation, armRotation, this._currentRotationX * Math.PI / 180);
         mat4.rotateY(armRotation, armRotation, 90 * -Math.PI / 180);
+        const weaponRotationMatrix = mat4.create();
+        const rotationAngle = this.currentWeapon?.getWeaponRotation() || 0;
+        mat4.rotateX(weaponRotationMatrix, weaponRotationMatrix, rotationAngle);
         const combinedRotation = mat4.create();
         mat4.multiply(combinedRotation, cameraMatrix, weaponRotationMatrix);
         mat4.multiply(combinedRotation, combinedRotation, armRotation);

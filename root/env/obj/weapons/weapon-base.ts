@@ -20,8 +20,8 @@ export abstract class WeaponBase {
     protected _isEquipped: boolean = false;
     protected _visible: boolean = true;
 
+    public isAnimating: boolean = false;
     protected weaponOffset: vec3 = vec3.create();
-    protected weaponRotation: number = 0;
     protected currentRotationX: number = 0;
     protected targetRotationX: number = 60;
     protected originalRotationX: number = 0;
@@ -30,14 +30,12 @@ export abstract class WeaponBase {
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
-
-        this.outline = new OutlineConfig(device, shaderLoader);
         this.modelMatrix = mat4.create();
+        this.outline = new OutlineConfig(device, shaderLoader);
     }
 
     protected setDefaultWeaponPos(): void {
         vec3.set(this.weaponOffset, 0.5 -0.9, 0.5);
-        quat.identity(this.weaponRotation);
     }
 
     public setWeaponPos(offset: vec3, rotation?: number): void {
@@ -49,8 +47,8 @@ export abstract class WeaponBase {
         return this.weaponOffset;
     }
 
-    public getWeaponRotation(): quat {
-        return this.weaponRotation;
+    public getWeaponRotation(): number {
+        return this.currentRotationX;
     }
 
     public async initOutline(canvas: HTMLCanvasElement, format: GPUTextureFormat): Promise<void> {

@@ -14,7 +14,7 @@ export class Camera {
     playerController;
     armController;
     hud;
-    constructor(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager) {
+    constructor(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager, weaponBase) {
         this.tick = tick;
         this.device = device;
         this.pipeline = pipeline;
@@ -24,7 +24,7 @@ export class Camera {
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
         this.playerController = playerController;
-        this.armController = new ArmController(tick, loader, lightningManager);
+        this.armController = new ArmController(tick, loader, lightningManager, weaponBase);
     }
     getViewMatrix() {
         this.playerController = this.playerController;

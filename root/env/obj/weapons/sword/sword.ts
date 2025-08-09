@@ -28,7 +28,6 @@ export class Sword extends WeaponBase {
     public isTargeted: boolean = false;
 
     //Animation
-    private isAnimating: boolean = false;
     private animationProgress: number = 0.0;
     private animationDuration: number = 0.2;
 
@@ -189,9 +188,8 @@ export class Sword extends WeaponBase {
         }
 
         public async updateAnimation(deltaTime: number): Promise<void> {
-            console.log('tst')
             this.startAnimation();
-            this.currentRotationX = -60
+            this.currentRotationX = -this.targetRotationX;
             this.setWeaponPos(
                 vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
                 this.currentRotationX

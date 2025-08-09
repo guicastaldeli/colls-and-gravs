@@ -7,6 +7,7 @@ import { Hud } from "./hud.js";
 import { Loader } from "./loader.js";
 import { ShaderLoader } from "./shader-loader.js";
 import { LightningManager } from "./lightning-manager.js";
+import { WeaponBase } from "./env/obj/weapons/weapon-base.js";
 
 export class Camera {
     private tick: Tick;
@@ -32,7 +33,8 @@ export class Camera {
         loader: Loader,
         shaderLoader: ShaderLoader,
         playerController: PlayerController,
-        lightningManager: LightningManager
+        lightningManager: LightningManager,
+        weaponBase: WeaponBase
     ) {
         this.tick = tick;
         this.device = device;
@@ -45,7 +47,7 @@ export class Camera {
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
         this.playerController = playerController;
-        this.armController = new ArmController(tick, loader, lightningManager);
+        this.armController = new ArmController(tick, loader, lightningManager, weaponBase);
     }
 
     public getViewMatrix(): mat4 {

@@ -15,6 +15,7 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
+import { TempWeaponBase } from "./env/obj/weapons/temp-weapon-base.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -43,6 +44,7 @@ let skybox;
 let functionManager;
 let lightningManager;
 let objectManager;
+let tempWeaponBase;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function initShaders() {
@@ -474,7 +476,8 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 mat4.copy(outlineModelMatrix, outline.modelMatrix);
                 const mvp = mat4.create();
                 mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
-                device.queue.writeBuffer(rb.outline.outlineUniformBuffer, 0, mvp);
+                const mvpArray = new Float32Array(mvp);
+                device.queue.writeBuffer(rb.outline.outlineUniformBuffer, 0, mvpArray);
                 passEncoder.setPipeline(rb.outline.outlinePipeline);
                 passEncoder.setBindGroup(0, rb.outline.outlineBindGroup);
                 passEncoder.setVertexBuffer(0, outline.vertex);
@@ -493,7 +496,8 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 const mvp = mat4.create();
                 mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
                 const outlineConfig = weapon.getOutlineConfig();
-                device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvp);
+                const mvpArray = new Float32Array(mvp);
+                device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvpArray);
                 passEncoder.setPipeline(outlineConfig.outlinePipeline);
                 passEncoder.setBindGroup(0, outlineConfig.outlineBindGroup);
                 passEncoder.setVertexBuffer(0, outline.vertex);
@@ -637,9 +641,10 @@ export async function render(canvas) {
             playerController.setColliders(getColliders);
         }
         //Camera
+        tempWeaponBase = new TempWeaponBase(device, loader, shaderLoader);
         //Main
         if (!camera) {
-            camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
+            camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager, tempWeaponBase);
             await camera.initArm(device, pipeline);
             await camera.initHud(canvas.width, canvas.height);
             camera.update(deltaTime);
