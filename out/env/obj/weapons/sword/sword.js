@@ -166,6 +166,9 @@ let Sword = class Sword extends WeaponBase {
     async updateAnimation(deltaTime) {
         this.startAnimation();
         this.currentRotationX = -this.targetRotationX;
+        setTimeout(() => {
+            this.currentRotationX = 0;
+        }, 200);
         this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), this.currentRotationX);
     }
     //

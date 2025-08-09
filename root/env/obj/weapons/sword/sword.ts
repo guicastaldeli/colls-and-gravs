@@ -190,6 +190,9 @@ export class Sword extends WeaponBase {
         public async updateAnimation(deltaTime: number): Promise<void> {
             this.startAnimation();
             this.currentRotationX = -this.targetRotationX;
+            setTimeout(() => {
+                this.currentRotationX = 0
+            }, 200);
             this.setWeaponPos(
                 vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
                 this.currentRotationX
@@ -201,11 +204,7 @@ export class Sword extends WeaponBase {
         if(this.isAnimating) await this.updateAnimation(deltaTime);
     }
 
-    public async init(
-        canvas: HTMLCanvasElement,
-        format: GPUTextureFormat,
-        playerController: PlayerController
-    ): Promise<void> {
+    public async init(canvas: HTMLCanvasElement, format: GPUTextureFormat, playerController: PlayerController): Promise<void> {
         try {
             await this.loadingPromise;
             await this.renderOutline(canvas, this.device, format);
