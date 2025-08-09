@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
 import { Sword } from "./weapons/sword/sword.js";
+import { LaserGun } from "./weapons/laser-gun/laser-gun.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -20,8 +21,17 @@ export function Injectable() {
     }
 }
 
-export type List = RandomBlocks | Lamp | Sword;
-type Types = 'randomBlocks' | 'lamp' | 'sword';
+export type List = 
+RandomBlocks | 
+Lamp | 
+Sword |
+LaserGun;
+
+type Types = 
+'randomBlocks' | 
+'lamp' | 
+'sword' | 
+'lasergun';
 
 interface Dependencies {
     tick: Tick;
@@ -98,6 +108,11 @@ export class ObjectManager {
             //Sword
             this.registerType('sword', Sword, async (instance, deps) => {
                 await(instance as Sword).init(deps.canvas, deps.format, deps.playerController!);
+            });
+
+            //Laser Gun
+            this.registerType('lasergun', LaserGun, async (instance, deps) => {
+                await(instance as LaserGun).init(deps.canvas, deps.format, deps.playerController!);
             });
         //
     }

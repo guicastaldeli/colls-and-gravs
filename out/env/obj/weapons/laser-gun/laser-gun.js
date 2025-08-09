@@ -32,7 +32,7 @@ let LaserGun = class LaserGun extends WeaponBase {
     animationDuration = 200;
     //Props
     pos = {
-        x: 15.0,
+        x: 8.0,
         y: 1.0,
         z: 5.0
     };
@@ -43,7 +43,7 @@ let LaserGun = class LaserGun extends WeaponBase {
     };
     cameraPos = {
         x: 0.65,
-        y: -0.3,
+        y: -0.8,
         z: 0.8
     };
     rotation = {

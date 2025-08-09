@@ -12,6 +12,7 @@ import 'reflect-metadata';
 import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
 import { Sword } from "./weapons/sword/sword.js";
+import { LaserGun } from "./weapons/laser-gun/laser-gun.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -70,6 +71,10 @@ let ObjectManager = class ObjectManager {
         //Weapons
         //Sword
         this.registerType('sword', Sword, async (instance, deps) => {
+            await instance.init(deps.canvas, deps.format, deps.playerController);
+        });
+        //Laser Gun
+        this.registerType('lasergun', LaserGun, async (instance, deps) => {
             await instance.init(deps.canvas, deps.format, deps.playerController);
         });
         //

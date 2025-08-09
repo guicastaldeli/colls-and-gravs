@@ -178,7 +178,12 @@ export class WeaponRenderer {
     }
 
     public async render(): Promise<void> {
+        //Sword
         const sword = await this.objectManager.createWeapon<WeaponBase>('sword');
         await this.addWeapon('sword', sword);
+
+        //Laser Gun
+        const laserGun = await this.objectManager.createWeapon<WeaponBase>('lasergun');
+        await this.addWeapon('lasergun', laserGun);
     }
 }

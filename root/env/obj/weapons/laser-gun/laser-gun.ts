@@ -32,7 +32,7 @@ export class LaserGun extends WeaponBase {
 
     //Props
         private pos = {
-            x: 15.0,
+            x: 8.0,
             y: 1.0,
             z: 5.0
         }
@@ -45,7 +45,7 @@ export class LaserGun extends WeaponBase {
 
         public cameraPos = {
             x: 0.65,
-            y: -0.3,
+            y: -0.8,
             z: 0.8
         }
 

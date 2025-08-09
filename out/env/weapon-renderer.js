@@ -139,7 +139,11 @@ export class WeaponRenderer {
         await this.currentWeapon.updateAnimation(deltaTime);
     }
     async render() {
+        //Sword
         const sword = await this.objectManager.createWeapon('sword');
         await this.addWeapon('sword', sword);
+        //Laser Gun
+        const laserGun = await this.objectManager.createWeapon('lasergun');
+        await this.addWeapon('lasergun', laserGun);
     }
 }
