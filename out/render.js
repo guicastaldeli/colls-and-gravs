@@ -15,7 +15,6 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { TempWeaponBase } from "./env/obj/weapons/temp-weapon-base.js";
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
 import { DirectionalLight } from "./lightning/directional-light.js";
@@ -44,7 +43,6 @@ let skybox;
 let functionManager;
 let lightningManager;
 let objectManager;
-let tempWeaponBase;
 let wireframeMode = false;
 let wireframePipeline = null;
 async function initShaders() {
@@ -641,10 +639,9 @@ export async function render(canvas) {
             playerController.setColliders(getColliders);
         }
         //Camera
-        tempWeaponBase = new TempWeaponBase(device, loader, shaderLoader);
         //Main
         if (!camera) {
-            camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager, tempWeaponBase);
+            camera = new Camera(tick, device, pipeline, loader, shaderLoader, playerController, lightningManager);
             await camera.initArm(device, pipeline);
             await camera.initHud(canvas.width, canvas.height);
             camera.update(deltaTime);

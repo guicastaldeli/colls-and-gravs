@@ -19,7 +19,6 @@ import { GetColliders } from "./collision/get-colliders.js";
 import { FunctionManager } from "./player/function-manager.js";
 import { LightningManager } from "./lightning-manager.js";
 import { ObjectManager } from "./env/obj/object-manager.js";
-import { TempWeaponBase } from "./env/obj/weapons/temp-weapon-base.js";
 
 import { Skybox } from "./skybox/skybox.js";
 import { AmbientLight } from "./lightning/ambient-light.js";
@@ -66,7 +65,6 @@ let skybox: Skybox;
 let functionManager: FunctionManager;
 let lightningManager: LightningManager;
 let objectManager: ObjectManager;
-let tempWeaponBase: TempWeaponBase;
 
 let wireframeMode = false;
 let wireframePipeline: GPURenderPipeline | null = null;
@@ -753,8 +751,6 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
         }
 
         //Camera
-            tempWeaponBase = new TempWeaponBase(device, loader, shaderLoader);
-
             //Main
             if(!camera) {
                 camera = new Camera(
@@ -764,8 +760,7 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                     loader, 
                     shaderLoader, 
                     playerController, 
-                    lightningManager,
-                    tempWeaponBase
+                    lightningManager
                 );
                 await camera.initArm(device, pipeline);
                 await camera.initHud(canvas.width, canvas.height);
