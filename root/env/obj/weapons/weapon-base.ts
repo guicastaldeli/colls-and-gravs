@@ -99,6 +99,7 @@ export abstract class WeaponBase {
         return out ? vec3.copy(out, this.position) : this.position;
     }
 
+    public abstract getName(): string;
     public abstract update(deltaTime: number): Promise<void>;
     public abstract updateAnimation(deltaTime: number): Promise<void>;
     public abstract getBuffers(): Promise<EnvBufferData | undefined>;

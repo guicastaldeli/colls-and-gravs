@@ -6,6 +6,7 @@ export class WeaponRenderer {
     armController;
     ground;
     weapons = new Map();
+    weaponDropConfig = new Map();
     pickedWeapons = new Set();
     currentWeapon = null;
     messageContainer;
@@ -16,19 +17,31 @@ export class WeaponRenderer {
         this.playerController = playerController;
         this.armController = armController;
         this.ground = ground;
+        this.weaponDropConfig.set('sword', {
+            groundOffset: 1.0,
+            dropDistance: 3.0
+        });
+        this.weaponDropConfig.set('lasergun', {
+            groundOffset: 0.6,
+            dropDistance: 2.5
+        });
         document.addEventListener('keydown', (e) => this.checkPickup(e));
         document.addEventListener('keydown', (e) => this.checkUnequip(e));
     }
     //Message
     showMessage(type) {
         const wType = type.toUpperCase();
+        const content = `PRESS 'E' TO PICK ${wType}`;
         if (this.messageContainer) {
+            const messageElement = this.messageContainer.querySelector('#weapon-message');
+            if (messageElement)
+                messageElement.textContent = content;
             this.messageContainer.style.display = 'block';
             return;
         }
         const message = `
                 <div id="weapon-message-container">
-                    <p id="weapon-message">PRESS 'E' TO PICK ${wType}</p>
+                    <p id="weapon-message">${content}</p>
                 </div>
             `;
         const parser = new DOMParser();
@@ -70,13 +83,17 @@ export class WeaponRenderer {
     async handleUnequip() {
         if (!this.currentWeapon)
             return;
+        const weaponName = this.currentWeapon.getName();
+        const config = this.weaponDropConfig.get(weaponName) || {
+            groundOffset: 0.0,
+            dropDistance: 1.0
+        };
         const playerPos = this.playerController.getPosition();
         const playerForward = this.playerController.getForward();
-        const dropDistance = 3.0;
         const dropPosition = vec3.create();
-        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, dropDistance);
+        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, config.dropDistance);
         const groundLevel = this.ground.getGroundLevelY(dropPosition[0], dropPosition[2]);
-        dropPosition[1] = groundLevel + 1.0;
+        dropPosition[1] = groundLevel + config.groundOffset;
         this.currentWeapon.setPosition(dropPosition);
         this.currentWeapon.setVisible(true);
         this.currentWeapon.unequip();
@@ -102,7 +119,7 @@ export class WeaponRenderer {
     }
     async update(deltaTime, canvas, format) {
         this.hasTarget = false;
-        for (const [name, weapon] of this.weapons) {
+        for (const [_, weapon] of this.weapons) {
             if (weapon.isEquipped())
                 continue;
             await weapon.update(deltaTime);
@@ -110,6 +127,7 @@ export class WeaponRenderer {
             if (weapon.isTargeted) {
                 await weapon.initOutline(canvas, format);
                 this.hasTarget = true;
+                const name = weapon.getName();
                 if (!this.pickedWeapons.has(name))
                     this.showMessage(name);
             }
@@ -141,9 +159,9 @@ export class WeaponRenderer {
     async render() {
         //Sword
         const sword = await this.objectManager.createWeapon('sword');
-        await this.addWeapon('sword', sword);
+        await this.addWeapon(sword.getName(), sword);
         //Laser Gun
         const laserGun = await this.objectManager.createWeapon('lasergun');
-        await this.addWeapon('lasergun', laserGun);
+        await this.addWeapon(laserGun.getName(), laserGun);
     }
 }

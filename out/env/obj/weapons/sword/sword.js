@@ -170,6 +170,10 @@ let Sword = class Sword extends WeaponBase {
         this.setWeaponPos(vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z), this.currentRotationX);
     }
     //
+    //Name
+    getName() {
+        return 'sword';
+    }
     async update(deltaTime) {
         if (this.isAnimating)
             await this.updateAnimation(deltaTime);

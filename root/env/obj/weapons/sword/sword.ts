@@ -198,6 +198,11 @@ export class Sword extends WeaponBase {
         }
     //
 
+    //Name
+    public getName(): string { 
+        return 'sword'; 
+    }
+
     public async update(deltaTime: number): Promise<void> {
         if(this.isAnimating) await this.updateAnimation(deltaTime);
     }

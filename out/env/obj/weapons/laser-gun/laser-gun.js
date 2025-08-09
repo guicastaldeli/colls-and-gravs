@@ -33,7 +33,7 @@ let LaserGun = class LaserGun extends WeaponBase {
     //Props
     pos = {
         x: 8.0,
-        y: 1.0,
+        y: 0.6,
         z: 5.0
     };
     size = {
@@ -160,6 +160,10 @@ let LaserGun = class LaserGun extends WeaponBase {
     async updateAnimation(deltaTime) {
     }
     //
+    //Name
+    getName() {
+        return 'lasergun';
+    }
     async update(deltaTime) {
         if (this.isAnimating)
             await this.updateAnimation(deltaTime);

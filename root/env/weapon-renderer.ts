@@ -6,6 +6,11 @@ import { WeaponBase } from "./obj/weapons/weapon-base.js";
 import { ArmController } from "../player/arm-controller.js";
 import { Ground } from "./ground.js";
 
+interface WeaponDropConfig {
+    groundOffset: number;
+    dropDistance: number;
+}
+
 export class WeaponRenderer {
     private device: GPUDevice;
     private objectManager: ObjectManager;
@@ -14,6 +19,7 @@ export class WeaponRenderer {
     private ground: Ground;
 
     private weapons: Map<string, WeaponBase> = new Map();
+    private weaponDropConfig: Map<string, WeaponDropConfig> = new Map();
     private pickedWeapons: Set<string> = new Set();
     private currentWeapon: WeaponBase | null = null;
 
@@ -32,6 +38,16 @@ export class WeaponRenderer {
         this.playerController = playerController;
         this.armController = armController;
         this.ground = ground;
+
+        this.weaponDropConfig.set('sword', {
+            groundOffset: 1.0,
+            dropDistance: 3.0
+        });
+        this.weaponDropConfig.set('lasergun', {
+            groundOffset: 0.6,
+            dropDistance: 2.5
+        });
+
         document.addEventListener('keydown', (e) => this.checkPickup(e));
         document.addEventListener('keydown', (e) => this.checkUnequip(e));
     }
@@ -39,15 +55,18 @@ export class WeaponRenderer {
     //Message
         private showMessage(type: string): void {
             const wType = type.toUpperCase();
+            const content = `PRESS 'E' TO PICK ${wType}`;
             
             if(this.messageContainer) {
+                const messageElement = this.messageContainer.querySelector('#weapon-message');
+                if(messageElement) messageElement.textContent = content;
                 this.messageContainer.style.display = 'block';
                 return;
             }
 
             const message = `
                 <div id="weapon-message-container">
-                    <p id="weapon-message">PRESS 'E' TO PICK ${wType}</p>
+                    <p id="weapon-message">${content}</p>
                 </div>
             `;
 
@@ -93,15 +112,20 @@ export class WeaponRenderer {
     public async handleUnequip(): Promise<void> {
         if(!this.currentWeapon) return;
 
+        const weaponName = this.currentWeapon.getName();
+        const config = this.weaponDropConfig.get(weaponName) || {
+            groundOffset: 0.0,
+            dropDistance: 1.0
+        }
+
         const playerPos = this.playerController.getPosition();
         const playerForward = this.playerController.getForward();
 
-        const dropDistance = 3.0;
         const dropPosition = vec3.create();
-        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, dropDistance);
+        vec3.scaleAndAdd(dropPosition, playerPos, playerForward, config.dropDistance);
 
         const groundLevel = this.ground.getGroundLevelY(dropPosition[0], dropPosition[2]);
-        dropPosition[1] = groundLevel + 1.0;
+        dropPosition[1] = groundLevel + config.groundOffset;
 
         this.currentWeapon.setPosition(dropPosition);
         this.currentWeapon.setVisible(true);
@@ -139,7 +163,7 @@ export class WeaponRenderer {
     ): Promise<void> {
         this.hasTarget = false;
         
-        for(const [name, weapon] of this.weapons) {
+        for(const [_, weapon] of this.weapons) {
             if(weapon.isEquipped()) continue;
             await weapon.update(deltaTime);
             await weapon.updateTarget(this.playerController);
@@ -147,6 +171,7 @@ export class WeaponRenderer {
             if(weapon.isTargeted) {
                 await weapon.initOutline(canvas, format);
                 this.hasTarget = true;
+                const name = weapon.getName();
                 if(!this.pickedWeapons.has(name)) this.showMessage(name);
             }
 
@@ -180,10 +205,10 @@ export class WeaponRenderer {
     public async render(): Promise<void> {
         //Sword
         const sword = await this.objectManager.createWeapon<WeaponBase>('sword');
-        await this.addWeapon('sword', sword);
+        await this.addWeapon(sword.getName(), sword);
 
         //Laser Gun
         const laserGun = await this.objectManager.createWeapon<WeaponBase>('lasergun');
-        await this.addWeapon('lasergun', laserGun);
+        await this.addWeapon(laserGun.getName(), laserGun);
     }
 }

@@ -33,7 +33,7 @@ export class LaserGun extends WeaponBase {
     //Props
         private pos = {
             x: 8.0,
-            y: 1.0,
+            y: 0.6,
             z: 5.0
         }
 
@@ -186,6 +186,11 @@ export class LaserGun extends WeaponBase {
             
         }
     //
+
+    //Name
+    public getName(): string { 
+        return 'lasergun'; 
+    }
 
     public async update(deltaTime: number): Promise<void> {
         if(this.isAnimating) await this.updateAnimation(deltaTime);
