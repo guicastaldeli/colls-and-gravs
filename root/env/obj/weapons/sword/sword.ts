@@ -28,8 +28,7 @@ export class Sword extends WeaponBase {
     public isTargeted: boolean = false;
 
     //Animation
-    private animationProgress: number = 0.0;
-    private animationDuration: number = 0.2;
+    private animationDuration: number = 200;
 
     //Props
         private pos = {
@@ -182,7 +181,6 @@ export class Sword extends WeaponBase {
         private startAnimation(): void {
             if(!this.isAnimating) {
                 this.isAnimating = true;
-                this.animationProgress = 0.0;
                 this.originalRotationX = this.currentRotationX;
             }
         }
@@ -191,8 +189,8 @@ export class Sword extends WeaponBase {
             this.startAnimation();
             this.currentRotationX = -this.targetRotationX;
             setTimeout(() => {
-                this.currentRotationX = 0
-            }, 200);
+                this.currentRotationX = this.originalRotationX;
+            }, this.animationDuration);
             this.setWeaponPos(
                 vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
                 this.currentRotationX
