@@ -102,6 +102,6 @@ export abstract class WeaponBase {
     public abstract getName(): string;
     public abstract update(deltaTime: number): Promise<void>;
     public abstract updateAnimation(deltaTime: number): Promise<void>;
-    public abstract getBuffers(): Promise<EnvBufferData | undefined>;
+    public abstract getBuffers(): Promise<EnvBufferData | EnvBufferData[] | undefined>;
     public abstract updateTarget(playerController: PlayerController): Promise<void>;
 }

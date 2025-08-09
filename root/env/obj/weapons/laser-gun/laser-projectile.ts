@@ -1,12 +1,7 @@
 import { mat3, mat4, vec3, quat } from "../../../../../node_modules/gl-matrix/esm/index.js";
-import { Injectable, ObjectManager } from "../../object-manager.js";
-import { WeaponBase } from "../weapon-base.js";
 import { EnvBufferData } from "../../../env-buffers.js";
 import { Loader } from "../../../../loader.js";
 import { ShaderLoader } from "../../../../shader-loader.js";
-import { Raycaster } from "../../raycaster.js";
-import { OutlineConfig } from "../../outline-config.js";
-import { PlayerController } from "../../../../player/player-controller.js";
 
 export class LaserProjectile {
     private device: GPUDevice;
@@ -64,7 +59,7 @@ export class LaserProjectile {
     }
 
     public async getBuffers(): Promise<EnvBufferData | undefined> {
-        if(!this.isLoaded || this.model || !this.texture) return undefined;
+        if(!this.isLoaded || !this.model || !this.texture) return undefined;
 
         return {
             vertex: this.model.vertex,

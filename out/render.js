@@ -489,8 +489,11 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         if (weapon.isTargeted) {
             const outline = await weapon.getBuffers();
             if (outline) {
+                const fOutline = Array.isArray(outline) ? outline[0] : outline;
+                if (!fOutline)
+                    continue;
                 const outlineModelMatrix = mat4.create();
-                mat4.copy(outlineModelMatrix, outline.modelMatrix);
+                mat4.copy(outlineModelMatrix, fOutline.modelMatrix);
                 const mvp = mat4.create();
                 mat4.multiply(mvp, viewProjectionMatrix, outlineModelMatrix);
                 const outlineConfig = weapon.getOutlineConfig();
@@ -498,9 +501,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
                 device.queue.writeBuffer(outlineConfig.outlineUniformBuffer, 0, mvpArray);
                 passEncoder.setPipeline(outlineConfig.outlinePipeline);
                 passEncoder.setBindGroup(0, outlineConfig.outlineBindGroup);
-                passEncoder.setVertexBuffer(0, outline.vertex);
-                passEncoder.setIndexBuffer(outline.index, 'uint16');
-                passEncoder.drawIndexed(outline.indexCount);
+                passEncoder.setVertexBuffer(0, fOutline.vertex);
+                passEncoder.setIndexBuffer(fOutline.index, 'uint16');
+                passEncoder.drawIndexed(fOutline.indexCount);
             }
         }
     }

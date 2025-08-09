@@ -108,8 +108,14 @@ export class WeaponRenderer {
         for (const [name, weapon] of this.weapons) {
             if (weapon.isVisible()) {
                 const buffers = await weapon.getBuffers();
-                if (buffers)
-                    renderers.push(buffers);
+                if (buffers) {
+                    if (Array.isArray(buffers)) {
+                        renderers.push(...buffers);
+                    }
+                    else {
+                        renderers.push(buffers);
+                    }
+                }
             }
         }
         return renderers;

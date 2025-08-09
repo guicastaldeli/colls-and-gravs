@@ -14,10 +14,13 @@ import { Loader } from "../../../../loader.js";
 import { ShaderLoader } from "../../../../shader-loader.js";
 import { Raycaster } from "../../raycaster.js";
 import { OutlineConfig } from "../../outline-config.js";
+import { PlayerController } from "../../../../player/player-controller.js";
+import { LaserProjectile } from "./laser-projectile.js";
 let LaserGun = class LaserGun extends WeaponBase {
     device;
     loader;
     shaderLoader;
+    playerController;
     isLoaded = false;
     loadingPromise;
     modelMatrix;
@@ -28,8 +31,11 @@ let LaserGun = class LaserGun extends WeaponBase {
     raycaster;
     outline;
     isTargeted = false;
-    //Animation
-    animationDuration = 200;
+    //Laser
+    isFiring = false;
+    lastFireTime = 0;
+    fireRate = 200;
+    activeLasers = [];
     //Props
     pos = {
         x: 8.0,
@@ -59,11 +65,12 @@ let LaserGun = class LaserGun extends WeaponBase {
         }
     };
     //
-    constructor(device, loader, shaderLoader) {
+    constructor(device, loader, shaderLoader, playerController) {
         super(device, loader, shaderLoader);
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
+        this.playerController = playerController;
         this.modelMatrix = mat4.create();
         this.raycaster = new Raycaster();
         this.outline = new OutlineConfig(device, shaderLoader);
@@ -130,13 +137,10 @@ let LaserGun = class LaserGun extends WeaponBase {
     async getBuffers() {
         if (!this.isLoaded)
             await this.loadingPromise;
-        if (!this.model || !this.texture) {
-            console.warn('Laser gun not loaded');
-            return undefined;
-        }
+        const buffers = [];
         try {
             await this.setLaserGun();
-            const buffers = {
+            buffers.push({
                 vertex: this.model.vertex,
                 color: this.model.color,
                 index: this.model.index,
@@ -146,7 +150,18 @@ let LaserGun = class LaserGun extends WeaponBase {
                 texture: this.texture,
                 sampler: this.loader.createSampler(),
                 isLamp: [0.0, 0.0, 0.0]
-            };
+            });
+            for (const laser of this.activeLasers) {
+                const laserBuffers = await laser.getBuffers();
+                if (laserBuffers) {
+                    if (Array.isArray(laserBuffers)) {
+                        buffers.push(...laserBuffers);
+                    }
+                    else {
+                        buffers.push(laserBuffers);
+                    }
+                }
+            }
             return buffers;
         }
         catch (err) {
@@ -155,9 +170,18 @@ let LaserGun = class LaserGun extends WeaponBase {
         }
     }
     //Animation
-    startAnimation() {
-    }
     async updateAnimation(deltaTime) {
+        this.fireLaser();
+    }
+    //Laser
+    fireLaser() {
+        const currentTime = Date.now();
+        if (currentTime - this.lastFireTime < this.fireRate)
+            return;
+        this.lastFireTime = currentTime;
+        this.isFiring = true;
+        const laser = new LaserProjectile(this.device, this.loader, this.shaderLoader, this.playerController.getCameraPosition(), this.playerController.getForward());
+        this.activeLasers.push(laser);
     }
     //
     //Name
@@ -165,8 +189,12 @@ let LaserGun = class LaserGun extends WeaponBase {
         return 'lasergun';
     }
     async update(deltaTime) {
-        if (this.isAnimating)
-            await this.updateAnimation(deltaTime);
+        for (let i = this.activeLasers.length - 1; i >= 0; i--) {
+            const laser = this.activeLasers[i];
+            await laser.update(deltaTime);
+            if (laser.isExpired())
+                this.activeLasers.splice(i, 1);
+        }
     }
     async init(canvas, format, playerController) {
         try {
@@ -182,6 +210,9 @@ let LaserGun = class LaserGun extends WeaponBase {
 };
 LaserGun = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [GPUDevice, Loader, ShaderLoader])
+    __metadata("design:paramtypes", [GPUDevice,
+        Loader,
+        ShaderLoader,
+        PlayerController])
 ], LaserGun);
 export { LaserGun };

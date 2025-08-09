@@ -7,12 +7,14 @@ import { ShaderLoader } from "../../../../shader-loader.js";
 import { Raycaster } from "../../raycaster.js";
 import { OutlineConfig } from "../../outline-config.js";
 import { PlayerController } from "../../../../player/player-controller.js";
+import { LaserProjectile } from "./laser-projectile.js";
 
 @Injectable()
 export class LaserGun extends WeaponBase {
     protected device: GPUDevice;
     protected loader: Loader;
     protected shaderLoader: ShaderLoader;
+    private playerController: PlayerController;
 
     private isLoaded: boolean = false;
     private loadingPromise: Promise<void>;
@@ -27,8 +29,11 @@ export class LaserGun extends WeaponBase {
     protected outline: OutlineConfig;
     public isTargeted: boolean = false;
 
-    //Animation
-    private animationDuration: number = 200;
+    //Laser
+    private isFiring: boolean = false;
+    private lastFireTime: number = 0;
+    private fireRate: number = 200;
+    private activeLasers: LaserProjectile[] = [];
 
     //Props
         private pos = {
@@ -63,11 +68,17 @@ export class LaserGun extends WeaponBase {
         }
     //
 
-    constructor(device: GPUDevice, loader: Loader, shaderLoader: ShaderLoader) {
+    constructor(
+        device: GPUDevice, 
+        loader: Loader, 
+        shaderLoader: ShaderLoader,
+        playerController: PlayerController
+    ) {
         super(device, loader, shaderLoader);
         this.device = device;
         this.loader = loader;
         this.shaderLoader = shaderLoader;
+        this.playerController = playerController;
 
         this.modelMatrix = mat4.create();
         this.raycaster = new Raycaster();
@@ -148,17 +159,14 @@ export class LaserGun extends WeaponBase {
         this.outline.initOutline(canvas, device, format);
     }
 
-    public async getBuffers(): Promise<EnvBufferData | undefined> {
+    public async getBuffers(): Promise<EnvBufferData[]> {
         if(!this.isLoaded) await this.loadingPromise;
-        if(!this.model || !this.texture) {
-            console.warn('Laser gun not loaded');
-            return undefined;
-        }
+        const buffers: EnvBufferData[] = [];
 
         try {
             await this.setLaserGun();
 
-            const buffers: EnvBufferData = {
+            buffers.push({
                 vertex: this.model.vertex,
                 color: this.model.color,
                 index: this.model.index,
@@ -168,6 +176,16 @@ export class LaserGun extends WeaponBase {
                 texture: this.texture,
                 sampler: this.loader.createSampler(),
                 isLamp: [0.0, 0.0, 0.0]
+            });
+            for(const laser of this.activeLasers) {
+                const laserBuffers = await laser.getBuffers();
+                if(laserBuffers) {
+                    if(Array.isArray(laserBuffers)) {
+                        buffers.push(...laserBuffers);
+                    } else {
+                        buffers.push(laserBuffers);
+                    }
+                }
             }
 
             return buffers;
@@ -178,12 +196,25 @@ export class LaserGun extends WeaponBase {
     }
 
     //Animation
-        private startAnimation(): void {
-            
+        public async updateAnimation(deltaTime: number): Promise<void> {
+            this.fireLaser();
         }
 
-        public async updateAnimation(deltaTime: number): Promise<void> {
-            
+        //Laser
+        private fireLaser(): void {
+            const currentTime = Date.now();
+            if(currentTime - this.lastFireTime < this.fireRate) return;
+            this.lastFireTime = currentTime;
+            this.isFiring = true;
+
+            const laser = new LaserProjectile(
+                this.device,
+                this.loader,
+                this.shaderLoader,
+                this.playerController.getCameraPosition(),
+                this.playerController.getForward()
+            );
+            this.activeLasers.push(laser);
         }
     //
 
@@ -193,7 +224,11 @@ export class LaserGun extends WeaponBase {
     }
 
     public async update(deltaTime: number): Promise<void> {
-        if(this.isAnimating) await this.updateAnimation(deltaTime);
+        for(let i = this.activeLasers.length - 1; i >= 0; i--) {
+            const laser = this.activeLasers[i];
+            await laser.update(deltaTime);
+            if(laser.isExpired()) this.activeLasers.splice(i, 1);
+        }
     }
 
     public async init(canvas: HTMLCanvasElement, format: GPUTextureFormat, playerController: PlayerController): Promise<void> {

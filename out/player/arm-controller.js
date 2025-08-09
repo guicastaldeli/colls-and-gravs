@@ -55,13 +55,19 @@ export class ArmController {
         if (weapon) {
             const buffers = await weapon.getBuffers();
             if (buffers) {
+                const fBuffers = Array.isArray(buffers) ? buffers[0] : buffers;
+                if (!fBuffers) {
+                    this.currentModel = this.armModel;
+                    this.setRestPosition(this.pos.x, this.pos.y, this.pos.z);
+                    return;
+                }
                 this.currentModel = {
-                    vertex: buffers.vertex,
-                    color: buffers.color,
-                    index: buffers.index,
-                    indexCount: buffers.indexCount,
-                    texture: buffers.texture,
-                    sampler: buffers.sampler
+                    vertex: fBuffers.vertex,
+                    color: fBuffers.color,
+                    index: fBuffers.index,
+                    indexCount: fBuffers.indexCount,
+                    texture: fBuffers.texture,
+                    sampler: fBuffers.sampler
                 };
                 this.setRestPosition(weapon.getWeaponPos()[0], weapon.getWeaponPos()[1], weapon.getWeaponPos()[2]);
             }

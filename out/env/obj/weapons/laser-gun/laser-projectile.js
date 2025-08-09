@@ -43,7 +43,7 @@ export class LaserProjectile {
         }
     }
     async getBuffers() {
-        if (!this.isLoaded || this.model || !this.texture)
+        if (!this.isLoaded || !this.model || !this.texture)
             return undefined;
         return {
             vertex: this.model.vertex,
