@@ -562,6 +562,7 @@ async function renderEnv(deltaTime) {
 async function renderWeapons(deltaTime, canvas, format) {
     if (!weaponRenderer) {
         weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController, envRenderer.ground);
+        objectManager.deps.weaponRenderer = weaponRenderer;
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);
@@ -626,7 +627,8 @@ export async function render(canvas) {
                 format,
                 hud: null,
                 viewProjectionMatrix: null,
-                pipeline
+                pipeline,
+                weaponRenderer: null
             };
             objectManager = new ObjectManager(deps);
             await objectManager.ready();

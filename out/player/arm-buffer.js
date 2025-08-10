@@ -13,7 +13,8 @@ export async function initBuffers(device) {
 export async function drawBuffers(device, passEncoder, bindGroup, buffers, modelMatrix, uniformBuffer, viewProjectionMatrix) {
     const mvp = mat4.create();
     mat4.multiply(mvp, viewProjectionMatrix, modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, mvp);
+    const mvpArray = new Float32Array(mvp);
+    device.queue.writeBuffer(uniformBuffer, 0, mvpArray);
     passEncoder.setVertexBuffer(0, buffers.vertex);
     passEncoder.setVertexBuffer(1, buffers.color);
     passEncoder.setBindGroup(0, bindGroup, [0]);

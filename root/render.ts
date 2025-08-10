@@ -657,13 +657,10 @@ async function renderEnv(deltaTime: number): Promise<void> {
 }
 
 //Weapons
-async function renderWeapons(
-    deltaTime: number,
-    canvas: HTMLCanvasElement,
-    format: GPUTextureFormat
-): Promise<void> {
+async function renderWeapons(deltaTime: number, canvas: HTMLCanvasElement, format: GPUTextureFormat): Promise<void> {
     if(!weaponRenderer) {
         weaponRenderer = new WeaponRenderer(device, objectManager, playerController, camera.armController, envRenderer.ground);
+        objectManager.deps.weaponRenderer = weaponRenderer;
         await weaponRenderer.render();
     }
     await weaponRenderer.update(deltaTime, canvas, format);
@@ -735,7 +732,8 @@ export async function render(canvas: HTMLCanvasElement): Promise<void> {
                 format,
                 hud: null,
                 viewProjectionMatrix: null,
-                pipeline
+                pipeline,
+                weaponRenderer: null
             }
     
             objectManager = new ObjectManager(deps);

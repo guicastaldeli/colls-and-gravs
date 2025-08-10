@@ -7,7 +7,7 @@ export class WeaponRenderer {
     ground;
     weapons = new Map();
     weaponDropConfig = new Map();
-    projectiles = [];
+    projectiles;
     pickedWeapons = new Set();
     currentWeapon = null;
     messageContainer;
@@ -107,9 +107,6 @@ export class WeaponRenderer {
     async addWeapon(name, weapon) {
         this.weapons.set(name, weapon);
     }
-    addProjectile(projectile) {
-        this.projectiles.push(projectile);
-    }
     async get() {
         const renderers = [];
         for (const [_, weapon] of this.weapons) {
@@ -125,13 +122,6 @@ export class WeaponRenderer {
                 }
             }
         }
-        for (const projectile of this.projectiles) {
-            const buffers = await projectile.getBuffers();
-            if (Array.isArray(buffers))
-                renderers.push(...buffers);
-            else if (buffers)
-                renderers.push(buffers);
-        }
         return renderers;
     }
     getWeapons() {
@@ -144,6 +134,8 @@ export class WeaponRenderer {
                 await weapon.update(deltaTime);
         }
         for (const [_, weapon] of this.weapons) {
+            if (weapon.isFunctional())
+                await weapon.update(deltaTime);
             if (!weapon.isEquipped()) {
                 await weapon.updateTarget(this.playerController);
                 if (weapon.isTargeted) {
@@ -157,12 +149,6 @@ export class WeaponRenderer {
         }
         if (!this.hasTarget)
             this.hideMessage();
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            const projectile = this.projectiles[i];
-            await projectile.update(deltaTime);
-            if (projectile.isExpired())
-                this.projectiles.splice(i, 1);
-        }
     }
     async checkPickup(input) {
         const eKey = input.key.toLowerCase();

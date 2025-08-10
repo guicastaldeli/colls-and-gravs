@@ -190,11 +190,12 @@ export class Sword extends WeaponBase {
             this.currentRotationX = -this.targetRotationX;
             setTimeout(() => {
                 this.currentRotationX = this.originalRotationX;
+                this.setWeaponPos(
+                    vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
+                    this.currentRotationX
+                );
+                this.isAnimating = false;
             }, this.animationDuration);
-            this.setWeaponPos(
-                vec3.fromValues(this.cameraPos.x, this.cameraPos.y, this.cameraPos.z),
-                this.currentRotationX
-            );
         }
     //
 

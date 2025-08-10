@@ -18,7 +18,8 @@ export abstract class WeaponBase {
     public isTargeted: boolean = false;
 
     protected _isEquipped: boolean = false;
-    protected _visible: boolean = true;
+    protected _renderVisible: boolean = true;
+    protected _functional: boolean = true;
 
     public isAnimating: boolean = false;
     protected weaponOffset: vec3 = vec3.create();
@@ -71,12 +72,21 @@ export abstract class WeaponBase {
         return this._isEquipped;
     }
 
-    public isVisible(): boolean {
-        return this._visible;
+    public setRenderVisible(visible: boolean): void {
+        this._renderVisible = visible;
     }
 
-    public setVisible(visible: boolean): void {
-        this._visible = visible;
+    public isRenderVisible(): boolean {
+        return this._renderVisible;
+    }
+
+    public setFunctional(functional: boolean): void {
+        this._functional = functional;
+        if(!functional) this._functional = true;
+    }
+
+    public isFunctional(): boolean {
+        return this._functional;
     }
 
     public disableTarget(): void {

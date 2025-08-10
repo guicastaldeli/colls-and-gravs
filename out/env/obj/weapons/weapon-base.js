@@ -22,7 +22,8 @@ let WeaponBase = class WeaponBase {
     position = vec3.create();
     isTargeted = false;
     _isEquipped = false;
-    _visible = true;
+    _renderVisible = true;
+    _functional = true;
     isAnimating = false;
     weaponOffset = vec3.create();
     currentRotationX = 0;
@@ -64,11 +65,19 @@ let WeaponBase = class WeaponBase {
     isEquipped() {
         return this._isEquipped;
     }
-    isVisible() {
-        return this._visible;
+    setRenderVisible(visible) {
+        this._renderVisible = visible;
     }
-    setVisible(visible) {
-        this._visible = visible;
+    isRenderVisible() {
+        return this._renderVisible;
+    }
+    setFunctional(functional) {
+        this._functional = functional;
+        if (!functional)
+            this._functional = true;
+    }
+    isFunctional() {
+        return this._functional;
     }
     disableTarget() {
         this.isTargeted = false;

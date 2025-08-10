@@ -14,6 +14,7 @@ import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { EnvBufferData } from "../env-buffers.js";
 import { WeaponBase } from "./weapons/weapon-base.js";
+import { WeaponRenderer } from "../weapon-renderer.js";
 
 export function Injectable() {
     return (target: any) => {
@@ -46,6 +47,7 @@ interface Dependencies {
     format: GPUTextureFormat;
     hud: Hud | null;
     viewProjectionMatrix: mat4;
+    weaponRenderer: WeaponRenderer | null;
 }
 
 const dependenciesMap = new Map<Function, keyof Dependencies>([
@@ -60,7 +62,8 @@ const dependenciesMap = new Map<Function, keyof Dependencies>([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [mat4, 'viewProjectionMatrix']
+    [mat4, 'viewProjectionMatrix'],
+    [WeaponRenderer, 'weaponRenderer']
 ]);
 
 @Injectable()

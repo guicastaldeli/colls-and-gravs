@@ -31,7 +31,10 @@ export async function drawBuffers(
 ): Promise<void> {
     const mvp = mat4.create();
     mat4.multiply(mvp, viewProjectionMatrix, modelMatrix);
-    device.queue.writeBuffer(uniformBuffer, 0, mvp as Float32Array);
+
+    const mvpArray = new Float32Array(mvp);
+    device.queue.writeBuffer(uniformBuffer, 0, mvpArray);
+
     passEncoder.setVertexBuffer(0, buffers.vertex);
     passEncoder.setVertexBuffer(1, buffers.color);
     passEncoder.setBindGroup(0, bindGroup, [0]);

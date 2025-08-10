@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 import { mat3, mat4, vec3, quat } from "../../../../../node_modules/gl-matrix/esm/index.js";
 import { Injectable } from "../../object-manager.js";
 import { WeaponBase } from "../weapon-base.js";
+import { WeaponRenderer } from "../../../weapon-renderer.js";
 import { Loader } from "../../../../loader.js";
 import { ShaderLoader } from "../../../../shader-loader.js";
 import { Raycaster } from "../../raycaster.js";
@@ -19,6 +20,7 @@ import { LaserProjectile } from "./laser-projectile.js";
 let LaserGun = class LaserGun extends WeaponBase {
     device;
     loader;
+    weaponRenderer;
     shaderLoader;
     playerController;
     isLoaded = false;
@@ -65,10 +67,11 @@ let LaserGun = class LaserGun extends WeaponBase {
         }
     };
     //
-    constructor(device, loader, shaderLoader, playerController) {
+    constructor(device, loader, weaponRenderer, shaderLoader, playerController) {
         super(device, loader, shaderLoader);
         this.device = device;
         this.loader = loader;
+        this.weaponRenderer = weaponRenderer;
         this.shaderLoader = shaderLoader;
         this.playerController = playerController;
         this.modelMatrix = mat4.create();
@@ -151,17 +154,6 @@ let LaserGun = class LaserGun extends WeaponBase {
                 sampler: this.loader.createSampler(),
                 isLamp: [0.0, 0.0, 0.0]
             });
-            for (const laser of this.activeLasers) {
-                const laserBuffers = await laser.getBuffers();
-                if (laserBuffers) {
-                    if (Array.isArray(laserBuffers)) {
-                        buffers.push(...laserBuffers);
-                    }
-                    else {
-                        buffers.push(laserBuffers);
-                    }
-                }
-            }
             return buffers;
         }
         catch (err) {
@@ -180,14 +172,12 @@ let LaserGun = class LaserGun extends WeaponBase {
             return;
         this.lastFireTime = currentTime;
         this.isFiring = true;
-        const laser = new LaserProjectile(this.device, this.loader, this.shaderLoader, this.playerController.getCameraPosition(), this.playerController.getForward());
-        this.activeLasers.push(laser);
+        const startPos = vec3.clone(this.playerController.getCameraPosition());
+        vec3.scaleAndAdd(startPos, startPos, this.playerController.getForward(), 0.5);
+        const laser = new LaserProjectile(this.device, this.loader, this.shaderLoader, startPos, this.playerController.getForward());
+        this.weaponRenderer.addProjectile(laser);
     }
     //
-    //Name
-    getName() {
-        return 'lasergun';
-    }
     async update(deltaTime) {
         for (let i = this.activeLasers.length - 1; i >= 0; i--) {
             const laser = this.activeLasers[i];
@@ -207,11 +197,13 @@ let LaserGun = class LaserGun extends WeaponBase {
             throw err;
         }
     }
+    getName() { return 'lasergun'; }
 };
 LaserGun = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [GPUDevice,
         Loader,
+        WeaponRenderer,
         ShaderLoader,
         PlayerController])
 ], LaserGun);

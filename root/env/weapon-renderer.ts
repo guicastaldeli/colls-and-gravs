@@ -5,6 +5,7 @@ import { PlayerController } from "../player/player-controller.js";
 import { WeaponBase } from "./obj/weapons/weapon-base.js";
 import { ArmController } from "../player/arm-controller.js";
 import { Ground } from "./ground.js";
+import { LaserProjectile } from "./obj/weapons/laser-gun/laser-projectile.js";
 
 interface WeaponDropConfig {
     groundOffset: number;
@@ -20,6 +21,7 @@ export class WeaponRenderer {
 
     private weapons: Map<string, WeaponBase> = new Map();
     private weaponDropConfig: Map<string, WeaponDropConfig> = new Map();
+    private projectiles: LaserProjectile[] = [];
     private pickedWeapons: Set<string> = new Set();
     private currentWeapon: WeaponBase | null = null;
 
@@ -93,13 +95,15 @@ export class WeaponRenderer {
             if(weapon.isTargeted) {
                 if(this.currentWeapon) {
                     this.currentWeapon.unequip();
-                    this.currentWeapon.setVisible(true);
+                    this.currentWeapon.setRenderVisible(true);
+                    this.currentWeapon.setFunctional(true);
                     await this.armController.setWeapon(null);
                 }
 
                 weapon.disableTarget();
                 weapon.equip();
-                weapon.setVisible(false);
+                weapon.setRenderVisible(false);
+                weapon.setFunctional(true);
                 this.currentWeapon = weapon;
                 await this.armController.setWeapon(weapon);
                 this.pickedWeapons.add(name);
@@ -128,7 +132,8 @@ export class WeaponRenderer {
         dropPosition[1] = groundLevel + config.groundOffset;
 
         this.currentWeapon.setPosition(dropPosition);
-        this.currentWeapon.setVisible(true);
+        this.currentWeapon.setRenderVisible(true);
+        this.currentWeapon.setFunctional(true);
         this.currentWeapon.unequip();
 
         await this.armController.setWeapon(null);
@@ -139,11 +144,15 @@ export class WeaponRenderer {
         this.weapons.set(name, weapon);
     }
 
+    public addProjectile(projectile: LaserProjectile) {
+        this.projectiles.push(projectile);
+    }
+
     public async get(): Promise<EnvBufferData[]> {
         const renderers: EnvBufferData[] = [];
         
-        for(const [name, weapon] of this.weapons) {
-            if(weapon.isVisible()) {
+        for(const [_, weapon] of this.weapons) {
+            if(weapon.isRenderVisible()) {
                 const buffers = await weapon.getBuffers();
                 if(buffers) {
                     if(Array.isArray(buffers)) {
@@ -153,6 +162,12 @@ export class WeaponRenderer {
                     }
                 }
             }
+        }
+
+        for(const projectile of this.projectiles) {
+            const buffers = await projectile.getBuffers();
+            if(Array.isArray(buffers)) renderers.push(...buffers);
+            else if(buffers) renderers.push(buffers);
         }
 
         return renderers;
@@ -168,22 +183,32 @@ export class WeaponRenderer {
         format: GPUTextureFormat
     ): Promise<void> {
         this.hasTarget = false;
-        
-        for(const [_, weapon] of this.weapons) {
-            if(weapon.isEquipped()) continue;
-            await weapon.update(deltaTime);
-            await weapon.updateTarget(this.playerController);
 
-            if(weapon.isTargeted) {
-                await weapon.initOutline(canvas, format);
-                this.hasTarget = true;
-                const name = weapon.getName();
-                if(!this.pickedWeapons.has(name)) this.showMessage(name);
+        for (const [_, weapon] of this.weapons) {
+            if (weapon.isFunctional()) await weapon.update(deltaTime);
+        }
+
+        for (const [_, weapon] of this.weapons) {
+            if (!weapon.isEquipped()) {
+                await weapon.updateTarget(this.playerController);
+                if (weapon.isTargeted) {
+                    await weapon.initOutline(canvas, format);
+                    this.hasTarget = true;
+                    const name = weapon.getName();
+                    if (!this.pickedWeapons.has(name)) this.showMessage(name);
+                }
             }
+        }
 
-            if(!this.hasTarget) this.hideMessage();
+        if (!this.hasTarget) this.hideMessage();
+
+        for(let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            await projectile.update(deltaTime);
+            if(projectile.isExpired()) this.projectiles.splice(i, 1);
         }
     }
+
 
     public async checkPickup(input: KeyboardEvent): Promise<void> {
         const eKey = input.key.toLowerCase();

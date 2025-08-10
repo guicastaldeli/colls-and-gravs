@@ -21,6 +21,7 @@ import { LightningManager } from "../../lightning-manager.js";
 import { PlayerController } from "../../player/player-controller.js";
 import { Hud } from "../../hud.js";
 import { WeaponBase } from "./weapons/weapon-base.js";
+import { WeaponRenderer } from "../weapon-renderer.js";
 export function Injectable() {
     return (target) => {
         Reflect.defineMetadata('injectable', true, target);
@@ -38,7 +39,8 @@ const dependenciesMap = new Map([
     [PlayerController, 'playerController'],
     [Object, 'format'],
     [Hud, 'hud'],
-    [mat4, 'viewProjectionMatrix']
+    [mat4, 'viewProjectionMatrix'],
+    [WeaponRenderer, 'weaponRenderer']
 ]);
 let ObjectManager = class ObjectManager {
     readyPromise;
