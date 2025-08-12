@@ -177,17 +177,12 @@ export class WeaponRenderer {
         return this.weapons;
     }
 
-    public async update(
-        deltaTime: number, 
-        canvas: HTMLCanvasElement,
-        format: GPUTextureFormat
-    ): Promise<void> {
+    public async update(deltaTime: number, canvas: HTMLCanvasElement, format: GPUTextureFormat): Promise<void> {
         this.hasTarget = false;
 
         for (const [_, weapon] of this.weapons) {
             if (weapon.isFunctional()) await weapon.update(deltaTime);
         }
-
         for (const [_, weapon] of this.weapons) {
             if (!weapon.isEquipped()) {
                 await weapon.updateTarget(this.playerController);
@@ -199,16 +194,14 @@ export class WeaponRenderer {
                 }
             }
         }
-
-        if (!this.hasTarget) this.hideMessage();
-
         for(let i = this.projectiles.length - 1; i >= 0; i--) {
+            const time = deltaTime / 2;
             const projectile = this.projectiles[i];
-            await projectile.update(deltaTime);
+            await projectile.update(time);
             if(projectile.isExpired()) this.projectiles.splice(i, 1);
         }
+        if (!this.hasTarget) this.hideMessage();
     }
-
 
     public async checkPickup(input: KeyboardEvent): Promise<void> {
         const eKey = input.key.toLowerCase();

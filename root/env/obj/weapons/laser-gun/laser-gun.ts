@@ -200,16 +200,27 @@ export class LaserGun extends WeaponBase {
             if(currentTime - this.lastFireTime < this.fireRate) return;
             this.lastFireTime = currentTime;
             this.isFiring = true;
+            
+            const cameraPos = this.playerController.getCameraPosition();
+            const forward = vec3.clone(this.playerController.getForward());
+            const right = vec3.clone(this.playerController.getRight());
+            const up = vec3.clone(this.playerController.getUp());
+            const startPos = vec3.create();
+            vec3.copy(startPos, cameraPos);
 
-            const startPos = vec3.clone(this.playerController.getCameraPosition());
-            vec3.scaleAndAdd(startPos, startPos, this.playerController.getForward(), 0.5);
+            const rightOffset = 0.6;
+            const downOffset = -0.8;
+            const forwardOffset = 1.0;
+            vec3.scaleAndAdd(startPos, startPos, right, rightOffset);
+            vec3.scaleAndAdd(startPos, startPos, up, downOffset);
+            vec3.scaleAndAdd(startPos, startPos, forward, forwardOffset);
 
             const laser = new LaserProjectile(
                 this.device,
                 this.loader,
                 this.shaderLoader,
                 startPos,
-                this.playerController.getForward()
+                forward
             );
             this.weaponRenderer.addProjectile(laser);
         }

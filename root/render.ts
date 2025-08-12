@@ -684,7 +684,7 @@ async function lateRenderers(
     //Camera Related
     if(!camera || !pipeline) return;
     camera.renderArm(device, pipeline, passEncoder, canvas); //Arm
-    camera.renderHud(passEncoder); //Hud
+    //camera.renderHud(passEncoder); //Hud
 
     //Random Blocks
     if(randomBlocks) randomBlocks.init(canvas, playerController, format, hud);

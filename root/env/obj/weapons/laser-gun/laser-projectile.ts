@@ -87,10 +87,31 @@ export class LaserProjectile {
 
         mat4.identity(this.modelMatrix);
         mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
+
+        const up = vec3.fromValues(0, 1, 0);
+        const rotationMatrix = mat4.create();
+
+        mat4.targetTo(
+            rotationMatrix,
+            vec3.fromValues(0, 0, 0),
+            this.direction,
+            up
+        );
+        mat4.multiply(
+            this.modelMatrix,
+            this.modelMatrix,
+            rotationMatrix
+        );
+        mat4.rotateY(
+            this.modelMatrix,
+            this.modelMatrix,
+            Math.PI / 2
+        );
         mat4.scale(
-            this.modelMatrix, 
-            this.modelMatrix, 
+            this.modelMatrix,
+            this.modelMatrix,
             [this.size.w, this.size.h, this.size.d]
         );
+        mat3.normalFromMat4(this.normalMatrix, this.modelMatrix);
     }
 }

@@ -155,14 +155,15 @@ export class WeaponRenderer {
                 }
             }
         }
-        if (!this.hasTarget)
-            this.hideMessage();
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const time = deltaTime / 2;
             const projectile = this.projectiles[i];
-            await projectile.update(deltaTime);
+            await projectile.update(time);
             if (projectile.isExpired())
                 this.projectiles.splice(i, 1);
         }
+        if (!this.hasTarget)
+            this.hideMessage();
     }
     async checkPickup(input) {
         const eKey = input.key.toLowerCase();
