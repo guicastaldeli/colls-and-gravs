@@ -97,23 +97,16 @@ export class Walls {
     async createWall() {
         this.blocks = [];
         this._Collider = [];
+        const patternDataArray = await this.loadPatternData();
+        const patternData = patternDataArray[0];
         const patterns = {
             rightWall: {
                 pos: {
                     x: 0.0,
                     y: 0.0,
-                    z: 5.0
+                    z: 0.0
                 },
-                pattern: [] /* [
-                    '   ################',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   ################',
-                ]
-                    */
+                pattern: patternData.patterns.wall.rightWall
             },
             ceiling: {
                 pos: {
@@ -125,26 +118,7 @@ export class Walls {
                     axis: 'x',
                     angle: Math.PI / 2
                 },
-                pattern: [
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                ]
+                pattern: patternData.patterns.ceiling
             }
         };
         for (const [name, data] of Object.entries(patterns)) {
@@ -177,6 +151,18 @@ export class Walls {
     }
     getBlocks() {
         return this.blocks;
+    }
+    async loadPatternData() {
+        try {
+            const res = await fetch('./data/patterns.json');
+            if (!res.ok)
+                throw new Error(`err, ${res.status}`);
+            return await res.json();
+        }
+        catch (err) {
+            console.error(err);
+            throw err;
+        }
     }
     async init() {
         await this.loadAssets();

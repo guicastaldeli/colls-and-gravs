@@ -65,12 +65,8 @@ export class WeaponRenderer {
             return;
         for (const [name, weapon] of this.weapons) {
             if (weapon.isTargeted) {
-                if (this.currentWeapon) {
-                    this.currentWeapon.unequip();
-                    this.currentWeapon.setRenderVisible(true);
-                    this.currentWeapon.setFunctional(true);
-                    await this.armController.setWeapon(null);
-                }
+                if (this.currentWeapon)
+                    await this.dropCurrentWeapon();
                 weapon.disableTarget();
                 weapon.equip();
                 weapon.setRenderVisible(false);
@@ -84,6 +80,9 @@ export class WeaponRenderer {
         }
     }
     async handleUnequip() {
+        await this.dropCurrentWeapon();
+    }
+    async dropCurrentWeapon() {
         if (!this.currentWeapon)
             return;
         const weaponName = this.currentWeapon.getName();
@@ -158,7 +157,7 @@ export class WeaponRenderer {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const time = deltaTime / 2;
             const projectile = this.projectiles[i];
-            await projectile.update(0);
+            await projectile.update(time);
             if (projectile.isExpired())
                 this.projectiles.splice(i, 1);
         }

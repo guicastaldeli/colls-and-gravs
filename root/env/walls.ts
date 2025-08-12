@@ -1,9 +1,9 @@
 import { mat3, mat4, vec3, quat } from "../../node_modules/gl-matrix/esm/index.js";
-import { EnvBufferData, initEnvBuffers } from "./env-buffers.js";
+import { EnvBufferData } from "./env-buffers.js";
 import { Loader } from "../loader.js";
-import { BoxCollider, Collider, CollisionInfo, CollisionResponse, ICollidable } from "../collision/collider.js";
+import { BoxCollider, Collider, CollisionInfo, ICollidable } from "../collision/collider.js";
 import { StructureManager } from "./structure-manager.js";
-import { PlayerController } from "../player/player-controller.js";
+import { Patterns } from "./patterns.interface.js";
 
 interface PatternPos {
     x: number;
@@ -163,24 +163,17 @@ export class Walls implements ICollidable {
     public async createWall(): Promise<void> {
         this.blocks = [];
         this._Collider = [];
+        const patternDataArray = await this.loadPatternData();
+        const patternData = patternDataArray[0];
 
         const patterns: Record<string, Pattern> = {
             rightWall: {
                 pos: {
                     x: 0.0,
                     y: 0.0,
-                    z: 5.0
+                    z: 0.0
                 },
-                pattern:[]/* [
-                    '   ################',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   #              #',
-                    '   ################',
-                ]
-                    */
+                pattern: patternData.patterns.wall.rightWall
             },
             ceiling: {
                 pos: {
@@ -192,26 +185,7 @@ export class Walls implements ICollidable {
                     axis: 'x',
                     angle: Math.PI / 2
                 },
-                pattern: [
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                    '###################',
-                ]
+                pattern: patternData.patterns.ceiling
             }
         }
 
@@ -260,6 +234,17 @@ export class Walls implements ICollidable {
 
     public getBlocks(): WallData[] {
         return this.blocks;
+    }
+
+    private async loadPatternData(): Promise<Patterns> {
+        try {
+            const res = await fetch('./data/patterns.json');
+            if(!res.ok) throw new Error(`err, ${res.status}`);
+            return await res.json();
+        } catch(err) {
+            console.error(err);
+            throw err;
+        }
     }
 
     public async init(): Promise<void> {

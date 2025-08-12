@@ -1,5 +1,4 @@
 import { ListType } from './list-type';
-
 export let ListData: ListType[] = [];
 
 export async function loadListData(): Promise<void> {
