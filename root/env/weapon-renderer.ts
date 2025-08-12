@@ -197,7 +197,7 @@ export class WeaponRenderer {
         for(let i = this.projectiles.length - 1; i >= 0; i--) {
             const time = deltaTime / 2;
             const projectile = this.projectiles[i];
-            await projectile.update(time);
+            await projectile.update(0);
             if(projectile.isExpired()) this.projectiles.splice(i, 1);
         }
         if (!this.hasTarget) this.hideMessage();

@@ -278,7 +278,8 @@ export class Loader {
             texture: texture,
             sampler: sampler,
             indexData: new Uint16Array(this.objIndices),
-            isLamp: [0.0, 0.0, 0.0]
+            isLamp: [0.0, 0.0, 0.0],
+            isEmissive: [0.0, 0.0, 0.0]
         }
     }
 }

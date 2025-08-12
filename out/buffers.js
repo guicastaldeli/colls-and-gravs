@@ -34,7 +34,8 @@ export async function drawBuffers(device, passEncoder, bindGroup, buffers, mainM
         const envBuffer = envBuffers[i];
         mat4.multiply(env, viewProjectionMatrix, envBuffer.modelMatrix);
         const offset = 256 * (i + 1);
-        device.queue.writeBuffer(uniformBuffer, offset, env);
+        const mvpArray = new Float32Array(env);
+        device.queue.writeBuffer(uniformBuffer, offset, mvpArray);
         passEncoder.setVertexBuffer(0, envBuffer.vertex);
         passEncoder.setVertexBuffer(1, envBuffer.color);
         passEncoder.setBindGroup(0, bindGroup, [offset]);

@@ -29,7 +29,8 @@ export async function initEnvBuffers(device) {
             normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
-            isLamp: [1.0, 1.0, 1.0]
+            isLamp: [1.0, 1.0, 1.0],
+            isEmissive: [1.0, 1.0, 1.0]
         };
     }
     catch (err) {

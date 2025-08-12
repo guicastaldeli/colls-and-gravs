@@ -167,7 +167,8 @@ export class Sword extends WeaponBase {
                 normalMatrix: this.normalMatrix,
                 texture: this.texture,
                 sampler: this.loader.createSampler(),
-                isLamp: [0.0, 0.0, 0.0]
+                isLamp: [0.0, 0.0, 0.0],
+                isEmissive: [0.0, 0.0, 0.0]
             }
 
             return buffers;

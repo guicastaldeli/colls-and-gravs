@@ -53,7 +53,7 @@ async function initShaders() {
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
-            shaderLoader.sourceLoader('./env/obj/lamp/shaders/glow.wgsl'),
+            shaderLoader.sourceLoader('./shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
         return {
@@ -221,7 +221,7 @@ async function initPipeline() {
                         ]
                     },
                     {
-                        arrayStride: 8 * 4,
+                        arrayStride: 10 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
@@ -236,6 +236,11 @@ async function initPipeline() {
                             {
                                 shaderLocation: 5,
                                 offset: 5 * 4,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 6,
+                                offset: 7 * 4,
                                 format: 'float32x3'
                             }
                         ],
@@ -299,7 +304,7 @@ async function initPipeline() {
                         ]
                     },
                     {
-                        arrayStride: 8 * 4,
+                        arrayStride: 10 * 4,
                         attributes: [
                             {
                                 shaderLocation: 3,
@@ -314,6 +319,11 @@ async function initPipeline() {
                             {
                                 shaderLocation: 5,
                                 offset: 5 * 4,
+                                format: 'float32x3'
+                            },
+                            {
+                                shaderLocation: 6,
+                                offset: 7 * 4,
                                 format: 'float32x3'
                             }
                         ],
@@ -423,7 +433,7 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         mat4.multiply(mvp, viewProjectionMatrix, data.modelMatrix);
         const normalMatrix = mat3.create();
         mat3.normalFromMat4(normalMatrix, data.modelMatrix);
-        const uniformData = new Float32Array(53);
+        const uniformData = new Float32Array(64);
         uniformData.set(mvp, 0);
         uniformData.set(data.modelMatrix, 16);
         uniformData.set(normalMatrix, 32);
@@ -433,6 +443,9 @@ async function setBuffers(passEncoder, viewProjectionMatrix, modelMatrix, curren
         const isLamp = data.isLamp ? data.isLamp[0] > 0 : false;
         uniformData.set(isLamp ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 44);
         isLamp ? uniformData.set([1.0, 1.0, 1.0], 44) : uniformData.set([0.0, 0.0, 0.0], 44);
+        const isEmissive = data.isEmissive ? data.isEmissive[0] > 0 : false;
+        uniformData.set(isEmissive ? [1.0, 1.0, 1.0] : [0.0, 0.0, 0.0], 53);
+        isEmissive ? uniformData.set([1.0, 1.0, 1.0], 53) : uniformData.set([0.0, 0.0, 0.0], 53);
         device.queue.writeBuffer(uniformBuffer, offset, uniformData);
     }
     for (let i = 0; i < renderBuffers.length; i++) {
@@ -578,7 +591,7 @@ async function lateRenderers(passEncoder, viewProjectionMatrix, deltaTime, canva
     if (!camera || !pipeline)
         return;
     camera.renderArm(device, pipeline, passEncoder, canvas); //Arm
-    //camera.renderHud(passEncoder); //Hud
+    camera.renderHud(passEncoder); //Hud
     //Random Blocks
     if (randomBlocks)
         randomBlocks.init(canvas, playerController, format, hud);

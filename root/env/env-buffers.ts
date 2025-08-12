@@ -11,6 +11,7 @@ export type EnvBufferData = {
     sampler: GPUSampler;
     indexData?: Uint16Array;
     isLamp?: vec3;
+    isEmissive?: vec3;
 }
 
 export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> {
@@ -38,7 +39,6 @@ export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> 
             { bytesPerRow: 4 },
             [1, 1]
         );
-    
         const sampler = device.createSampler({
             magFilter: 'linear',
             minFilter: 'linear'
@@ -53,7 +53,8 @@ export async function initEnvBuffers(device: GPUDevice): Promise<EnvBufferData> 
             normalMatrix: normalMatrix,
             texture: texture,
             sampler: sampler,
-            isLamp: [1.0, 1.0, 1.0]
+            isLamp: [1.0, 1.0, 1.0],
+            isEmissive: [1.0, 1.0, 1.0]
         }
     } catch(err) {
         console.log(err);

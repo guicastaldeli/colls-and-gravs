@@ -39,7 +39,8 @@ export class Ground {
                     normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler,
-                    isLamp: [0.0, 0.0, 0.0]
+                    isLamp: [0.0, 0.0, 0.0],
+                    isEmissive: [0.0, 0.0, 0.0]
                 };
                 const position = vec3.fromValues((this.pos.x + x) * this.pos.gap(), this.pos.y, (this.pos.z + z) * this.pos.gap());
                 mat4.identity(block.modelMatrix);

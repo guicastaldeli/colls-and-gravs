@@ -78,7 +78,8 @@ export class Hud {
             size: 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
-        this.device.queue.writeBuffer(this.transformBuffer, 0, transform);
+        const mvpArray = new Float32Array(transform);
+        this.device.queue.writeBuffer(this.transformBuffer, 0, mvpArray);
     }
     async initShaders() {
         try {

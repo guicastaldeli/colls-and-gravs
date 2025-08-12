@@ -49,7 +49,8 @@ export class Ground implements ICollidable {
                     normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler,
-                    isLamp: [0.0, 0.0, 0.0]
+                    isLamp: [0.0, 0.0, 0.0],
+                    isEmissive: [0.0, 0.0, 0.0]
                 }
 
                 const position = vec3.fromValues(

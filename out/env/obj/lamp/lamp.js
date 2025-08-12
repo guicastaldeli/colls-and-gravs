@@ -54,7 +54,8 @@ let Lamp = class Lamp {
                 normalMatrix: mat3.create(),
                 texture: tex,
                 sampler: this.loader.createSampler(),
-                isLamp: [1.0, 1.0, 1.0]
+                isLamp: [1.0, 1.0, 1.0],
+                isEmissive: [0.0, 0.0, 0.0]
             };
             return lamp;
         }

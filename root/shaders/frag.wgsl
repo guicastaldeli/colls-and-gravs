@@ -8,6 +8,7 @@ struct FragmentInput {
     @location(3) worldPos: vec3f,
     @location(4) isLamp: f32,
     @location(5) cameraPos: vec3f,
+    @location(6) isEmissive: f32,
     @builtin(position) Position: vec4f
 }
 
@@ -35,7 +36,6 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
             worldPos,
             pointLights[i]
         );
-    
         if(input.isLamp > 0.5) {
             finalColor += applyGlow(
                 baseColor,
@@ -46,7 +46,29 @@ fn main(input: FragmentInput) -> @location(0) vec4f {
                 cameraPos
             );
         }
-    
+    }
+
+    if(input.isEmissive > 0.5) {
+        var thickness = 1.0;
+        var alpha = texColor.a;
+        
+        let texSize = vec2f(textureDimensions(textureMap));
+        let aspectRatio = 2.0;
+
+        let uvCenter = vec2f(0.5, 0.5);
+        let uvOffset = (input.texCoord - uvCenter) * vec2f(aspectRatio, 4.0);
+        let distToCenter = length(uvOffset);
+        
+        alpha = alpha * distToCenter;
+        texColor.a = alpha;
+        finalColor += applyEmissiveGlow(
+            baseColor,
+            worldPos,
+            calculatedNormal,
+            input.isEmissive,
+            ambientLight,
+            cameraPos
+        );
     }
 
     if(input.isLamp > 0.5) {

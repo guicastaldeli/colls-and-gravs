@@ -5,7 +5,10 @@ struct Uniforms {
     padding: f32,
     isLamp: f32,
     cameraPos: vec3f,
+    pad2: f32,
     time: f32,
+    isEmissive: f32,
+    pad3: f32
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -17,6 +20,7 @@ struct VertexInput {
     @location(3) color: vec3f,
     @location(4) isLamp: f32,
     @location(5) viewDir: vec3f,
+    @location(6) isEmissive: f32
 }
 
 struct VertexOutput {
@@ -27,6 +31,7 @@ struct VertexOutput {
     @location(3) worldPos: vec3f,
     @location(4) isLamp: f32,
     @location(5) viewDir: vec3f,
+    @location(6) isEmissive: f32
 }
 
 @vertex
@@ -35,7 +40,7 @@ fn main(input: VertexInput) -> VertexOutput {
 
     if(uniforms.isLamp > 0.5) {
         let viewDir = normalize(uniforms.cameraPos - (uniforms.modelMatrix * vec4f(.0, 0.0, 0.0, 1.0)).xyz);
-        let up = vec3f(.0, 1.0, 0.0);
+        let up = vec3f(0.0, 1.0, 0.0);
         let right = normalize(cross(up, viewDir));
         let billboardUp = normalize(cross(viewDir, right));
         let billboardMatrix = mat3x3f(
@@ -57,6 +62,7 @@ fn main(input: VertexInput) -> VertexOutput {
     output.color = input.color;
     output.texCoord = input.texCoord;
     output.isLamp = uniforms.isLamp;
+    output.isEmissive = uniforms.isEmissive;
     output.viewDir = uniforms.cameraPos - output.worldPos;
     return output;
 }
