@@ -47,8 +47,8 @@ export class Lamp {
     private async loadAssets(): Promise<EnvBufferData> {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/lamp.obj'),
-                this.loader.textureLoader('./assets/env/textures/lamp.png')
+                this.loader.parser('./.assets/env/obj/lamp.obj'),
+                this.loader.textureLoader('./.assets/env/textures/lamp.png')
             ]);
 
             const lamp: EnvBufferData = {

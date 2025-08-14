@@ -42,8 +42,8 @@ let Lamp = class Lamp {
     async loadAssets() {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/lamp.obj'),
-                this.loader.textureLoader('./assets/env/textures/lamp.png')
+                this.loader.parser('./.assets/env/obj/lamp.obj'),
+                this.loader.textureLoader('./.assets/env/textures/lamp.png')
             ]);
             const lamp = {
                 vertex: model.vertex,

@@ -44,7 +44,7 @@ export class CommandManager {
 
     private async loadCommands(): Promise<void> {
         try {
-            const res = await fetch('./data/command-list.json');
+            const res = await fetch('./.data/command-list.json');
             this.commandConfig = await res.json();
         } catch(err) {
             console.error('Failed to load commands', err);

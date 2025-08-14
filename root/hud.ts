@@ -113,8 +113,8 @@ export class Hud {
     private async initShaders(): Promise<void> {
         try {
             const [vertexShader, fragShader] = await Promise.all([
-                this.shaderLoader.loader('./shaders/hud/vertex.wgsl'),
-                this.shaderLoader.loader('./shaders/hud/frag.wgsl')
+                this.shaderLoader.loader('./.shaders/hud/vertex.wgsl'),
+                this.shaderLoader.loader('./.shaders/hud/frag.wgsl')
             ]);
 
             this.pipeline = this.device.createRenderPipeline({
@@ -233,7 +233,7 @@ export class Hud {
 
     public async init(w: number, h: number): Promise<void> {
         try {
-            this.texture = await this.loader.textureLoader('./assets/hud/crosshair.png');
+            this.texture = await this.loader.textureLoader('./.assets/hud/crosshair.png');
             await this.drawCrosshair(w, h);
             await this.initShaders();
 

@@ -31,8 +31,8 @@ export class Wire {
     private async loadAssets(): Promise<EnvBufferData> {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/env/obj/wire.obj'),
-                this.loader.textureLoader('./assets/env/textures/wire.png')
+                this.loader.parser('./.assets/env/obj/wire.obj'),
+                this.loader.textureLoader('./.assets/env/textures/wire.png')
             ]);
 
             const wire: EnvBufferData = {

@@ -130,8 +130,8 @@ export class ArmController {
     public async loadAssets(): Promise<void> {
         try {
             const [model, tex] = await Promise.all([
-                this.loader.parser('./assets/player/arm.obj'),
-                this.loader.textureLoader('./assets/player/arm.png')
+                this.loader.parser('./.assets/player/arm.obj'),
+                this.loader.textureLoader('./.assets/player/arm.png')
             ]);
 
             this.armModel = {

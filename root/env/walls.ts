@@ -73,8 +73,8 @@ export class Walls implements ICollidable {
 
     private async loadAssets(): Promise<void> {
         try {
-            const model = await this.loader.parser('./assets/env/obj/walls.obj');
-            const texture = await this.loader.textureLoader('./assets/env/textures/walls.png');
+            const model = await this.loader.parser('./.assets/env/obj/walls.obj');
+            const texture = await this.loader.textureLoader('./.assets/env/textures/walls.png');
     
             this.source.set(this.id, {
                 vertex: model.vertex,
@@ -246,7 +246,7 @@ export class Walls implements ICollidable {
 
     private async loadPatternData(): Promise<Patterns> {
         try {
-            const res = await fetch('./data/patterns.json');
+            const res = await fetch('./.data/patterns.json');
             if(!res.ok) throw new Error(`err, ${res.status}`);
             return await res.json();
         } catch(err) {

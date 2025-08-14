@@ -46,8 +46,8 @@ export class LaserProjectile {
     private async loadAssets(): Promise<void> {
         try {
             const [model, texture] = await Promise.all([
-                this.loader.parser('./assets/env/obj/laser.obj'),
-                this.loader.textureLoader('./assets/env/textures/laser.png')
+                this.loader.parser('./.assets/env/obj/laser.obj'),
+                this.loader.textureLoader('./.assets/env/textures/laser.png')
             ]);
 
             this.model = model;

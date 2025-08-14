@@ -103,8 +103,8 @@ export class LaserGun extends WeaponBase {
     private async loadAssets(): Promise<boolean> {
         try {
             const [model, texture] = await Promise.all([
-                this.loader.parser('./assets/env/obj/laser-gun.obj'),
-                this.loader.textureLoader('./assets/env/textures/laser-gun.png')
+                this.loader.parser('./.assets/env/obj/laser-gun.obj'),
+                this.loader.textureLoader('./.assets/env/textures/laser-gun.png')
             ]);
 
             if(!model || !texture) throw new Error('err');

@@ -17,7 +17,7 @@ export class CommandManager {
     }
     async loadCommands() {
         try {
-            const res = await fetch('./data/command-list.json');
+            const res = await fetch('./.data/command-list.json');
             this.commandConfig = await res.json();
         }
         catch (err) {

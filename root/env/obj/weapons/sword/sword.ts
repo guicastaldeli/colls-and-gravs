@@ -88,8 +88,8 @@ export class Sword extends WeaponBase {
     private async loadAssets(): Promise<boolean> {
         try {
             const [model, texture] = await Promise.all([
-                this.loader.parser('./assets/env/obj/sword.obj'),
-                this.loader.textureLoader('./assets/env/textures/sword.png')
+                this.loader.parser('./.assets/env/obj/sword.obj'),
+                this.loader.textureLoader('./.assets/env/textures/sword.png')
             ]);
 
             if(!model || !texture) throw new Error('err');

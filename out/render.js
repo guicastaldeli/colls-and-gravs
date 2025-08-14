@@ -48,12 +48,12 @@ let wireframePipeline = null;
 async function initShaders() {
     try {
         const [vertexSrc, fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc] = await Promise.all([
-            shaderLoader.loader('./shaders/vertex.wgsl'),
-            shaderLoader.sourceLoader('./shaders/frag.wgsl'),
+            shaderLoader.loader('./.shaders/vertex.wgsl'),
+            shaderLoader.sourceLoader('./.shaders/frag.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/ambient-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/directional-light.wgsl'),
             shaderLoader.sourceLoader('./lightning/shaders/point-light.wgsl'),
-            shaderLoader.sourceLoader('./shaders/glow.wgsl'),
+            shaderLoader.sourceLoader('./.shaders/glow.wgsl'),
         ]);
         const combinedFragCode = await shaderComposer.combineShader(fragSrc, ambientLightSrc, directionalLightSrc, pointLightSrc, glowSrc);
         return {

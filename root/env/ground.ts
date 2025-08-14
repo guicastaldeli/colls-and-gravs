@@ -34,8 +34,8 @@ export class Ground implements ICollidable {
     }
 
     private async createGround(): Promise<void> {
-        const model = await this.loader.parser('./assets/env/obj/terrain.obj');
-        const texture = await this.loader.textureLoader('./assets/env/textures/terrain.png');
+        const model = await this.loader.parser('./.assets/env/obj/terrain.obj');
+        const texture = await this.loader.textureLoader('./.assets/env/textures/terrain.png');
         const sampler = this.loader.createSampler();
 
         for(let x = 0; x < this.count; x++) {

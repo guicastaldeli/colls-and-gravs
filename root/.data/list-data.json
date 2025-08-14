@@ -2,8 +2,8 @@
     {
         "id": "1",
         "id_attr": "smile_block",
-        "modelPath": "./assets/env/obj/smile.obj",
-        "texPath": "./assets/env/textures/smile.png",
+        "modelPath": "./.assets/env/obj/smile.obj",
+        "texPath": "./.assets/env/textures/smile.png",
         "needsUpdate": true,
         "size": {
             "w": 0.1,
@@ -24,8 +24,8 @@
     {
         "id": "2",
         "id_attr": "blue_rex",
-        "modelPath": "./assets/env/obj/rex.obj",
-        "texPath": "./assets/env/textures/rex.png",
+        "modelPath": "./.assets/env/obj/rex.obj",
+        "texPath": "./.assets/env/textures/rex.png",
         "needsUpdate": true,
         "size": {
             "w": 0.5,
@@ -46,8 +46,8 @@
     {
         "id": "3",
         "id_attr": "earth",
-        "modelPath": "./assets/env/obj/earth.obj",
-        "texPath": "./assets/env/textures/earth.png",
+        "modelPath": "./.assets/env/obj/earth.obj",
+        "texPath": "./.assets/env/textures/earth.png",
         "needsUpdate": true,
         "size": {
             "w": 1.0,
@@ -68,8 +68,8 @@
     {
         "id": "4",
         "id_attr": "white_rex",
-        "modelPath": "./assets/env/obj/white-rex.obj",
-        "texPath": "./assets/env/textures/white-rex.png",
+        "modelPath": "./.assets/env/obj/white-rex.obj",
+        "texPath": "./.assets/env/textures/white-rex.png",
         "needsUpdate": true,
         "size": {
             "w": 0.5,
@@ -90,8 +90,8 @@
     {
         "id": "5",
         "id_attr": "brick",
-        "modelPath": "./assets/env/obj/brick.obj",
-        "texPath": "./assets/env/textures/brick.png",
+        "modelPath": "./.assets/env/obj/brick.obj",
+        "texPath": "./.assets/env/textures/brick.png",
         "needsUpdate": true,
         "size": {
             "w": 1.0,
@@ -112,8 +112,8 @@
     {
         "id": "6",
         "id_attr": "error",
-        "modelPath": "./assets/env/obj/error.obj",
-        "texPath": "./assets/env/textures/error.png",
+        "modelPath": "./.assets/env/obj/error.obj",
+        "texPath": "./.assets/env/textures/error.png",
         "needsUpdate": true,
         "size": {
             "w": 2.0,
@@ -134,8 +134,8 @@
     {
         "id": "7",
         "id_attr": "404",
-        "modelPath": "./assets/env/obj/404.obj",
-        "texPath": "./assets/env/textures/404.png",
+        "modelPath": "./.assets/env/obj/404.obj",
+        "texPath": "./.assets/env/textures/404.png",
         "needsUpdate": true,
         "size": {
             "w": 0.05,
@@ -156,8 +156,8 @@
     {
         "id": "8",
         "id_attr": "pigo",
-        "modelPath": "./assets/env/obj/pigo.obj",
-        "texPath": "./assets/env/textures/pigo.png",
+        "modelPath": "./.assets/env/obj/pigo.obj",
+        "texPath": "./.assets/env/textures/pigo.png",
         "needsUpdate": true,
         "size": {
             "w": 0.05,
@@ -178,8 +178,8 @@
     {
         "id": "9",
         "id_attr": "kevin",
-        "modelPath": "./assets/env/obj/kevin.obj",
-        "texPath": "./assets/env/textures/kevin.png",
+        "modelPath": "./.assets/env/obj/kevin.obj",
+        "texPath": "./.assets/env/textures/kevin.png",
         "needsUpdate": true,
         "size": {
             "w": 0.1,
