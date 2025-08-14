@@ -51,7 +51,7 @@ export class LaserGun extends WeaponBase {
         }
 
         public cameraPos = {
-            x: 0.65,
+            x: 0.55,
             y: -0.8,
             z: 0.8
         }

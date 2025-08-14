@@ -42,7 +42,7 @@ export class WeaponRenderer {
         this.ground = ground;
 
         this.weaponDropConfig.set('sword', {
-            groundOffset: 1.0,
+            groundOffset: 0.0,
             dropDistance: 3.0
         });
         this.weaponDropConfig.set('lasergun', {

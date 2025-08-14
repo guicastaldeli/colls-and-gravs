@@ -17,7 +17,7 @@ export class Ground implements ICollidable {
         x: 0,
         y: 0,
         z: 0,
-        gap: () => 0.8
+        gap: () => 1.0
     }
 
     size = {
@@ -34,8 +34,8 @@ export class Ground implements ICollidable {
     }
 
     private async createGround(): Promise<void> {
-        const model = await this.loader.parser('./assets/env/obj/404.obj');
-        const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
+        const model = await this.loader.parser('./assets/env/obj/terrain.obj');
+        const texture = await this.loader.textureLoader('./assets/env/textures/terrain.png');
         const sampler = this.loader.createSampler();
 
         for(let x = 0; x < this.count; x++) {
@@ -49,8 +49,7 @@ export class Ground implements ICollidable {
                     normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler,
-                    isLamp: [0.0, 0.0, 0.0],
-                    isEmissive: [0.0, 0.0, 0.0]
+                    isLamp: [0.0, 0.0, 0.0]
                 }
 
                 const position = vec3.fromValues(

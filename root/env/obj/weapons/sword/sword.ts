@@ -33,25 +33,25 @@ export class Sword extends WeaponBase {
     //Props
         private pos = {
             x: 5.0,
-            y: 1.0,
+            y: 0.0,
             z: 5.0
         }
 
         private size = {
-            w: 1.0,
-            h: 1.0,
-            d: 1.0
+            w: 1.5,
+            h: 1.5,
+            d: 1.
         }
 
         public cameraPos = {
-            x: 0.65,
-            y: -0.3,
-            z: 0.8
+            x: 0.45,
+            y: -0.8,
+            z: 0.5
         }
 
         public rotation = {
             upd: {
-                x: 60,
+                x: -6,
                 y: 0,
                 z: 0
             },

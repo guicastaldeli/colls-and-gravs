@@ -1,3 +1,8 @@
+* {
+    font-family: Helvetica, Sans-Serif;
+    font-size: 1.1rem;
+}
+
 html, body, #content {
     margin: 0;
     border: 0;
@@ -39,5 +44,5 @@ html, body {
 }
 
 #weapon-message {
-    color: rgb(189, 0, 0);        
+    color: rgb(192, 192, 192);        
 }

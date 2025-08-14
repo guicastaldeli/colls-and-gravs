@@ -4,13 +4,14 @@ import { EnvBufferData } from "./env-buffers.js";
 
 export class StructureManager {
     //Props
-    private size = {
-        w: 0.05,
-        h: 0.05,
-        d: 0.05,
-    }
+        private gap: number = 0.8;
 
-    private gap = 0.8;
+        private size = {
+            w: 0.05,
+            h: 0.05,
+            d: 0.05,
+        }
+    //
 
     public async createFromPattern(
         pattern: string[],

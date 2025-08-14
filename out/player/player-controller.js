@@ -6,7 +6,7 @@ export class PlayerController {
     tick;
     input;
     _initialPosition;
-    _position = vec3.fromValues(0, 3, 0);
+    _position = vec3.fromValues(10, 3, 10);
     _forward = vec3.fromValues(0, 0, -1);
     _up = vec3.fromValues(0, 1, 0);
     _right;

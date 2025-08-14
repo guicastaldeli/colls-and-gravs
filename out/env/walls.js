@@ -27,8 +27,8 @@ export class Walls {
     }
     async loadAssets() {
         try {
-            const model = await this.loader.parser('./assets/env/obj/404.obj');
-            const texture = await this.loader.textureLoader('./assets/env/textures/smile.png');
+            const model = await this.loader.parser('./assets/env/obj/walls.obj');
+            const texture = await this.loader.textureLoader('./assets/env/textures/walls.png');
             this.source.set(this.id, {
                 vertex: model.vertex,
                 color: model.color,
@@ -102,11 +102,19 @@ export class Walls {
         const patterns = {
             rightWall: {
                 pos: {
-                    x: 0.0,
+                    x: -2.0,
+                    y: 0.0,
+                    z: 19.0
+                },
+                pattern: patternData.patterns.wall.rightWall
+            },
+            leftWall: {
+                pos: {
+                    x: -2.0,
                     y: 0.0,
                     z: 0.0
                 },
-                pattern: patternData.patterns.wall.rightWall
+                pattern: patternData.patterns.wall.leftWall
             },
             ceiling: {
                 pos: {

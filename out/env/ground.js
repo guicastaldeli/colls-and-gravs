@@ -11,7 +11,7 @@ export class Ground {
         x: 0,
         y: 0,
         z: 0,
-        gap: () => 0.8
+        gap: () => 1.0
     };
     size = {
         w: 0.05,
@@ -25,8 +25,8 @@ export class Ground {
         this.blocks = [];
     }
     async createGround() {
-        const model = await this.loader.parser('./assets/env/obj/404.obj');
-        const texture = await this.loader.textureLoader('./assets/env/textures/404.png');
+        const model = await this.loader.parser('./assets/env/obj/terrain.obj');
+        const texture = await this.loader.textureLoader('./assets/env/textures/terrain.png');
         const sampler = this.loader.createSampler();
         for (let x = 0; x < this.count; x++) {
             for (let z = 0; z < this.count; z++) {
@@ -39,8 +39,7 @@ export class Ground {
                     normalMatrix: mat3.create(),
                     texture: texture,
                     sampler: sampler,
-                    isLamp: [0.0, 0.0, 0.0],
-                    isEmissive: [0.0, 0.0, 0.0]
+                    isLamp: [0.0, 0.0, 0.0]
                 };
                 const position = vec3.fromValues((this.pos.x + x) * this.pos.gap(), this.pos.y, (this.pos.z + z) * this.pos.gap());
                 mat4.identity(block.modelMatrix);

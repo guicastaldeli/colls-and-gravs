@@ -38,6 +38,19 @@ export class BoxCollider implements Collider {
     }
 
     public getBoundingBox(position?: vec3): { min: vec3; max: vec3; } {
+        if(!quat.equals(this._orientation, quat.create())) {
+            const corners = this.getCorners(position || this._offset, this._orientation);
+            const min = vec3.clone(corners[0]);
+            const max = vec3.clone(corners[0]);
+            
+            for(let i = 1; i < corners.length; i++) {
+                vec3.min(min, min, corners[i]);
+                vec3.max(max, max, corners[i]);
+            }
+
+            return { min, max }
+        }
+        
         const halfSize = vec3.create();
         vec3.scale(halfSize, this._size, 0.5);
         const center = position ? vec3.add(vec3.create(), position, this._offset) : this._offset;
@@ -56,13 +69,13 @@ export class BoxCollider implements Collider {
 
         const corners = [
             vec3.fromValues(-halfSize[0], -halfSize[1], -halfSize[2]),
-            vec3.fromValues( halfSize[0], -halfSize[1], -halfSize[2]),
-            vec3.fromValues(-halfSize[0],  halfSize[1], -halfSize[2]),
-            vec3.fromValues( halfSize[0],  halfSize[1], -halfSize[2]),
-            vec3.fromValues(-halfSize[0], -halfSize[1],  halfSize[2]),
-            vec3.fromValues( halfSize[0], -halfSize[1],  halfSize[2]),
-            vec3.fromValues(-halfSize[0],  halfSize[1],  halfSize[2]),
-            vec3.fromValues( halfSize[0],  halfSize[1],  halfSize[2])
+            vec3.fromValues(halfSize[0], -halfSize[1], -halfSize[2]),
+            vec3.fromValues(-halfSize[0], halfSize[1], -halfSize[2]),
+            vec3.fromValues(halfSize[0], halfSize[1], -halfSize[2]),
+            vec3.fromValues(-halfSize[0], -halfSize[1], halfSize[2]),
+            vec3.fromValues(halfSize[0], -halfSize[1], halfSize[2]),
+            vec3.fromValues(-halfSize[0], halfSize[1], halfSize[2]),
+            vec3.fromValues(halfSize[0], halfSize[1], halfSize[2])
         ];
 
         const rotatedCorners: vec3[] = [];
@@ -178,7 +191,7 @@ export class BoxCollider implements Collider {
         if(other instanceof BoxCollider) {
             if(!quat.equals(this._orientation, quat.create) ||
             (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
-                return this.checkOOBBCollision(
+                return this.checkOBBCollision(
                     this._offset,
                     this._size,
                     this._orientation,
@@ -201,7 +214,7 @@ export class BoxCollider implements Collider {
         return false;
     }
 
-    private checkOOBBCollision(
+    private checkOBBCollision(
         pos1: vec3,
         size1: vec3,
         rot1: quat,

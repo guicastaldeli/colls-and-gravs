@@ -16,6 +16,16 @@ export class BoxCollider {
             this._orientation = quat.clone(_orientation);
     }
     getBoundingBox(position) {
+        if (!quat.equals(this._orientation, quat.create())) {
+            const corners = this.getCorners(position || this._offset, this._orientation);
+            const min = vec3.clone(corners[0]);
+            const max = vec3.clone(corners[0]);
+            for (let i = 1; i < corners.length; i++) {
+                vec3.min(min, min, corners[i]);
+                vec3.max(max, max, corners[i]);
+            }
+            return { min, max };
+        }
         const halfSize = vec3.create();
         vec3.scale(halfSize, this._size, 0.5);
         const center = position ? vec3.add(vec3.create(), position, this._offset) : this._offset;
@@ -124,7 +134,7 @@ export class BoxCollider {
         if (other instanceof BoxCollider) {
             if (!quat.equals(this._orientation, quat.create) ||
                 (otherOrientation && !quat.equals(otherOrientation, quat.create()))) {
-                return this.checkOOBBCollision(this._offset, this._size, this._orientation, otherPosition || other._offset, other._size, otherOrientation || other._orientation);
+                return this.checkOBBCollision(this._offset, this._size, this._orientation, otherPosition || other._offset, other._size, otherOrientation || other._orientation);
             }
             const a = this.getBoundingBox();
             const b = other.getBoundingBox(otherPosition);
@@ -134,7 +144,7 @@ export class BoxCollider {
         }
         return false;
     }
-    checkOOBBCollision(pos1, size1, rot1, pos2, size2, rot2) {
+    checkOBBCollision(pos1, size1, rot1, pos2, size2, rot2) {
         const axes = [];
         const mat1 = mat4.fromQuat(mat4.create(), rot1);
         const mat2 = mat4.fromQuat(mat4.create(), rot2);

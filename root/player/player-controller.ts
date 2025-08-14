@@ -11,7 +11,7 @@ export class PlayerController implements ICollidable {
     private input: Input;
 
     private _initialPosition: vec3;
-    private _position: vec3 = vec3.fromValues(0, 3, 0);
+    private _position: vec3 = vec3.fromValues(10, 3, 10);
     private _forward: vec3 = vec3.fromValues(0, 0, -1);
     private _up: vec3 = vec3.fromValues(0, 1, 0);
     private _right: vec3;

@@ -50,7 +50,7 @@ let LaserGun = class LaserGun extends WeaponBase {
         d: 1.0
     };
     cameraPos = {
-        x: 0.65,
+        x: 0.55,
         y: -0.8,
         z: 0.8
     };
