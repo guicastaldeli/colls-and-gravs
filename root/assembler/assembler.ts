@@ -57,29 +57,38 @@ export class Assembler {
             const trimmed = this.removeComments(line).trim();
             if(!trimmed) continue;
 
-            if(trimmed.endsWith(':')) {
-                const labelName = trimmed.slice(0, -1).trim();
+            if(trimmed.startsWith(':')) {
+                const labelName = trimmed.slice(1).trim();
                 labels[labelName] = currentAddr;
                 continue;
             }
 
+            const [mnemonic] = this.splitInstruction(trimmed);
+            if(mnemonic && this.opcodes[mnemonic.toUpperCase()] !== undefined) currentAddr++;
+        }
+
+        currentAddr = 0;
+        for(const line of lines) {
+            const trimmed = this.removeComments(line).trim();
+            if(!trimmed) continue;
+            if(trimmed.startsWith(':')) continue;
+
             const [mnemonic, operands] = this.splitInstruction(trimmed);
             const opcode = this.opcodes[mnemonic.toUpperCase()];
-            if(opcode === undefined) throw new Error(`Unkown mnemonic ${mnemonic}`);
+            if(opcode === undefined) throw new Error(`Unknown mnemonic ${mnemonic}`);
 
             if(operands) {
                 const [a, b] = this.parseOperands(operands, currentAddr, labelRefs, output.length);
                 const instruction = opcode | (a << 4) | (b << 10);
                 output.push(instruction);
-                currentAddr++;
             } else {
                 output.push(opcode);
-                currentAddr++;
             }
+            currentAddr++;
         }
 
         for(const ref of labelRefs) {
-            const targetAddr = labelRefs[ref.label];
+            const targetAddr = labels[ref.label];
             if(targetAddr === undefined) throw new Error(`Undefined label ${ref.label}`);
             output[ref.addr] = targetAddr;
         }

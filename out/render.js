@@ -567,7 +567,8 @@ async function errorHandler() {
 async function renderEnv(deltaTime) {
     if (!envRenderer) {
         envRenderer = new EnvRenderer(device, loader, shaderLoader, objectManager);
-        await envRenderer.render(deltaTime);
+        await envRenderer.render();
+        await envRenderer.update(deltaTime);
         objectManager.deps.ground = envRenderer.ground;
     }
 }
@@ -737,6 +738,10 @@ export async function render(canvas) {
         if (!functionManager)
             functionManager = new FunctionManager(tick, objectManager, weaponRenderer, playerController, hud);
         functionManager.init(deltaTime);
+        /*** Computer update... ***/
+        const computerInstance = await objectManager.getObject('computer');
+        if (computerInstance && 'update' in computerInstance)
+            computerInstance.update(deltaTime);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
         requestAnimationFrame(() => render(canvas));

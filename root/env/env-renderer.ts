@@ -97,6 +97,14 @@ export class EnvRenderer {
         passEncoder.drawIndexed(buffers.indexCount);
     }
 
+    public async update(deltaTime: number): Promise<void> {
+        if(!this.objectManager) return;
+
+        /*** Computer update... ***/
+        const computerInstance = await this.objectManager.getObject('computer');
+        if(computerInstance && 'update' in computerInstance) computerInstance.update(deltaTime);
+    }
+
     public async get(): Promise<EnvBufferData[]> {
         const renderers = [
             ...this.ground.getBlocks(),
@@ -104,20 +112,31 @@ export class EnvRenderer {
         ];
 
         if(this.objectManager) {
+            //Lamp
             const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if(lampBuffers) renderers.push(...lampBuffers);
+
+            //Computer
+            const computerBuffers = await this.objectManager.setObjectBuffer('computer');
+            if(computerBuffers) renderers.push(...computerBuffers);
         }
 
         return renderers;
     }
 
-    public async render(deltaTime: number): Promise<void> {
+    public async render(): Promise<void> {
+        //Ground
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
         
+        //Walls
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
 
+        //Lamp
         if(this.objectManager) await this.objectManager.createObject('lamp');
+
+        //Computer
+        if(this.objectManager) await this.objectManager.createObject('computer');
     }
 }

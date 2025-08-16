@@ -13,6 +13,7 @@ import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
 import { Sword } from "./weapons/sword/sword.js";
 import { LaserGun } from "./weapons/laser-gun/laser-gun.js";
+import { EnvComputer } from "./computer/env-computer.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -80,6 +81,10 @@ let ObjectManager = class ObjectManager {
             await instance.init(deps.canvas, deps.format, deps.playerController);
         });
         //
+        //Computer
+        this.registerType('computer', EnvComputer, async (instance, deps) => {
+            await instance.init();
+        });
     }
     resolveDependencies(constructor) {
         const paramTypes = Reflect.getMetadata('design:paramtypes', constructor) || [];

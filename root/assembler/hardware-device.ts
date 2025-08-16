@@ -11,6 +11,10 @@ export abstract class HardwareDevice {
         this.cpu = cpu;
     }
 
+    public connect(cpu: C16) {
+        this.cpu = cpu;
+    }
+
     public interrupt(msg: number): void {
         if(this.cpu.registers.IA !== 0) {
             this.cpu.memory.write(--this.cpu.registers.SP, this.cpu.registers.PC);

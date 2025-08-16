@@ -39,7 +39,7 @@ let Sword = class Sword extends WeaponBase {
     size = {
         w: 1.5,
         h: 1.5,
-        d: 1.
+        d: 1.0
     };
     cameraPos = {
         x: 0.45,

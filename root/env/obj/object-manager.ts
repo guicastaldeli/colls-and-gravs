@@ -5,6 +5,7 @@ import { RandomBlocks } from "./random-blocks/random-blocks.js";
 import { Lamp } from "./lamp/lamp.js";
 import { Sword } from "./weapons/sword/sword.js";
 import { LaserGun } from "./weapons/laser-gun/laser-gun.js";
+import { EnvComputer } from "./computer/env-computer.js";
 import { Tick } from "../../tick.js";
 import { Loader } from "../../loader.js";
 import { ShaderLoader } from "../../shader-loader.js";
@@ -26,13 +27,15 @@ export type List =
 RandomBlocks | 
 Lamp | 
 Sword |
-LaserGun;
+LaserGun |
+EnvComputer;
 
 type Types = 
 'randomBlocks' | 
 'lamp' | 
 'sword' | 
-'lasergun';
+'lasergun' |
+'computer';
 
 interface Dependencies {
     tick: Tick;
@@ -118,6 +121,11 @@ export class ObjectManager {
                 await(instance as LaserGun).init(deps.canvas, deps.format, deps.playerController!);
             });
         //
+
+        //Computer
+        this.registerType('computer', EnvComputer, async (instance, deps) => {
+            await(instance as EnvComputer).init();
+        });
     }
 
     private resolveDependencies(constructor: new (...args: any[]) => any): any[] {

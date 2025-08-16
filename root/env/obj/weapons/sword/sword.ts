@@ -40,7 +40,7 @@ export class Sword extends WeaponBase {
         private size = {
             w: 1.5,
             h: 1.5,
-            d: 1.
+            d: 1.0
         }
 
         public cameraPos = {

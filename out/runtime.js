@@ -5,14 +5,13 @@ export class Runtime {
     constructor(memorySystem, hardwareManager) {
         this.memorySystem = memorySystem;
         this.hardwareManager = hardwareManager;
+        this.createSandbox();
     }
     createSandbox() {
         this.sandbox = {
             //Memory
             peek: (addr) => this.memorySystem.read(addr),
-            poke: (addr, value) => this.memorySystem.write(addr, value)
-            //Hardware
-            ,
+            poke: (addr, value) => this.memorySystem.write(addr, value),
             //Hardware
             getDisplay: () => this.hardwareManager.getDevice(0x7349f615),
             getKeyboard: () => this.hardwareManager.getDevice(0x30cf7406),

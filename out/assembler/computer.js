@@ -32,8 +32,8 @@ export class Computer {
         this.hardware.registerDevice(keyboard);
         this.hardware.registerDevice(clock);
         display.connect();
-        keyboard.connect();
-        clock.connect();
+        keyboard.connect(this.cpu);
+        clock.connect(this.cpu);
     }
     loadAssembly(source) {
         const program = this.assembler.assemble(source);

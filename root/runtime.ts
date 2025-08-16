@@ -1,3 +1,6 @@
+import { MemorySystem } from "./assembler/memory-system.js";
+import { HardwareManager } from "./assembler/hardware-manager.js";
+
 export class Runtime {
     private sandbox: any;
     private memorySystem: MemorySystem;
@@ -6,21 +9,22 @@ export class Runtime {
     constructor(memorySystem: MemorySystem, hardwareManager: HardwareManager) {
         this.memorySystem = memorySystem;
         this.hardwareManager = hardwareManager;
+        this.createSandbox();
     }
 
     private createSandbox(): void {
         this.sandbox = {
             //Memory
             peek: (addr: number) => this.memorySystem.read(addr),
-            poke: (addr: number, value: number) => this.memorySystem.write(addr, value)
+            poke: (addr: number, value: number) => this.memorySystem.write(addr, value),
             
             //Hardware
             getDisplay: () => this.hardwareManager.getDevice(0x7349f615),
-            getKeyboard: () => this.hardwareManager.getDevice(0x30cf7406)
+            getKeyboard: () => this.hardwareManager.getDevice(0x30cf7406),
 
             Math: Math,
             Array: Array,
-            Uint16Array: Uint16Array
+            Uint16Array: Uint16Array,
             fetch: undefined,
             XMLHttpRequest: undefined,
             process: undefined,

@@ -14,6 +14,10 @@ export class Clock extends HardwareDevice {
         this.lastTickTime = performance.now();
     }
 
+    public connect(cpu: C16): void {
+        super.connect(cpu);
+    }
+
     public update(): void {
         const now = performance.now();
         const delta = now - this.lastTickTime;

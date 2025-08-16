@@ -52,7 +52,7 @@ export class Display extends HardwareDevice {
 
     public update(): void {
         if(!this.needsUpdate) return;
-        const textureBuffer = new Uint8Array(this.textureData.buffer);
+        const textureBuffer = new Uint8Array(this.textureData.buffer as ArrayBuffer);
 
         this.device.queue.writeTexture(
             { texture: this.texture },

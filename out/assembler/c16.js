@@ -154,4 +154,20 @@ export class C16 {
         }
         throw new Error(`Invalid param value: 0x${param.toString(16)}`);
     }
+    reset() {
+        this.registers = {
+            A: 0,
+            B: 0,
+            C: 0,
+            X: 0,
+            Y: 0,
+            Z: 0,
+            I: 0,
+            J: 0,
+            PC: 0,
+            SP: 0xFFFF,
+            EX: 0,
+            IA: 0
+        };
+    }
 }

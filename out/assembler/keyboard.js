@@ -9,6 +9,9 @@ export class Keyboard extends HardwareDevice {
         super(device, cpu);
         this.setupEventListeners();
     }
+    connect(cpu) {
+        super.connect(cpu);
+    }
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
         document.addEventListener('keydown', (e) => this.handleKeyUp(e));

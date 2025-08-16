@@ -27,7 +27,7 @@ const createWindow = () => {
   })
 
   win.loadFile('./root/index.html')
-  win.setMenuBarVisibility(false);
+  win.setMenuBarVisibility(true);
 
   win.webContents.on('before-input-event', (event, input) => {
     if(input.key === 'f' && input.type === 'keyDown') {

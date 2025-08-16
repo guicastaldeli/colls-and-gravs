@@ -13,6 +13,10 @@ export class Keyboard extends HardwareDevice {
         this.setupEventListeners();
     }
 
+    public connect(cpu: C16): void {
+        super.connect(cpu);
+    }
+
     private setupEventListeners(): void {
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
         document.addEventListener('keydown', (e) => this.handleKeyUp(e));

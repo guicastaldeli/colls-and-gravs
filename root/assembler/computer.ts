@@ -38,8 +38,8 @@ export class Computer {
         this.hardware.registerDevice(clock);
         
         display.connect();
-        keyboard.connect();
-        clock.connect();
+        keyboard.connect(this.cpu);
+        clock.connect(this.cpu);
     }
 
     public loadAssembly(source: string): void {

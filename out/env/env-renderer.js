@@ -62,24 +62,43 @@ export class EnvRenderer {
         passEncoder.setBindGroup(0, bindGroup, [offset]);
         passEncoder.drawIndexed(buffers.indexCount);
     }
+    async update(deltaTime) {
+        if (!this.objectManager)
+            return;
+        /*** Computer update... ***/
+        const computerInstance = await this.objectManager.getObject('computer');
+        if (computerInstance && 'update' in computerInstance)
+            computerInstance.update(deltaTime);
+    }
     async get() {
         const renderers = [
             ...this.ground.getBlocks(),
             ...this.walls.getBlocks(),
         ];
         if (this.objectManager) {
+            //Lamp
             const lampBuffers = await this.objectManager.setObjectBuffer('lamp');
             if (lampBuffers)
                 renderers.push(...lampBuffers);
+            //Computer
+            const computerBuffers = await this.objectManager.setObjectBuffer('computer');
+            if (computerBuffers)
+                renderers.push(...computerBuffers);
         }
         return renderers;
     }
-    async render(deltaTime) {
+    async render() {
+        //Ground
         this.ground = new Ground(this.device, this.loader);
         await this.ground.init();
+        //Walls
         this.walls = new Walls(this.device, this.loader);
         await this.walls.init();
+        //Lamp
         if (this.objectManager)
             await this.objectManager.createObject('lamp');
+        //Computer
+        if (this.objectManager)
+            await this.objectManager.createObject('computer');
     }
 }
