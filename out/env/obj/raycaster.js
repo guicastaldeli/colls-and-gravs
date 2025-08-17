@@ -1,6 +1,7 @@
 import { vec3, quat } from "../../../node_modules/gl-matrix/esm/index.js";
 export class Raycaster {
     boxCollider;
+    enabled = true;
     constructor(boxCollider) {
         this.boxCollider = boxCollider;
     }
@@ -39,6 +40,8 @@ export class Raycaster {
         return { hit: false };
     }
     getRayOBBIntersect(rayOrigin, rayDirection, center, halfSize, orientation) {
+        if (!this.enabled)
+            return undefined;
         const invRotation = quat.conjugate(quat.create(), orientation);
         const localRayOrigin = vec3.transformQuat(vec3.create(), vec3.sub(vec3.create(), rayOrigin, center), invRotation);
         const localRayDir = vec3.transformQuat(vec3.create(), rayDirection, invRotation);
@@ -58,6 +61,8 @@ export class Raycaster {
         return result;
     }
     rayAABBIntersect(rayOrigin, rayDirection, boxMin, boxMax) {
+        if (!this.enabled)
+            return undefined;
         let tmin = -Infinity;
         let tmax = Infinity;
         const normal = vec3.create();

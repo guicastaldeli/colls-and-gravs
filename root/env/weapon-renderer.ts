@@ -6,6 +6,7 @@ import { WeaponBase } from "./obj/weapons/weapon-base.js";
 import { ArmController } from "../player/arm-controller.js";
 import { Ground } from "./ground.js";
 import { LaserProjectile } from "./obj/weapons/laser-gun/laser-projectile.js";
+import { EventEmitter } from "../event-emitter.js";
 
 interface WeaponDropConfig {
     groundOffset: number;
@@ -18,6 +19,7 @@ export class WeaponRenderer {
     private playerController: PlayerController;
     private armController: ArmController;
     private ground: Ground;
+    private randomBlocks: any;
 
     private weapons: Map<string, WeaponBase> = new Map();
     private weaponDropConfig: Map<string, WeaponDropConfig> = new Map();
@@ -94,14 +96,18 @@ export class WeaponRenderer {
         for(const [name, weapon] of this.weapons) {
             if(weapon.isTargeted) {
                 if(this.currentWeapon) await this.dropCurrentWeapon();
+                
                 weapon.disableTarget();
                 weapon.equip();
                 weapon.setRenderVisible(false);
                 weapon.setFunctional(true);
+
                 this.currentWeapon = weapon;
                 await this.armController.setWeapon(weapon);
                 this.pickedWeapons.add(name);
                 this.hideMessage();
+                
+                EventEmitter.getInstance().emit('setRaycasterEnabled', false);
                 break;
             }
         }
@@ -136,6 +142,7 @@ export class WeaponRenderer {
 
         await this.armController.setWeapon(null);
         this.currentWeapon = null;
+        EventEmitter.getInstance().emit('setRaycasterEnabled', true);
     }
 
     public async addWeapon(name: string, weapon: WeaponBase): Promise<void> {

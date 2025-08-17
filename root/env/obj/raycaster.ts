@@ -3,6 +3,7 @@ import { BoxCollider } from "../../collision/collider.js";
 
 export class Raycaster {
     private boxCollider?: BoxCollider;
+    public enabled: boolean = true;
 
     constructor(boxCollider?: BoxCollider) {
         this.boxCollider = boxCollider
@@ -39,7 +40,7 @@ export class Raycaster {
             rayDirection,
             bbox.min,
             bbox.max
-        );
+        )!;
     }
 
     private rayOBBIntersect(
@@ -76,7 +77,7 @@ export class Raycaster {
             localRayDir,
             boxMin,
             boxMax
-        );
+        )!;
 
         if(result.hit && result.face) {
             const worldNormal = vec3.transformQuat(
@@ -117,7 +118,9 @@ export class Raycaster {
         distance?: number,
         normal?: vec3,
         face?: number
-    } {
+    } | undefined {
+        if(!this.enabled) return undefined;
+
         const invRotation = quat.conjugate(quat.create(), orientation);
         const localRayOrigin = vec3.transformQuat(
             vec3.create(),
@@ -137,9 +140,9 @@ export class Raycaster {
             localRayDir,
             boxMin,
             boxMax
-        );
+        )!;
 
-        if (result.hit && result.face) {
+        if(result.hit && result.face) {
             const worldNormal = vec3.transformQuat(
                 vec3.create(),
                 result.face,
@@ -169,7 +172,9 @@ export class Raycaster {
         normal?: vec3,
         face?: number,
         point?: vec3
-    } {
+    } | undefined {
+        if(!this.enabled) return undefined;
+
         let tmin = -Infinity;
         let tmax = Infinity;
         const normal = vec3.create();

@@ -20,14 +20,14 @@ export class EnvComputer {
 
     private pos = {
         x: 5.0,
-        y: 2.0,
+        y: 3.0,
         z: 5.0
     }
 
     private size = {
-        w: 1.5,
-        h: 1.5,
-        d: 1.5
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     }
 
     constructor(device: GPUDevice, loader: Loader) {
@@ -53,7 +53,7 @@ export class EnvComputer {
     private async loadAssets(): Promise<void> {
         try {
             const [model] = await Promise.all([
-                this.loader.parser('./.assets/env/obj/earth.obj'),
+                this.loader.parser('./.assets/env/obj/smile.obj'),
                 this.loadProgram()
             ]);
 

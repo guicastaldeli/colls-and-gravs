@@ -17,6 +17,7 @@ import { PhysicsGrid } from "../../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
 import { ListType } from "./list-type.js";
 import { Ground } from "../../ground.js";
+import { EventEmitter } from "../../../event-emitter.js";
 
 interface BlockData {
     id: string,
@@ -116,6 +117,10 @@ export class RandomBlocks implements ICollidable {
         this.physicsGrid = new PhysicsGrid(2.0);
 
         this.ground = ground;
+
+        EventEmitter.getInstance().on('setRaycasterEnabled', (enabled: boolean) => {
+            this.setRaycasterEnabled(enabled);
+        });
     }
 
     public async preloadAssets(): Promise<void> {
@@ -271,6 +276,11 @@ export class RandomBlocks implements ICollidable {
         ));
     }
 
+    public setRaycasterEnabled(enabled: boolean): void {
+        this.raycaster.enabled = enabled;
+        if(!enabled) this.targetBlockIndex = -1;
+    }
+
     public updateTargetBlock(playerController: PlayerController): void {
         this.targetBlockIndex = -1;
         const maxDistance = 5.0;
@@ -305,9 +315,11 @@ export class RandomBlocks implements ICollidable {
                 physicsObj?.position,
                 halfSize,
                 physicsObj?.orientation
-            );
+            )!;
 
-            if(intersection.hit &&
+            if(
+                intersection &&
+                intersection.hit &&
                 intersection.distance !== undefined &&
                 intersection.distance < maxDistance &&
                 intersection.distance < closestDistance

@@ -53,6 +53,29 @@ export class C16 {
                 this.registers.EX = (signedProduct >> 16) & 0xFFFF;
                 this.setValue(a, signedProduct & 0xFFFF);
                 break;
+            case 0x0a:
+                this.setValue(a, this.getValue(a) & this.getValue(b));
+                break;
+            case 0x0b:
+                this.setValue(a, this.getValue(a) | this.getValue(b));
+                break;
+            case 0x0c:
+                this.setValue(a, this.getValue(a) ^ this.getValue(b));
+                break;
+            case 0x0d:
+                const shrResult = this.getValue(a) >>> this.getValue(b);
+                this.registers.EX = ((this.getValue(a) << (16 - this.getValue(b))) & 0xFFFF);
+                this.setValue(a, shrResult);
+            case 0x0e:
+                const asrResult = this.getSignedValue(a) >> this.getValue(b);
+                this.registers.EX = ((this.getValue(a) << (16 - this.getValue(b))) & 0xFFFF);
+                this.setValue(a, asrResult & 0xFFFF);
+                break;
+            case 0x0f:
+                const shlResult = this.getValue(a) << this.getValue(b);
+                this.registers.EX = ((this.getValue(a) << (16 - this.getValue(b))) & 0xFFFF);
+                this.setValue(a, shlResult & 0xFFFF);
+                break;
             default:
                 throw new Error(`Unknow opcode 0x${opcode.toString(16)}`);
         }

@@ -22,6 +22,7 @@ import { PhysicsObject } from "../../../physics/physics-object.js";
 import { PhysicsGrid } from "../../../physics/physics-grid.js";
 import { ListData, getRandomItem } from "./list.js";
 import { Ground } from "../../ground.js";
+import { EventEmitter } from "../../../event-emitter.js";
 let RandomBlocks = class RandomBlocks {
     tick;
     device;
@@ -75,6 +76,9 @@ let RandomBlocks = class RandomBlocks {
         this.physicsSystem = new PhysicsSystem(ground);
         this.physicsGrid = new PhysicsGrid(2.0);
         this.ground = ground;
+        EventEmitter.getInstance().on('setRaycasterEnabled', (enabled) => {
+            this.setRaycasterEnabled(enabled);
+        });
     }
     async preloadAssets() {
         for (const item of ListData) {
@@ -196,6 +200,11 @@ let RandomBlocks = class RandomBlocks {
         const size = this.currentItem.size;
         this.raycaster.setCollider(new BoxCollider([size.w, size.h, size.d], [0, 0, 0]));
     }
+    setRaycasterEnabled(enabled) {
+        this.raycaster.enabled = enabled;
+        if (!enabled)
+            this.targetBlockIndex = -1;
+    }
     updateTargetBlock(playerController) {
         this.targetBlockIndex = -1;
         const maxDistance = 5.0;
@@ -222,7 +231,8 @@ let RandomBlocks = class RandomBlocks {
                 depth,
             ], 1.0);
             const intersection = this.raycaster.getRayOBBIntersect(rayOrigin, rayDirection, physicsObj?.position, halfSize, physicsObj?.orientation);
-            if (intersection.hit &&
+            if (intersection &&
+                intersection.hit &&
                 intersection.distance !== undefined &&
                 intersection.distance < maxDistance &&
                 intersection.distance < closestDistance) {

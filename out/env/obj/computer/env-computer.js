@@ -24,13 +24,13 @@ let EnvComputer = class EnvComputer {
     initPromise;
     pos = {
         x: 5.0,
-        y: 2.0,
+        y: 3.0,
         z: 5.0
     };
     size = {
-        w: 1.5,
-        h: 1.5,
-        d: 1.5
+        w: 0.2,
+        h: 0.2,
+        d: 0.2
     };
     constructor(device, loader) {
         this.computer = new Computer(device);
@@ -54,7 +54,7 @@ let EnvComputer = class EnvComputer {
     async loadAssets() {
         try {
             const [model] = await Promise.all([
-                this.loader.parser('./.assets/env/obj/earth.obj'),
+                this.loader.parser('./.assets/env/obj/smile.obj'),
                 this.loadProgram()
             ]);
             if (!model)

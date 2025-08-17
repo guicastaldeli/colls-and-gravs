@@ -63,8 +63,9 @@ export class Assembler {
                 continue;
             }
 
-            const [mnemonic] = this.splitInstruction(trimmed);
-            if(mnemonic && this.opcodes[mnemonic.toUpperCase()] !== undefined) currentAddr++;
+            const [mnemonic, operands] = this.splitInstruction(trimmed);
+            if(!mnemonic) continue;
+            currentAddr += this.calculateInstructionSize(mnemonic, operands);
         }
 
         currentAddr = 0;
@@ -74,13 +75,20 @@ export class Assembler {
             if(trimmed.startsWith(':')) continue;
 
             const [mnemonic, operands] = this.splitInstruction(trimmed);
+            if(!mnemonic) continue;
+
             const opcode = this.opcodes[mnemonic.toUpperCase()];
             if(opcode === undefined) throw new Error(`Unknown mnemonic ${mnemonic}`);
 
             if(operands) {
-                const [a, b] = this.parseOperands(operands, currentAddr, labelRefs, output.length);
+                const [a, b, extraWords] = this.parseOperands(operands, currentAddr, labelRefs, output.length);
                 const instruction = opcode | (a << 4) | (b << 10);
                 output.push(instruction);
+
+                for(const word of extraWords) {
+                    output.push(word);
+                    currentAddr++;
+                }
             } else {
                 output.push(opcode);
             }
@@ -96,46 +104,79 @@ export class Assembler {
         return new Uint16Array(output);
     }
 
+    private calculateInstructionSize(mnemonic: string, operands?: string): number {
+        if(!operands) return 1;
+
+        const [a, b] = operands.split(',').map(op => op.trim());
+        let size = 1;
+        if(a && this.needsExtraWord(a)) size++;
+        if(b && this.needsExtraWord(b)) size++;
+        return size;
+    }
+
+    private needsExtraWord(operand: string): boolean {
+        if(operand.startsWith('[') && operand.endsWith(']')) {
+            const inner = operand.slice(1, -1).trim();
+            return !(inner in this.registers) && !(inner in this.specialRegisters);
+        }
+        return this.parseLiteral(operand) > 0x1f;
+    }
+
     private parseOperands(
         operands: string,
         currentAddr: number,
         labelRefs: { addr: number; label: string }[],
         outputLength: number
-    ): [number, number] {
+    ): [number, number, number[]] {
         const [a, b] = operands.split(',').map(op => op.trim());
-        return [
-            this.parseOperand(a, currentAddr, labelRefs, outputLength),
-            this.parseOperand(b, currentAddr, labelRefs, outputLength)
-        ];
+        const extraWords: number[] = [];
+
+        const aParam = this.parseOperand(a, currentAddr, labelRefs, outputLength, extraWords);
+        const bParam = this.parseOperand(b, currentAddr, labelRefs, outputLength, extraWords);
+        return [aParam, bParam, extraWords];
     }
 
     private parseOperand(
         op: string,
         currentAddr: number,
         labelRefs: { addr: number; label: string }[],
-        outputLength: number
+        outputLength: number,
+        extraWords: number[]
     ): number {
         if(!op) return 0;
         if(op in this.registers) return this.registers[op];
         if(op in this.specialRegisters) return this.specialRegisters[op];
         if(op.startsWith('[') && op.endsWith(']')) {
-            const reg = op.slice(1, -1).trim();
-            if(reg in this.registers) return 0x08 + this.registers[reg];
-            if(reg in this.specialRegisters) return 0x08 + this.specialRegisters[reg];
+            const inner = op.slice(1, -1).trim();
+            if(inner in this.registers) return 0x08 + this.registers[inner];
+            if(inner in this.specialRegisters) return 0x08 + this.specialRegisters[inner];
+
+            const literal = this.parseLiteralOrLabel(inner, labelRefs, outputLength + extraWords.length);
+            extraWords.push(literal);
             return 0x1e;
         }
 
-        const literal = this.parseLiteral(op);
-        if(literal >= 0) {
-            if(literal <= 0x1f) return 0x20 + literal;
-            return 0x1f;
-        }
+        /* <---- HERE!!!!!!!!!!!!!!!!!!!!!!!!!!! (fix later)
+        const literal = this.parseLiteralOrLabel(op, labelRefs, outputLength + extraWords.length);
+        if(literal <= 0x1f) return 0x20 + literal;
+        extraWords.push(literal);
+        */
+        return 0x1f;
+    }
+
+    private parseLiteralOrLabel(
+        value: string,
+        labelRefs: { addr: number; label: string }[],
+        extraWordIndex: number
+    ): number {
+        const literal = this.parseLiteral(value);
+        if(literal >= 0) return literal;
 
         labelRefs.push({
-            addr: currentAddr + outputLength,
-            label: op
+            addr: extraWordIndex,
+            label: value
         });
-        return 0x1f;
+        return 0;
     }
 
     private parseLiteral(value: string): number {

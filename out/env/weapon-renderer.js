@@ -1,10 +1,12 @@
 import { vec3 } from "../../node_modules/gl-matrix/esm/index.js";
+import { EventEmitter } from "../event-emitter.js";
 export class WeaponRenderer {
     device;
     objectManager;
     playerController;
     armController;
     ground;
+    randomBlocks;
     weapons = new Map();
     weaponDropConfig = new Map();
     projectiles = [];
@@ -75,6 +77,7 @@ export class WeaponRenderer {
                 await this.armController.setWeapon(weapon);
                 this.pickedWeapons.add(name);
                 this.hideMessage();
+                EventEmitter.getInstance().emit('setRaycasterEnabled', false);
                 break;
             }
         }
@@ -102,6 +105,7 @@ export class WeaponRenderer {
         this.currentWeapon.unequip();
         await this.armController.setWeapon(null);
         this.currentWeapon = null;
+        EventEmitter.getInstance().emit('setRaycasterEnabled', true);
     }
     async addWeapon(name, weapon) {
         this.weapons.set(name, weapon);
