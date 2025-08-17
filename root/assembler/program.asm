@@ -1,12 +1,26 @@
 ; Keyboard
-SET A, 0
-SET [0x9000], A
+SET A, 0x8000 ; VRAM
+SET [0x0000], A ; MAP_SCREEN
 
-; Clock
-SET A, 60
-SET [0x9002], A
-SET [0x9001], 1
+SET A, 0x4000 ; FONT
+SET [0x0001], A ; MAP_FONT
 
-; Loop
+SET A, 0x3000 ; PALETTE
+SET [0x0002], A ; MAP_PALETTE
+
+SET I, 0
+:palette_loop
+SET [0x3000 + I], I
+ADD I, 1
+IFG 16, I
+SET PC, palette_loop
+
+SET I, 0
+:fill_loop
+SET [0x8000 + I], 0xF020 + (I & 0x1F)
+ADD I, 1
+IFG 256, I
+SET PC, fill_loop
+
 :loop
 SET PC, loop

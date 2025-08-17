@@ -9,7 +9,7 @@ import { Keyboard } from "./keyboard.js";
 
 export class Computer {
     private device: GPUDevice;
-    private cpu: C16;
+    public cpu: C16;
     private memory: MemorySystem;
     private hardware: HardwareManager;
     private runtime: Runtime;

@@ -11,20 +11,23 @@ export class EnvComputer {
     private asmLoader: AsmLoader;
     private loader: Loader;
     private displayTexture!: GPUTexture;
-    private buffers!: EnvBufferData;
+    private model: any;
+    private texture!: GPUTexture;
     private modelMatrix: mat4;
+
     private isInit: boolean = false;
+    private initPromise: Promise<void>;
 
     private pos = {
         x: 5.0,
-        y: 0.0,
+        y: 2.0,
         z: 5.0
     }
 
     private size = {
         w: 1.5,
         h: 1.5,
-        d: 1.0
+        d: 1.5
     }
 
     constructor(device: GPUDevice, loader: Loader) {
@@ -32,31 +35,32 @@ export class EnvComputer {
         this.asmLoader = new AsmLoader();
         this.loader = loader;
         this.modelMatrix = mat4.create();
+        this.displayTexture = this.computer.getDisplayTexture();
+        this.initPromise = this.mainInit();
     }
 
-    private async loadAssets(): Promise<EnvBufferData> {
+    private async mainInit(): Promise<void> {
+        try {
+            await this.loadAssets();
+            await this.setComputer();
+            this.isInit = true;
+        } catch(err) {
+            console.error(err);
+            throw err;
+        }
+    }
+
+    private async loadAssets(): Promise<void> {
         try {
             const [model] = await Promise.all([
-                this.loader.parser('./.assets/env/obj/smile.obj'),
+                this.loader.parser('./.assets/env/obj/earth.obj'),
                 this.loadProgram()
             ]);
 
-            const lamp: EnvBufferData = {
-                vertex: model.vertex,
-                color: model.color,
-                index: model.index,
-                indexCount: model.indexCount,
-                modelMatrix: this.modelMatrix,
-                normalMatrix: mat3.create(),
-                texture: this.displayTexture,
-                sampler: this.loader.createSampler(),
-                isLamp: [1.0, 1.0, 1.0],
-                isEmissive: [0.0, 0.0, 0.0]
-            }
-
-            return lamp;
+            if(!model) throw new Error('err');
+            this.model = model;
         } catch(err) {
-            console.error(err);
+            console.log(err);
             throw err;
         }
     }
@@ -85,30 +89,25 @@ export class EnvComputer {
         }
     }
 
-    public async getBuffers(): Promise<EnvBufferData | undefined> {
-        if(!this.isInit) throw new Error('not init yet!');
+    public async getBuffers(): Promise<EnvBufferData> {
+        if(!this.isInit) await this.initPromise;
+        if(!this.model) throw new Error('computer model not loaded!');
 
         try {
             await this.setComputer();
 
-            const normalMatrix = mat3.create();
-            mat3.normalFromMat4(normalMatrix, this.buffers.modelMatrix);
-            this.buffers.normalMatrix = normalMatrix;
-
-            const buffers: EnvBufferData = {
-                vertex: this.buffers.vertex,
-                color: this.buffers.color,
-                index: this.buffers.index,
-                indexCount: this.buffers.indexCount,
+            return {
+                vertex: this.model.vertex,
+                color: this.model.color,
+                index: this.model.index,
+                indexCount: this.model.indexCount,
                 modelMatrix: this.modelMatrix,
-                normalMatrix: normalMatrix,
+                normalMatrix: this.model.normalMatrix,
                 texture: this.displayTexture,
                 sampler: this.loader.createSampler(),
                 isLamp: [0.0, 0.0, 0.0],
                 isEmissive: [0.0, 0.0, 0.0]
             }
-
-            return buffers;
         } catch(err) {
             console.error('Err computer', err);
             throw err;
@@ -121,8 +120,6 @@ export class EnvComputer {
     }
 
     public async init(): Promise<void> {
-        this.displayTexture = this.computer.getDisplayTexture();
-        this.buffers = await this.loadAssets();
-        this.isInit = true;
+        return this.initPromise;
     }
 }

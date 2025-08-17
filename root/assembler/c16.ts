@@ -35,6 +35,8 @@ export class C16 {
         const b = (instruction >> 10) & 0x3F;
 
         switch(opcode) {
+            case 0x00:
+                break;
             case 0x01:
                 this.setValue(a, this.getValue(b));
                 break;
@@ -57,6 +59,7 @@ export class C16 {
                 const signedProduct = this.getSignedValue(a) * this.getSignedValue(b);
                 this.registers.EX = (signedProduct >> 16) & 0xFFFF;
                 this.setValue(a, signedProduct & 0xFFFF);
+                break;
             default:
                 throw new Error(`Unknow opcode 0x${opcode.toString(16)}`);
         }

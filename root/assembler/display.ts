@@ -51,9 +51,10 @@ export class Display extends HardwareDevice {
     }
 
     public update(): void {
-        if(!this.needsUpdate) return;
-        const textureBuffer = new Uint8Array(this.textureData.buffer as ArrayBuffer);
+        //if(!this.needsUpdate) return;
+        this.renderToTexture();
 
+        const textureBuffer = new Uint8Array(this.textureData.buffer as ArrayBuffer);
         this.device.queue.writeTexture(
             { texture: this.texture },
             textureBuffer,
@@ -61,7 +62,7 @@ export class Display extends HardwareDevice {
             { width: this.width, height: this.height }
         );
 
-        this.needsUpdate = true;
+        this.needsUpdate = false;
     }
 
     public onMemoryWrite(addr: number, value: number): void {
@@ -91,36 +92,62 @@ export class Display extends HardwareDevice {
     }
 
     private renderToTexture(): void {
-        if(!this.cpu) return;
+        if(!this.cpu) {
+            this.textureData.fill(0xFF0000FF);
+            return;
+        }
 
-        const font: number[] = [];
-        for(let i = 0; i < 256 * 4; i++) {
-            font.push(this.cpu.memory.read(this.fontStart + i));
+        const defaultColor = this.expandColor(0x0F00);
+        const font: number[] = Array(256 * 4).fill(0xFFFF);
+        if(this.fontStart > 0) {
+            for(let i = 0; i < 256 * 4; i++) {
+                const val = this.cpu.memory.read(this.fontStart + i);
+                font[i] = val !== undefined ? val : 0xFFFF
+            }
         }
 
         const palette: number[] = [];
         for(let i = 0; i < 16; i++) {
-            palette.push(this.cpu.memory.read(this.paletteStart + i));
+            palette[i] = this.paletteStart > 0
+            ? (this.cpu.memory.read(this.paletteStart + i) || (i * 0x111))
+            : (i * 0x111);
         }
 
-        const vram: number[] = [];
-        for(let i = 0; i < (this.width * this.height / 2); i++) {
-            vram.push(this.cpu.memory.read(this.vramStart + i));
+        const vram: number[] = Array(Math.floor(this.width * this.height / 2)).fill(0xF020);
+        if(this.vramStart > 0) {
+            for(let i = 0; i < (this.width * this.height / 2); i++) {
+                const val = this.cpu.memory.read(this.vramStart + i);
+                vram[i] = val !== undefined ? val : 0xF020;
+            }
         }
 
         for(let y = 0; y < this.height; y++) {
             for(let x = 0; x < this.width; x++) {
-                const cell = vram[Math.floor(y / 8) * 32 + Math.floor(x / 4)];
-                const fg = (cell >> 12) & 0xF;
-                const bg = (cell >> 8) & 0xF;
-                const char = cell & 0xFF;
-
-                const fontRow = font[char * 4 + (y % 8)];
-                const pixelOn = (fontRow >> (7 - (x % 8))) & 1;
-                const color = pixelOn ? palette[fg] : palette[bg];
-                this.textureData[y * this.width + x] = this.expandColor(color);
+                try {
+                    const cell = vram[Math.floor(y / 8) * 32 + Math.floor(x / 4)];
+                    const fg = (cell >> 12) & 0xF;
+                    const bg = (cell >> 8) & 0xF;
+                    const char = cell & 0xFF;
+    
+                    const fontRow = font[char * 4 + (y % 8)];
+                    const pixelOn = (fontRow >> (7 - (x % 8))) & 1;
+                    const color = pixelOn ? palette[fg] : palette[bg];
+                    this.textureData[y * this.width + x] = this.expandColor(color);
+                } catch(err) {
+                    this.textureData[y * this.width + x] = defaultColor;
+                    console.log('loading default texture...');
+                }
             }
         }
+
+        /*
+        console.log('Screen', this.cpu.memory.read(0x8000));
+        console.log("Palette:", this.cpu.memory.read(0x3000));
+        console.log("Font:", this.cpu.memory.read(0x4000));
+        console.log('First VRAM cell:', vram[0]);
+        console.log('First font entry:', font[0]);
+        console.log('First palette color:', palette[0]);
+        */
     }
 
     private expandColor(color: number): number {

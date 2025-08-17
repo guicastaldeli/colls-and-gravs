@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { mat3, mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
+import { mat4, vec3 } from "../../../../node_modules/gl-matrix/esm/index.js";
 import { AsmLoader } from "../../../asm-loader.js";
 import { Computer } from "../../../assembler/computer.js";
 import { Loader } from "../../../loader.js";
@@ -17,47 +17,52 @@ let EnvComputer = class EnvComputer {
     asmLoader;
     loader;
     displayTexture;
-    buffers;
+    model;
+    texture;
     modelMatrix;
     isInit = false;
+    initPromise;
     pos = {
         x: 5.0,
-        y: 0.0,
+        y: 2.0,
         z: 5.0
     };
     size = {
         w: 1.5,
         h: 1.5,
-        d: 1.0
+        d: 1.5
     };
     constructor(device, loader) {
         this.computer = new Computer(device);
         this.asmLoader = new AsmLoader();
         this.loader = loader;
         this.modelMatrix = mat4.create();
+        this.displayTexture = this.computer.getDisplayTexture();
+        this.initPromise = this.mainInit();
+    }
+    async mainInit() {
+        try {
+            await this.loadAssets();
+            await this.setComputer();
+            this.isInit = true;
+        }
+        catch (err) {
+            console.error(err);
+            throw err;
+        }
     }
     async loadAssets() {
         try {
             const [model] = await Promise.all([
-                this.loader.parser('./.assets/env/obj/smile.obj'),
+                this.loader.parser('./.assets/env/obj/earth.obj'),
                 this.loadProgram()
             ]);
-            const lamp = {
-                vertex: model.vertex,
-                color: model.color,
-                index: model.index,
-                indexCount: model.indexCount,
-                modelMatrix: this.modelMatrix,
-                normalMatrix: mat3.create(),
-                texture: this.displayTexture,
-                sampler: this.loader.createSampler(),
-                isLamp: [1.0, 1.0, 1.0],
-                isEmissive: [0.0, 0.0, 0.0]
-            };
-            return lamp;
+            if (!model)
+                throw new Error('err');
+            this.model = model;
         }
         catch (err) {
-            console.error(err);
+            console.log(err);
             throw err;
         }
     }
@@ -87,25 +92,23 @@ let EnvComputer = class EnvComputer {
     }
     async getBuffers() {
         if (!this.isInit)
-            throw new Error('not init yet!');
+            await this.initPromise;
+        if (!this.model)
+            throw new Error('computer model not loaded!');
         try {
             await this.setComputer();
-            const normalMatrix = mat3.create();
-            mat3.normalFromMat4(normalMatrix, this.buffers.modelMatrix);
-            this.buffers.normalMatrix = normalMatrix;
-            const buffers = {
-                vertex: this.buffers.vertex,
-                color: this.buffers.color,
-                index: this.buffers.index,
-                indexCount: this.buffers.indexCount,
+            return {
+                vertex: this.model.vertex,
+                color: this.model.color,
+                index: this.model.index,
+                indexCount: this.model.indexCount,
                 modelMatrix: this.modelMatrix,
-                normalMatrix: normalMatrix,
+                normalMatrix: this.model.normalMatrix,
                 texture: this.displayTexture,
                 sampler: this.loader.createSampler(),
                 isLamp: [0.0, 0.0, 0.0],
                 isEmissive: [0.0, 0.0, 0.0]
             };
-            return buffers;
         }
         catch (err) {
             console.error('Err computer', err);
@@ -117,9 +120,7 @@ let EnvComputer = class EnvComputer {
         this.displayTexture = this.computer.getDisplayTexture();
     }
     async init() {
-        this.displayTexture = this.computer.getDisplayTexture();
-        this.buffers = await this.loadAssets();
-        this.isInit = true;
+        return this.initPromise;
     }
 };
 EnvComputer = __decorate([
