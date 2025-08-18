@@ -23,14 +23,14 @@ let EnvComputer = class EnvComputer {
     isInit = false;
     initPromise;
     pos = {
-        x: 5.0,
+        x: 12.0,
         y: 3.0,
-        z: 5.0
+        z: 3.0
     };
     size = {
         w: 0.2,
         h: 0.2,
-        d: 0.2
+        d: 0.01
     };
     constructor(device, loader) {
         this.computer = new Computer(device);

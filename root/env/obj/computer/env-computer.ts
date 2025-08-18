@@ -19,15 +19,15 @@ export class EnvComputer {
     private initPromise: Promise<void>;
 
     private pos = {
-        x: 5.0,
+        x: 12.0,
         y: 3.0,
-        z: 5.0
+        z: 3.0
     }
 
     private size = {
         w: 0.2,
         h: 0.2,
-        d: 0.2
+        d: 0.01
     }
 
     constructor(device: GPUDevice, loader: Loader) {

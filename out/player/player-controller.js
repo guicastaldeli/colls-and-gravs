@@ -12,7 +12,7 @@ export class PlayerController {
     _right;
     _worldUp = vec3.fromValues(0, 1, 0);
     _cameraOffset = vec3.fromValues(0, 0, 0);
-    yaw = 0;
+    yaw = -90;
     pitch = 0;
     _movSpeed = 7.0;
     _mouseSensv = 0.4;

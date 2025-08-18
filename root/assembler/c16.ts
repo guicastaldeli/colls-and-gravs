@@ -34,6 +34,25 @@ export class C16 {
         const a = (instruction >> 4) & 0x3F;
         const b = (instruction >> 10) & 0x3F;
 
+        const isWriteOperation = [
+            0x01,
+            0x02,
+            0x03,
+            0x04,
+            0x05,
+            0x0a,
+            0x0b,
+            0x0c,
+            0x0d,
+            0x0e,
+            0x0f
+        ].includes(opcode);
+        if(isWriteOperation) {
+            if(a > 0x1F || (a >= 0x20 && a <= 0x3F)) {
+                throw new Error(`Cannot write to literal value in instruction 0x${instruction.toString(16)}`);
+            }
+        }
+
         switch(opcode) {
             case 0x00:
                 break;
@@ -60,6 +79,17 @@ export class C16 {
                 this.registers.EX = (signedProduct >> 16) & 0xFFFF;
                 this.setValue(a, signedProduct & 0xFFFF);
                 break;
+            case 0x06:
+                const dividend = this.getValue(a);
+                const divisor = this.getValue(b);
+
+                if(divisor === 0) {
+                    this.setValue(a, 0);
+                    this.registers.EX = 0;
+                } else {
+                    this.setValue(a, Math.floor(dividend / divisor) & 0xFFFF);
+                    this.registers.EX = ((dividend % divisor) << 16) / divisor & 0xFFFF;
+                }
             case 0x0a:
                 this.setValue(a, this.getValue(a) & this.getValue(b));
                 break;
@@ -73,6 +103,7 @@ export class C16 {
                 const shrResult = this.getValue(a) >>> this.getValue(b);
                 this.registers.EX = ((this.getValue(a) << (16 - this.getValue(b))) & 0xFFFF);
                 this.setValue(a, shrResult);
+                break;
             case 0x0e:
                 const asrResult = this.getSignedValue(a) >> this.getValue(b);
                 this.registers.EX = ((this.getValue(a) << (16 - this.getValue(b))) & 0xFFFF);
@@ -179,10 +210,10 @@ export class C16 {
             return;
         }
         if(param === 0x1F) {
-            throw new Error('Cannot write to literal value');
+            throw new Error(`Cannot set literal value 0x${value.toString(16)}`);
         }
         if(param >= 0x20) {
-            throw new Error('Cannot write to literal value');
+            throw new Error(`Cannot set small literal value 0x${(param - 0x20).toString(16)}`);
         }
         throw new Error(`Invalid param value: 0x${param.toString(16)}`);
     }

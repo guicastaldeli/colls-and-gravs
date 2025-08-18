@@ -156,11 +156,9 @@ export class Assembler {
             return 0x1e;
         }
 
-        /* <---- HERE!!!!!!!!!!!!!!!!!!!!!!!!!!! (fix later)
         const literal = this.parseLiteralOrLabel(op, labelRefs, outputLength + extraWords.length);
         if(literal <= 0x1f) return 0x20 + literal;
         extraWords.push(literal);
-        */
         return 0x1f;
     }
 
